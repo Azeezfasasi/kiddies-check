@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* When on dashboard pages we add .hide-site-header on body to hide the main site header */
+body.hide-site-header .site-main-header {
+  display: none !important;
+}
