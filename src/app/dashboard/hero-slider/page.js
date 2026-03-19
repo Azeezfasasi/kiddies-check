@@ -359,7 +359,7 @@ export default function HeroSliderManager() {
                       name="title"
                       value={formData.title}
                       onChange={handleInputChange}
-                      placeholder="e.g., Innovative Engineering, Strategic Management!"
+                      placeholder="e.g., Innovative Technology, Strategic Management!"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
                   </div>
@@ -373,7 +373,7 @@ export default function HeroSliderManager() {
                       name="subtitle"
                       value={formData.subtitle}
                       onChange={handleInputChange}
-                      placeholder="e.g., We build robust infrastructure and engineering solutions tailored to your needs."
+                      placeholder="e.g., We build robust infrastructure and technology solutions tailored to your needs."
                       rows="3"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     />
