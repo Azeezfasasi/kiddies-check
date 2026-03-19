@@ -397,52 +397,7 @@ export default function ProfileManagement() {
                     onChange={handleProfileChange}
                     disabled={profileLoading}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={profileForm.company}
-                    onChange={handleProfileChange}
-                    disabled={profileLoading}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                    placeholder="Your company"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Department
-                  </label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={profileForm.department}
-                    onChange={handleProfileChange}
-                    disabled={profileLoading}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                    placeholder="Engineering"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Position/Title
-                  </label>
-                  <input
-                    type="text"
-                    name="position"
-                    value={profileForm.position}
-                    onChange={handleProfileChange}
-                    disabled={profileLoading}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                    placeholder="Senior Engineer"
+                    placeholder="+234 000-0000"
                   />
                 </div>
               </div>

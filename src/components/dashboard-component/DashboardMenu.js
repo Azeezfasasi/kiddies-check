@@ -59,17 +59,6 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
   };
   const items = [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent'] },
-    // {
-    //   href: '/dashboard/projects',
-    //   label: 'Projects',
-    //   icon: 'projects',
-    //   roles: ['admin', 'learning-specialist'],
-    //   children: [
-    //     { href: '/dashboard/add-projects', label: 'Add Project', roles: ['admin', 'learning-specialist'] },
-    //     { href: '/dashboard/all-projects', label: 'All Projects', roles: ['admin', 'learning-specialist'] }
-    //   ]
-    // },
-    // { href: '/projects', label: 'Completed Projects', icon: 'projects', roles: ['client'] },
     {
       href: '/dashboard/blog',
       label: 'Blog',
@@ -83,17 +72,6 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
-    {
-      href: '/dashboard/users',
-      label: 'Manage Users',
-      icon: 'Users',
-      roles: ['admin'],
-      children: [
-        { href: '/dashboard/all-users', label: 'All Users', roles: ['admin'] },
-        { href: '/dashboard/add-user', label: 'Add User', roles: ['admin'] },
-        { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] }
-      ]
-    },
     {
       href: '/dashboard/all-newsletter',
       label: 'Newsletter Management',
