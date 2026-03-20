@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, memo, useEffect } from "react";
+import { useState, useRef, memo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -73,16 +73,16 @@ const FormField = memo(({
 
 FormField.displayName = "FormField";
 
-export default function Register() {
+function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register } = useAuth();
   const fileInputRef = useRef(null);
 
   // Detect if this is an invitation flow
-  const invitationToken = searchParams.get('invitationToken');
-  const schoolId = searchParams.get('schoolId');
-  const invitedEmail = searchParams.get('email') ? decodeURIComponent(searchParams.get('email')) : ''; // Decode URL-encoded email
+  const invitationToken = searchParams?.get('invitationToken') || '';
+  const schoolId = searchParams?.get('schoolId') || '';
+  const invitedEmail = searchParams?.get('email') ? decodeURIComponent(searchParams.get('email')) : ''; // Decode URL-encoded email
   const isInvitation = !!(invitationToken && schoolId);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -857,5 +857,13 @@ export default function Register() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Register() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>Loading...</p></div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

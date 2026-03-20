@@ -181,7 +181,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ createdAt: -1 });
-userSchema.index({ managedSchools: 1 });
+// managedSchools already has index: true in field definition
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
