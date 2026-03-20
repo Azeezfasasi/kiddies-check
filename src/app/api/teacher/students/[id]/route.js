@@ -1,0 +1,116 @@
+import Student from "@/app/server/models/Student";
+import User from "@/app/server/models/User";
+import { connectDB } from "@/utils/db";
+
+export async function GET(req, { params }) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const schoolId = req.nextUrl.searchParams.get("schoolId");
+    const { id } = params;
+
+    if (!userId || !schoolId) {
+      return Response.json({ error: "User and school information required" }, { status: 401 });
+    }
+
+    // Verify user access
+    const user = await User.findById(userId);
+    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    await connectDB();
+
+    const student = await Student.findOne({ _id: id, school: schoolId }).populate("class", "name level section");
+
+    if (!student) {
+      return Response.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    return Response.json({ student }, { status: 200 });
+  } catch (error) {
+    console.error("[Student Get Error]", error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req, { params }) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const schoolId = req.nextUrl.searchParams.get("schoolId");
+    const { id } = params;
+    const updateData = await req.json();
+
+    if (!userId || !schoolId) {
+      return Response.json({ error: "User and school information required" }, { status: 401 });
+    }
+
+    // Verify user access
+    const user = await User.findById(userId);
+    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    await connectDB();
+
+    // Check student exists
+    const student = await Student.findOne({ _id: id, school: schoolId });
+    if (!student) {
+      return Response.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    // Check if new enrollment number conflicts
+    if (updateData.enrollmentNo && updateData.enrollmentNo !== student.enrollmentNo) {
+      const existing = await Student.findOne({ school: schoolId, enrollmentNo: updateData.enrollmentNo });
+      if (existing) {
+        return Response.json({ error: "Enrollment number already exists" }, { status: 400 });
+      }
+    }
+
+    const updatedStudent = await Student.findByIdAndUpdate(
+      id,
+      { ...updateData, updatedAt: new Date() },
+      { new: true }
+    ).populate("class", "name level section");
+
+    return Response.json(
+      { message: "Student updated successfully", student: updatedStudent },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("[Student Update Error]", error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req, { params }) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const schoolId = req.nextUrl.searchParams.get("schoolId");
+    const { id } = params;
+
+    if (!userId || !schoolId) {
+      return Response.json({ error: "User and school information required" }, { status: 401 });
+    }
+
+    // Verify user access
+    const user = await User.findById(userId);
+    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    await connectDB();
+
+    const student = await Student.findOne({ _id: id, school: schoolId });
+    if (!student) {
+      return Response.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    // Soft delete
+    await Student.findByIdAndUpdate(id, { isActive: false });
+
+    return Response.json({ message: "Student deleted successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("[Student Delete Error]", error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}

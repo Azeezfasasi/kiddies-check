@@ -105,7 +105,7 @@ export default function UserChart() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-300 w-full lg:w-[48%]">
+    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-300 w-full">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">User Roles Distribution</h2>
       
       <ResponsiveContainer width="100%" height={400}>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
+import School from "../models/School.js";
 import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
@@ -108,6 +109,29 @@ export const register = async (req) => {
       );
     }
 
+    // Create or find School
+    let schoolRecord = await School.findOne({ name: school });
+    if (!schoolRecord) {
+      schoolRecord = new School({
+        name: school,
+        email: email, // Use school email, can be updated later
+        location: location,
+        model: model,
+        numberOfTeachers: parseInt(numberOfTeachers) || 0,
+        numberOfStudents: parseInt(numberOfStudents) || 0,
+        logo: schoolLogo,
+        approvalStatus: 'pending',
+        isActive: true,
+      });
+      await schoolRecord.save();
+    } else {
+      // Update existing school with new info if provided
+      schoolRecord.numberOfTeachers = parseInt(numberOfTeachers) || schoolRecord.numberOfTeachers;
+      schoolRecord.numberOfStudents = parseInt(numberOfStudents) || schoolRecord.numberOfStudents;
+      if (schoolLogo) schoolRecord.logo = schoolLogo;
+      await schoolRecord.save();
+    }
+
     // Create user
     const user = new User({
       firstName,
@@ -116,16 +140,23 @@ export const register = async (req) => {
       phone,
       role,
       password,
-      school,
-      location,
-      model,
-      numberOfTeachers,
-      numberOfStudents,
-      schoolLogo,
+      schoolId: schoolRecord._id,  // Reference to School model
+      schoolName: school,  // Keep for backward compatibility
+      location: location,
+      model: model,
+      numberOfTeachers: parseInt(numberOfTeachers),
+      numberOfStudents: parseInt(numberOfStudents),
+      schoolLogo: schoolLogo,
       isEmailVerified: false,
     });
 
     await user.save();
+
+    // Set as school principal if role is school-leader
+    if (role === 'school-leader') {
+      schoolRecord.principal = user._id;
+      await schoolRecord.save();
+    }
 
     // Generate and save OTP
     const otp = user.generateRegistrationOTP();
@@ -144,6 +175,7 @@ export const register = async (req) => {
         success: true,
         message: "Registration successful. OTP has been sent to your email. Please verify it to continue.",
         email,
+        schoolId: schoolRecord._id,
         requiresOtpVerification: true,
       },
       { status: 201 }
@@ -178,7 +210,7 @@ export const login = async (req) => {
     }
 
     // Find user and include password
-    const user = await User.findByEmail(email).select("+password");
+    const user = await User.findByEmail(email).select("+password").populate("schoolId");
 
     if (!user) {
       return NextResponse.json(
@@ -240,7 +272,12 @@ export const login = async (req) => {
         success: true,
         message: "Login successful",
         token,
-        user: userProfile,
+        user: {
+          ...userProfile,
+          schoolId: user.schoolId?._id || user.schoolId,
+          schoolName: user.schoolId?.name,
+        },
+        schoolId: user.schoolId?._id || user.schoolId,
         approvalStatus: user.approvalStatus,
         canAccessDashboard: user.approvalStatus === 'approved',
       },

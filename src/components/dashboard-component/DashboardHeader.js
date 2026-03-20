@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import useNotifications from './useNotifications';
 import NotificationModal from './NotificationModal';
 import { ArrowRightLeft } from 'lucide-react';
+import { SchoolSwitcher } from '@/app/components/SchoolSwitcher';
 
 export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu }) {
   const { user, logout } = useAuth();
@@ -12,10 +13,18 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
   const fullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
   const avatar = user && user.avatar ? user.avatar : '/images/profile1.jpg';
   const role = user?.role ? user.role.replace('-', ' ') : 'User';
+  const [activeSchoolId, setActiveSchoolId] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const notificationRef = useRef(null);
+
+  // Get active school ID from localStorage
+  useEffect(() => {
+    const schoolId = localStorage.getItem('schoolId');
+    if (schoolId) {
+      setActiveSchoolId(schoolId);
+    }
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -90,6 +99,12 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
               onClose={() => setNotificationOpen(false)}
               notifications={notifications}
               unreadCount={unreadCount}
+            />
+
+            <SchoolSwitcher 
+              currentSchoolId={activeSchoolId}
+              isAdmin={['admin', 'learning-specialist'].includes(user?.role)}
+              onSchoolSwitch={(newSchoolId) => setActiveSchoolId(newSchoolId)}
             />
 
             <div className="relative" ref={dropdownRef}>

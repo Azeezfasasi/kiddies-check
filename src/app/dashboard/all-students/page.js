@@ -1,0 +1,277 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users } from "lucide-react";
+import toast from "react-hot-toast";
+import StudentModal from "@/app/components/StudentModal";
+
+export default function AllStudentsPage() {
+  const router = useRouter();
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSchoolId, setActiveSchoolId] = useState("");
+  const [userId, setUserId] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedClass, setSelectedClass] = useState("all");
+
+  useEffect(() => {
+    // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
+    const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
+
+    if (!token || !schoolId || !userId) {
+      router.push("/login");
+      return;
+    }
+
+    setActiveSchoolId(schoolId);
+    setUserId(userId);
+    fetchData(schoolId, userId);
+  }, [router]);
+
+  const fetchData = async (schoolId, userId) => {
+    try {
+      setLoading(true);
+      
+      // Fetch classes
+      const classRes = await fetch(`/api/teacher/classes?schoolId=${schoolId}`, {
+        headers: { "x-user-id": userId },
+      });
+      if (classRes.ok) {
+        const classData = await classRes.json();
+        setClasses(classData.classes || []);
+      }
+
+      // Fetch students
+      const studentRes = await fetch(`/api/teacher/students?schoolId=${schoolId}`, {
+        headers: { "x-user-id": userId },
+      });
+
+      if (!studentRes.ok) {
+        throw new Error("Failed to fetch students");
+      }
+
+      const studentData = await studentRes.json();
+      setStudents(studentData.students || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddStudent = () => {
+    setEditingStudent(null);
+    setShowModal(true);
+  };
+
+  const handleEditStudent = (studentData) => {
+    setEditingStudent(studentData);
+    setShowModal(true);
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    try {
+      const response = await fetch(
+        `/api/teacher/students/${studentId}?schoolId=${activeSchoolId}`,
+        {
+          method: "DELETE",
+          headers: { "x-user-id": userId },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete student");
+      }
+
+      setStudents(students.filter((s) => s._id !== studentId));
+      toast.success("Student deleted successfully");
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      toast.error("Failed to delete student");
+    }
+  };
+
+  const handleStudentSaved = () => {
+    setShowModal(false);
+    fetchData(activeSchoolId, userId);
+  };
+
+  const filteredStudents = selectedClass === "all" 
+    ? students 
+    : students.filter(s => s.class?._id === selectedClass);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <Loader className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-gray-600">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Students Management</h1>
+            <p className="text-gray-600 mt-2">Manage student information across all classes</p>
+          </div>
+          <button
+            onClick={handleAddStudent}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            Add Student
+          </button>
+        </div>
+
+        {/* Filter by Class */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Filter by Class</label>
+          <select
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Classes</option>
+            {classes.map((cls) => (
+              <option key={cls._id} value={cls._id}>
+                {cls.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Students Table */}
+        {filteredStudents.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-12 text-center">
+            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">No students found</h2>
+            <p className="text-gray-600 mb-6">Add your first student to get started</p>
+            <button
+              onClick={handleAddStudent}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Student
+            </button>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Class</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Enrollment</th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredStudents.map((student) => (
+                    <tr key={student._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {student.firstName} {student.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500">{student.gender || "N/A"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-800">{student.class?.name || "N/A"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600 text-sm">{student.email || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600 text-sm">{student.phone || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-600 text-sm">{student.enrollmentNo || "—"}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleEditStudent(student)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(student._id)}
+                            className="text-red-600 hover:text-red-800 transition-colors p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <StudentModal
+          studentData={editingStudent}
+          schoolId={activeSchoolId}
+          userId={userId}
+          classes={classes}
+          onClose={() => setShowModal(false)}
+          onSave={handleStudentSaved}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-sm">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Confirm Delete</h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete this student? This action cannot be undone.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteStudent(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

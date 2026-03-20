@@ -20,6 +20,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("token");
+    localStorage.removeItem("schoolId");
+    localStorage.removeItem("userId");
   }, []);
 
   // Load token from localStorage on mount and fetch profile
@@ -70,6 +72,14 @@ export const AuthProvider = ({ children }) => {
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem("token", data.token);
+        // Save schoolId if available
+        if (data.schoolId) {
+          localStorage.setItem("schoolId", data.schoolId);
+        }
+        // Also save userId for API calls
+        if (data.user?._id) {
+          localStorage.setItem("userId", data.user._id);
+        }
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -105,6 +115,14 @@ export const AuthProvider = ({ children }) => {
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem("token", data.token);
+        // Save schoolId if available
+        if (data.schoolId) {
+          localStorage.setItem("schoolId", data.schoolId);
+        }
+        // Also save userId for API calls
+        if (data.user?._id) {
+          localStorage.setItem("userId", data.user._id);
+        }
         return { success: true };
       }
       return { success: false, message: data.message };

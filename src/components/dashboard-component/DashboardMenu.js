@@ -73,6 +73,29 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
     {
+      href: '/dashboard/schools',
+      label: 'School Management',
+      icon: 'Newsletter',
+      roles: ['admin', 'school-leader', 'learning-specialist'],
+      children: [
+        { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/subscribers', label: 'Add Members', roles: ['admin', 'school-leader', 'learning-specialist'] },
+      ]
+    },
+    {
+      href: '/dashboard/teachers',
+      label: 'Teacher',
+      icon: 'Newsletter',
+      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher', 'school-leader'],
+      children: [
+        { href: '/dashboard/all-classes', label: 'Classes', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+        { href: '/dashboard/all-students', label: 'All Students', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+        { href: '/dashboard/all-subjects', label: 'Subjects', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+        { href: '/dashboard/student-assessments', label: 'Student Assessments', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+      ]
+    },
+    {
       href: '/dashboard/all-newsletter',
       label: 'Newsletter Management',
       icon: 'Newsletter',

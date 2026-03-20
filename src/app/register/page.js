@@ -1,7 +1,7 @@
 "use client";
-import { useState, useRef, memo } from "react";
+import { useState, useRef, memo, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 // Separate FormField component to prevent re-creation on each render
@@ -18,6 +18,7 @@ const FormField = memo(({
   onChange,
   onKeyDown,
   errors,
+  disabled = false,
 }) => (
   <div className="mb-6">
     <label htmlFor={name} className="block text-gray-700 font-medium mb-2">
@@ -32,7 +33,10 @@ const FormField = memo(({
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        disabled={disabled}
         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+          disabled ? 'bg-gray-100 cursor-not-allowed' : ''
+        } ${
           errors[name] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
         }`}
         placeholder={placeholder}
@@ -46,7 +50,10 @@ const FormField = memo(({
         value={value}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        disabled={disabled}
         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+          disabled ? 'bg-gray-100 cursor-not-allowed' : ''
+        } ${
           errors[name] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
         }`}
       >
@@ -68,8 +75,15 @@ FormField.displayName = "FormField";
 
 export default function Register() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register } = useAuth();
   const fileInputRef = useRef(null);
+
+  // Detect if this is an invitation flow
+  const invitationToken = searchParams.get('invitationToken');
+  const schoolId = searchParams.get('schoolId');
+  const invitedEmail = searchParams.get('email') ? decodeURIComponent(searchParams.get('email')) : ''; // Decode URL-encoded email
+  const isInvitation = !!(invitationToken && schoolId);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -79,9 +93,9 @@ export default function Register() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
+    email: "", // Will be populated in useEffect if invitation
     phone: "",
-    role: "",
+    role: "", // Will be set automatically for invited users
     password: "",
     confirmPassword: "",
     school: "",
@@ -94,7 +108,40 @@ export default function Register() {
     terms: false,
   });
 
-  const totalSteps = 5;
+  // Pre-fill invited email from URL parameter or by checking invitations
+  useEffect(() => {
+    const fetchInvitationEmail = async () => {
+      if (isInvitation && !invitedEmail) {
+        // If email not in URL, fetch it from the invitation record
+        try {
+          const response = await fetch(`/api/school/invitation/details?invitationToken=${invitationToken}&schoolId=${schoolId}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.data?.email) {
+              setFormData((prev) => ({
+                ...prev,
+                email: data.data.email,
+              }));
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch invitation email:', err);
+        }
+      } else if (isInvitation && invitedEmail) {
+        // Email is in URL, use it directly
+        setFormData((prev) => ({
+          ...prev,
+          email: invitedEmail,
+        }));
+      }
+    };
+
+    fetchInvitationEmail();
+  }, [isInvitation, invitedEmail, invitationToken, schoolId]);
+
+  // For invited users: skip role step, so totalSteps is 2 (personal info + password)
+  // For regular users: 5 steps
+  const totalSteps = isInvitation ? 2 : 5;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -167,17 +214,25 @@ export default function Register() {
     if (step === 1) {
       if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
       if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-      if (!formData.email.trim()) newErrors.email = "Email is required";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-        newErrors.email = "Invalid email address";
+      
+      // For invited users, skip email validation - it's pre-filled and read-only
+      if (!isInvitation) {
+        if (!formData.email.trim()) newErrors.email = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+          newErrors.email = "Invalid email address";
+      }
+      
       if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     }
 
-    if (step === 2) {
+    // Skip role validation for invited users (they already have a role assigned)
+    if (step === 2 && !isInvitation) {
       if (!formData.role) newErrors.role = "Role is required";
     }
 
-    if (step === 3) {
+    // For invited users, password is step 2; for regular users, it's step 3
+    const passwordStep = isInvitation ? 2 : 3;
+    if (step === passwordStep) {
       if (!formData.password) newErrors.password = "Password is required";
       else if (formData.password.length < 6)
         newErrors.password = "Password must be at least 6 characters";
@@ -202,6 +257,11 @@ export default function Register() {
       if (!formData.terms) newErrors.terms = "You must agree to the terms";
     }
 
+    // Skip steps 4 and 5 for invited users
+    if (isInvitation && (step === 4 || step === 5)) {
+      return true;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -224,6 +284,44 @@ export default function Register() {
     setSubmitting(true);
 
     try {
+      if (isInvitation) {
+        // For invited users, use the invitation acceptance endpoint
+        const acceptResponse = await fetch('/api/school/invitation/accept', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            invitationToken,
+            schoolId,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+          }),
+        });
+
+        const acceptData = await acceptResponse.json();
+
+        if (acceptData.success) {
+          // Auto-login with returned token
+          if (acceptData.data.token) {
+            localStorage.setItem('token', acceptData.data.token);
+            localStorage.setItem('userId', acceptData.data.user._id);
+            localStorage.setItem('schoolId', acceptData.data.user.schoolId);
+          }
+          // Redirect to dashboard
+          router.push('/dashboard');
+          return;
+        }
+
+        alert(acceptData.error || 'Failed to accept invitation');
+        return;
+      }
+
+      // Regular registration flow (not invited)
       let schoolLogoUrl = null;
 
       // Upload school logo to Cloudinary if available
@@ -317,10 +415,13 @@ export default function Register() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Create Your Account
+            {isInvitation ? "Complete Your Profile" : "Create Your Account"}
           </h1>
           <p className="text-gray-600 text-lg">
-            Join Kiddies Check and manage your school effortlessly
+            {isInvitation 
+              ? "Set up your credentials to join the school"
+              : "Join Kiddies Check and manage your school effortlessly"
+            }
           </p>
         </div>
 
@@ -375,11 +476,17 @@ export default function Register() {
                 type="email"
                 placeholder="your.email@example.com"
                 required
+                disabled={isInvitation}
                 value={formData.email}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 errors={errors}
               />
+              {isInvitation && (
+                <p className="text-sm text-gray-500 -mt-4 mb-4">
+                  This email cannot be changed as it was used for your invitation.
+                </p>
+              )}
 
               <FormField
                 label="Phone Number"
@@ -396,8 +503,8 @@ export default function Register() {
             </div>
           )}
 
-          {/* Step 2: Select Your Role */}
-          {currentStep === 2 && (
+          {/* Step 2: Select Your Role (SKIP for invited users) */}
+          {!isInvitation && currentStep === 2 && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -449,8 +556,8 @@ export default function Register() {
             </div>
           )}
 
-          {/* Step 3: Password Setup */}
-          {currentStep === 3 && (
+          {/* Step 3/2: Password Setup - Step 3 for regular users, Step 2 for invited users */}
+          {currentStep === (isInvitation ? 2 : 3) && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -508,7 +615,7 @@ export default function Register() {
           )}
 
           {/* Step 4: School Information */}
-          {currentStep === 4 && (
+          {!isInvitation && currentStep === 4 && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -585,7 +692,7 @@ export default function Register() {
           )}
 
           {/* Step 5: School Logo & Agreement */}
-          {currentStep === 5 && (
+          {!isInvitation && currentStep === 5 && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">

@@ -52,7 +52,19 @@ const userSchema = new mongoose.Schema(
     },
 
     // School Onboarding process
-    school: { type: String, trim: true },
+    schoolName: { type: String, trim: true }, // Legacy field, use schoolId
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      index: true,
+    },
+    // Multi-school access for admins and learning-specialists
+    managedSchools: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'School',
+      default: [],
+      index: true,
+    },
     location: { type: String, trim: true },
     model: { type: String, trim: true },
     numberOfTeachers: { type: Number },
@@ -169,6 +181,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ managedSchools: 1 });
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
@@ -323,6 +336,25 @@ userSchema.statics.findByEmail = function (email) {
 // Static method to find by role
 userSchema.statics.findByRole = function (role) {
   return this.find({ role });
+};
+
+// Method to check if user can access a school
+userSchema.methods.canAccessSchool = function (schoolId) {
+  // Admin and learning-specialist can access schools in managedSchools
+  if (['admin', 'learning-specialist'].includes(this.role)) {
+    return this.managedSchools.some(id => id.toString() === schoolId.toString());
+  }
+  // Other users can only access their own school
+  return this.schoolId && this.schoolId.toString() === schoolId.toString();
+};
+
+// Method to get all accessible schools
+userSchema.methods.getAccessibleSchools = async function () {
+  if (['admin', 'learning-specialist'].includes(this.role)) {
+    return this.managedSchools;
+  }
+  // Return primary school only
+  return this.schoolId ? [this.schoolId] : [];
 };
 
 export default mongoose.models.User || mongoose.model("User", userSchema);
