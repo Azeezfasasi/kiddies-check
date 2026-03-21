@@ -115,9 +115,9 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
                 aria-expanded={dropdownOpen}
               >
                 <div className="rounded-[50%] overflow-hidden">
-                  <Image src={avatar} alt="User avatar" width={32} height={32} className="object-cover h-10 w-10" />
+                  <Image src={avatar} alt="User avatar" width={32} height={32} className="object-cover md:h-10  md:w-10" />
                 </div>
-                <div className='flex flex-col items-start'>
+                <div className='hidden sm:flex flex-col items-start'>
                   <span className="hidden sm:block text-sm text-gray-700">{fullName || 'User'}</span>
                   <span className="hidden sm:block text-sm text-gray-700">{role.charAt(0).toUpperCase() + role.slice(1)}</span>
                 </div>

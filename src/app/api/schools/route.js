@@ -2,6 +2,7 @@ import { authenticate } from "@/app/server/middleware/auth.js";
 import { connectDB } from "@/utils/db.js";
 import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
+import User from "@/app/server/models/User.js";
 import { NextResponse } from "next/server";
 
 // GET /api/schools - Fetch schools with search, filter, and pagination
@@ -131,6 +132,13 @@ export async function POST(req) {
       });
 
       await newSchool.save();
+
+      // Add school to admin's managedSchools
+      await User.findByIdAndUpdate(
+        user._id,
+        { $addToSet: { managedSchools: newSchool._id } },
+        { new: true }
+      );
 
       return NextResponse.json(
         {

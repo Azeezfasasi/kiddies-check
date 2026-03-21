@@ -113,9 +113,10 @@ export async function PUT(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    const hasAccess = user && (user.schoolId.toString() === schoolId || 
-      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)));
-    if (!hasAccess) {
+    const hasSchoolAccess = 
+      (user?.schoolId && user.schoolId.toString() === schoolId) || 
+      (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
+    if (!user || !hasSchoolAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 

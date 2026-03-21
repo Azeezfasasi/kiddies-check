@@ -42,13 +42,13 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
           const fetchedSchools = data.data.schools || [];
           setSchools(fetchedSchools);
           
-          // Set current school
+          // Set current school - only set if currentSchoolId is explicitly provided
           if (currentSchoolId && fetchedSchools) {
             const current = fetchedSchools.find(s => s._id === currentSchoolId);
             setCurrentSchool(current);
-          } else if (fetchedSchools.length > 0) {
-            setCurrentSchool(fetchedSchools[0]);
           }
+          // Don't auto-select - let the user choose
+          // This allows the "Select School" state to remain until explicitly switched
         } else {
           const errorData = await response.json();
           setError(errorData.error || 'Failed to fetch schools');

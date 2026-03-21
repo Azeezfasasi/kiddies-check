@@ -108,20 +108,17 @@ const AddEditModal = React.memo(({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 School Model
               </label>
-              <input
-                type="text"
-                value={formData.model}
-                onChange={(e) =>
-                  setFormData({ ...formData, model: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Public, Private, Hybrid"
-              />
+              <select value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Select model</option>
+                <option value="primary">Primary</option>
+                <option value="secondary">Secondary</option>
+                <option value="both">Both Primary and Secondary</option>
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Website
+                Website <span className="text-gray-600">(Optional)</span>
               </label>
               <input
                 type="url"

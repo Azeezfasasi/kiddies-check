@@ -14,7 +14,11 @@ export async function GET(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasSchoolAccess = 
+      (user?.schoolId && user.schoolId.equals(schoolId)) || 
+      (user?.managedSchools && user.managedSchools.includes(schoolId));
+    
+    if (!user || !hasSchoolAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
