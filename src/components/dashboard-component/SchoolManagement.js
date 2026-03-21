@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -538,7 +539,29 @@ export default function SchoolManagement() {
                   {schools.map((school) => (
                     <tr key={school._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{school.name}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-10 h-10 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                            {school.logo || school.principal?.schoolLogo ? (
+                              <Image
+                                src={school.logo || school.principal?.schoolLogo}
+                                alt={school.name}
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                                unoptimized={false}
+                              />
+                            ) : (
+                              <Image
+                                src="/images/projectplaceholder.png"
+                                alt={school.name}
+                                fill
+                                sizes="40px"
+                                className="object-cover"
+                              />
+                            )}
+                          </div>
+                          <p className="font-medium text-gray-900">{school.name}</p>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {school.email}

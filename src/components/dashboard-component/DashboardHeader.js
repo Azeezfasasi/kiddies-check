@@ -134,11 +134,11 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
                       <Link href="/dashboard/manage-registration" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition w-full text-left">Manage Applications</Link>
                     </li>
                     ) : null}
-                    {user?.role === 'admin' || user?.role === 'learning-specialist' ? (
+                    {/* {user?.role === 'admin' || user?.role === 'learning-specialist' ? ( */}
                     <li>
                       <Link href="/dashboard/my-profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition w-full text-left">Profile</Link>
                     </li>
-                    ) : null}
+                    {/* ) : null} */}
                     <li>
                       <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-700 hover:bg-gray-100 hover:font-semibold transition">Logout</button>
                     </li>

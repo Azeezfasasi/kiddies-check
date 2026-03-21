@@ -51,8 +51,12 @@ export async function GET(req) {
 
       const schools = await School.find(query)
         .select(
-          "name email phone location model website description numberOfStudents numberOfTeachers approvalStatus isActive createdAt"
+          "name email phone location model logo website description numberOfStudents numberOfTeachers approvalStatus isActive createdAt principal"
         )
+        .populate({
+          path: "principal",
+          select: "schoolLogo firstName lastName"
+        })
         .sort({ createdAt: -1 })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
