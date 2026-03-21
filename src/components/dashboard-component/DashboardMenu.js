@@ -72,6 +72,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'dashboard', roles: ['admin', 'learning-specialist'] },
     {
       href: '/dashboard/schools',
       label: 'School Management',

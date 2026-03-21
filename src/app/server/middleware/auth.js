@@ -53,7 +53,7 @@ export const authenticate = async (req, callback) => {
     }
 
     req.user = { id: user._id, role: user.role, permissions: user.permissions };
-    return callback();
+    return callback(user);
   } catch (error) {
     console.error("Authentication error:", error);
     return NextResponse.json(

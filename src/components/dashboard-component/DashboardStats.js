@@ -28,9 +28,41 @@ function Icon({ name }) {
           <circle cx="12" cy="7" r="4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
-    case 'blogs':
+    case 'leaders':
+      return (
+        <svg className="w-6 h-6 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
+    case 'specialists':
+      return (
+        <svg className="w-6 h-6 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m0 0h6M12 6H6M6 12h6m6 0h6" />
+          <circle cx="12" cy="12" r="10" strokeWidth="2" />
+        </svg>
+      )
+    case 'teachers':
       return (
         <svg className="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+        </svg>
+      )
+    case 'parents':
+      return (
+        <svg className="w-6 h-6 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+        </svg>
+      )
+    case 'admin':
+      return (
+        <svg className="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <circle cx="12" cy="12" r="2.5" strokeWidth="2" />
+        </svg>
+      )
+    case 'blogs':
+      return (
+        <svg className="w-6 h-6 text-cyan-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
         </svg>
       )
@@ -40,22 +72,9 @@ function Icon({ name }) {
           <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21 8V7l-3 2-2-1-3 2V7L3 12v6a2 2 0 002 2h14a2 2 0 002-2v-8z" />
         </svg>
       )
-    case 'quotes':
-      return (
-        <svg className="w-6 h-6 text-pink-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8 7h8M8 11h6" />
-          <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" />
-        </svg>
-      )
-    case 'projects':
-      return (
-        <svg className="w-6 h-6 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M3 12h18M3 17h18" />
-        </svg>
-      )
     case 'requests':
       return (
-        <svg className="w-6 h-6 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <svg className="w-6 h-6 text-pink-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3" />
           <circle cx="12" cy="12" r="10" strokeWidth="2" />
         </svg>
@@ -145,20 +164,26 @@ export default function DashboardStats({ data = {} }) {
 
   // Use provided data if no token, otherwise use fetched stats
   const displayStats = stats || data || {
-    users: 0,
+    totalUsers: 0,
+    schoolLeaders: 0,
+    learningSpecialists: 0,
+    teachers: 0,
+    parents: 0,
+    admins: 0,
     blogs: 0,
     contacts: 0,
-    quotes: 0,
-    projects: 0,
     requests: 0,
   };
 
   const items = [
-    { key: 'users', label: 'Active Users', value: displayStats.users, icon: 'users' },
+    { key: 'totalUsers', label: 'Total Users', value: displayStats.totalUsers, icon: 'users' },
+    { key: 'schoolLeaders', label: 'School Leaders', value: displayStats.schoolLeaders, icon: 'leaders' },
+    { key: 'learningSpecialists', label: 'Learning Specialists', value: displayStats.learningSpecialists, icon: 'specialists' },
+    { key: 'teachers', label: 'Teachers', value: displayStats.teachers, icon: 'teachers' },
+    { key: 'parents', label: 'Parents', value: displayStats.parents, icon: 'parents' },
+    { key: 'admins', label: 'Admin', value: displayStats.admins, icon: 'admin' },
     { key: 'blogs', label: 'Published Blogs', value: displayStats.blogs, icon: 'blogs' },
     { key: 'contacts', label: 'Contact Forms', value: displayStats.contacts, icon: 'contacts' },
-    { key: 'quotes', label: 'Quote Requests', value: displayStats.quotes, icon: 'quotes' },
-    { key: 'projects', label: 'Projects', value: displayStats.projects, icon: 'projects' },
     { key: 'requests', label: 'Pending Requests', value: displayStats.requests, icon: 'requests' },
   ];
 

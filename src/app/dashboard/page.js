@@ -1,6 +1,8 @@
 "use client";
 import React from "react";
 import DashboardStats from "@/components/dashboard-component/DashboardStats";
+import SchoolLeaderStats from "@/components/dashboard-component/SchoolLeaderStats";
+import TeacherStats from "@/components/dashboard-component/TeacherStats";
 import DashboardWelcome from "@/components/dashboard-component/DashboardWelcome";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -38,6 +40,10 @@ export default function Dashboard() {
           <UserChart />
         </div>
         </>
+      ) : user?.role === 'school-leader' ? (
+        <SchoolLeaderStats />
+      ) : user?.role === 'teacher' ? (
+        <TeacherStats />
       ) : null}
     </>
   );
