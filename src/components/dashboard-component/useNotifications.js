@@ -21,10 +21,16 @@ const useNotifications = () => {
 
         setLoading(true);
 
-        // Fetch pending quotes
-        const quotesRes = await axios.get('/api/quote');
-        const quotes = quotesRes.data.quotes || [];
-        const pendingQuotes = quotes.filter(q => q.status?.toLowerCase() === 'pending');
+        // Fetch pending registrations
+        const registrationsRes = await axios.get('/api/admin/registrations', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const registrations = registrationsRes.data.registrations || [];
+        const pendingRegistrations = registrations.filter(
+          r => r.approvalStatus?.toLowerCase() === 'pending'
+        );
 
         // Fetch contact form responses
         const contactsRes = await axios.get('/api/contact');
@@ -35,14 +41,14 @@ const useNotifications = () => {
 
         // Combine notifications
         const combinedNotifications = [
-          ...pendingQuotes.map(quote => ({
-            id: `quote-${quote._id}`,
-            type: 'quote',
-            title: 'Pending Quote Request',
-            message: `Quote request from ${quote.fullName || 'Unknown'}`,
-            time: new Date(quote.createdAt).toLocaleDateString(),
-            link: '/dashboard/quote-requests',
-            icon: '📋',
+          ...pendingRegistrations.map(registration => ({
+            id: `registration-${registration._id}`,
+            type: 'registration',
+            title: 'Pending Registration',
+            message: `${registration.firstName} ${registration.lastName} (${registration.school || 'Unknown School'})`,
+            time: new Date(registration.createdAt).toLocaleDateString(),
+            link: '/dashboard/manage-registration',
+            icon: '👤',
           })),
           ...pendingContacts.map(contact => ({
             id: `contact-${contact._id}`,

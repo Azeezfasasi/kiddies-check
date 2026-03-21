@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images } from 'lucide-react';
+import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
 
 function Icon({ name }) {
@@ -12,9 +12,21 @@ function Icon({ name }) {
       return (
         <LayoutDashboard className="w-5 h-5" />
       )
-    case 'projects':
+    case 'registration':
       return (
-        <Briefcase className="w-5 h-5" />
+        <FileStack className="w-5 h-5" />
+      )
+    case 'school':
+      return (
+        <School className="w-5 h-5" />
+      )
+    case 'graduation':
+      return (
+        <GraduationCap className="w-5 h-5" />
+      )
+    case 'teacher':
+      return (
+        <UserRoundPen className="w-5 h-5" />
       )
     case 'blog':
       return (
@@ -31,6 +43,18 @@ function Icon({ name }) {
     case 'Users':
     return (
       <Users className="w-5 h-5" />
+    )
+    case 'house':
+    return (
+      <House className="w-5 h-5" />
+      )
+    case 'about':
+    return (
+      <Info className="w-5 h-5" />
+    )
+    case 'profile':
+    return (
+      <UserRoundCogIcon className="w-5 h-5" />
     )
     case 'Newsletter':
     return (
@@ -71,12 +95,12 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     },
     { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
-    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
-    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'dashboard', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin', 'learning-specialist'] },
     {
       href: '/dashboard/schools',
       label: 'School Management',
-      icon: 'Newsletter',
+      icon: 'graduation',
       roles: ['admin', 'school-leader'],
       children: [
         { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader'] },
@@ -86,7 +110,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     {
       href: '/dashboard/teachers',
       label: 'Teacher',
-      icon: 'Newsletter',
+      icon: 'teacher',
       roles: ['admin', 'school-leader', 'learning-specialist', 'teacher', 'school-leader'],
       children: [
         { href: '/dashboard/all-classes', label: 'Classes', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
@@ -128,11 +152,11 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] }
       ]
     },
-    { href: '/dashboard/my-profile', label: 'Profile', icon: 'dashboard', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
+    { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
     {
       href: '/dashboard/home',
       label: 'Homepage Contents',
-      icon: 'Gallery',
+      icon: 'house',
       roles: ['admin', 'learning-specialist'],
       children: [
         { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: ['admin', 'learning-specialist'] },
@@ -141,12 +165,13 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/testimonials', label: 'Testimonials', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/why-rayob', label: 'Why Kiddies Check', roles: ['admin', 'learning-specialist'] },
+        
       ]
     },
     {
       href: '/dashboard/about-page',
       label: 'About Page Contents',
-      icon: 'Gallery',
+      icon: 'about',
       roles: ['admin', 'learning-specialist'],
       children: [
         { href: '/dashboard/company-overview', label: 'Company Overview', roles: ['admin', 'learning-specialist'] },

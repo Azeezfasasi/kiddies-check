@@ -5,6 +5,7 @@ import Contact from "@/app/server/models/Contact.js";
 import Quote from "@/app/server/models/Quote.js";
 import Project from "@/app/server/models/Project.js";
 import SchoolMember from "@/app/server/models/SchoolMember.js";
+import Student from "@/app/server/models/Student.js";
 import { connectDB } from "@/app/server/db/connect.js";
 import { NextResponse } from "next/server";
 
@@ -28,17 +29,19 @@ export async function GET(req) {
           teachersCount,
           parentsCount,
           adminCount,
+          studentsCount,
         ] = await Promise.all([
           User.countDocuments({ isActive: true }),
           Blog.countDocuments({ status: "published" }),
           Contact.countDocuments(),
           Quote.countDocuments(),
           Project.countDocuments(),
-          SchoolMember.countDocuments({ role: "school-leader", status: "active" }),
-          SchoolMember.countDocuments({ role: "learning-specialist", status: "active" }),
+          User.countDocuments({ role: "school-leader", isActive: true }),
+          User.countDocuments({ role: "learning-specialist", isActive: true }),
           SchoolMember.countDocuments({ role: "teacher", status: "active" }),
-          SchoolMember.countDocuments({ role: "parent", status: "active" }),
+          User.countDocuments({ role: "parent", isActive: true }),
           User.countDocuments({ role: "admin", isActive: true }),
+          Student.countDocuments(),
         ]);
 
         // Count pending/open items
@@ -54,6 +57,7 @@ export async function GET(req) {
           teachers: teachersCount,
           parents: parentsCount,
           admins: adminCount,
+          students: studentsCount,
           blogs: blogsCount,
           contacts: contactsCount,
           requests: pendingQuotes + pendingContacts,

@@ -14,8 +14,10 @@ export async function GET() {
     const content = await getWhyRayobContent();
     return Response.json({ success: true, data: content });
   } catch (error) {
+    console.error('Error in why-rayob GET:', error);
+    console.error('Error stack:', error.stack);
     return Response.json(
-      { success: false, error: error.message },
+      { success: false, error: error.message, stack: error.stack },
       { status: 500 }
     );
   }

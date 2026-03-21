@@ -11,7 +11,6 @@ export async function getWhyRayobContent() {
   if (!content) {
     const defaultReasons = [
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 1,
         title: "Multidisciplinary Expertise in Education, Project Management, and Technology",
         description:
@@ -20,7 +19,6 @@ export async function getWhyRayobContent() {
         order: 1,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 2,
         title: "Proven Track Record of Successful Project Execution",
         description:
@@ -29,7 +27,6 @@ export async function getWhyRayobContent() {
         order: 2,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 3,
         title: "Rigorous Project Management Methodology",
         description:
@@ -38,7 +35,6 @@ export async function getWhyRayobContent() {
         order: 3,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 4,
         title: "Commitment to Quality and Safety",
         description:
@@ -47,7 +43,6 @@ export async function getWhyRayobContent() {
         order: 4,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 5,
         title: "Client-Centric Approach with Tailored Solutions",
         description:
@@ -56,15 +51,14 @@ export async function getWhyRayobContent() {
         order: 5,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 6,
         title: "Experienced and Skilled Project Teams",
         description:
           "Kiddies Check has a team of experienced professionals with deep expertise in educational technology and project management. Our team members are highly skilled in their respective fields, enabling us to deliver innovative solutions and effectively manage complex projects from inception to completion.",
+        icon: "CheckCircle",
         order: 6,
       },
       {
-        _id: new mongoose.Types.ObjectId(),
         id: 7,
         title: "Strong Culture of Integrity and Accountability",
         description:
@@ -75,7 +69,13 @@ export async function getWhyRayobContent() {
     ];
 
     content = await WhyRayob.create({
+      heading: "Why Choose Kiddies Check?",
+      subheading: "",
       reasons: defaultReasons,
+      ctaHeading: "Ready to Partner With Us?",
+      ctaDescription: "Contact Kiddies Check today to discuss your project needs and discover how we can help you achieve your goals with our innovative solutions and expert project management.",
+      ctaButton1: { label: "Contact Us Today", href: "/contact-us" },
+      ctaButton2: { label: "Learn More", href: "#" },
     });
   }
 

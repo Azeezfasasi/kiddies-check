@@ -64,6 +64,38 @@ export default function DashboardWelcome() {
               {greeting}, <span className="text-blue-900">{firstName}</span>
             </h1>
             <p className="mt-1 text-sm text-gray-500">{dateStr} • {timeStr}</p>
+            {/* add role-specific content here */}
+            {user?.role === 'admin' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You have administrative privileges.
+              </p>
+            )}
+            {user?.role === 'learning-specialist' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You are a learning specialist.
+              </p>
+            )}
+
+            {user?.role === 'school-leader' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You are a school leader.
+              </p>
+            )}
+            {user?.role === 'student' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You are a student.
+              </p>
+            )}
+            {user?.role === 'teacher' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You are a teacher.
+              </p>
+            )}
+            {user?.role === 'parent' && (
+              <p className="text-xs text-blue-800 font-semibold italic">
+                You are a parent.
+              </p>
+            )}
           </div>
         </div>
 

@@ -28,7 +28,8 @@ async function uploadWithRetry(fileData, folderName, maxRetries = 3) {
       lastError = error;
       
       // Only retry on timeout or connection errors
-      if (!error.message.includes('Timeout') && !error.message.includes('ECONNREFUSED') && attempt === maxRetries) {
+      const errorMsg = error?.message || error?.toString?.() || 'Unknown error';
+      if (!errorMsg.includes('Timeout') && !errorMsg.includes('ECONNREFUSED') && attempt === maxRetries) {
         throw error;
       }
       

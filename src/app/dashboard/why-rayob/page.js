@@ -37,18 +37,22 @@ export default function page() {
       if (result.success) {
         setContent(result.data)
         setHeadingData({
-          heading: result.data.heading,
-          subheading: result.data.subheading,
+          heading: result.data.heading || '',
+          subheading: result.data.subheading || '',
         })
         setCtaData({
-          ctaHeading: result.data.ctaHeading,
-          ctaDescription: result.data.ctaDescription,
-          ctaButton1: result.data.ctaButton1,
-          ctaButton2: result.data.ctaButton2,
+          ctaHeading: result.data.ctaHeading || '',
+          ctaDescription: result.data.ctaDescription || '',
+          ctaButton1: result.data.ctaButton1 || { label: '', href: '' },
+          ctaButton2: result.data.ctaButton2 || { label: '', href: '' },
         })
+      } else {
+        console.error('Failed to fetch content:', result.error)
+        setContent({ heading: '', subheading: '', reasons: [], ctaHeading: '', ctaDescription: '', ctaButton1: {}, ctaButton2: {} })
       }
     } catch (error) {
       console.error('Error fetching content:', error)
+      setContent({ heading: '', subheading: '', reasons: [], ctaHeading: '', ctaDescription: '', ctaButton1: {}, ctaButton2: {} })
     } finally {
       setLoading(false)
     }

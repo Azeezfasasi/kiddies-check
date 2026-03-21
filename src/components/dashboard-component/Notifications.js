@@ -24,6 +24,18 @@ export default function Notifications() {
           </span>
         )}
       </div>
+      
+      {/* Legend */}
+      <div className="flex gap-4 text-xs text-gray-600 px-2">
+        <div className="flex items-center gap-1">
+          <span className="text-base">👤</span>
+          <span>Registrations</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-base">💬</span>
+          <span>Contact Messages</span>
+        </div>
+      </div>
 
       {loading ? (
         <div className="text-center py-8">

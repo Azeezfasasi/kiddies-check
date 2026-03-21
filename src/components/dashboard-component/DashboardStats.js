@@ -47,6 +47,12 @@ function Icon({ name }) {
           <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
         </svg>
       )
+    case 'students':
+      return (
+        <svg className="w-6 h-6 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5m0 0v10c0 1.105 4.02 5 9 5s9-3.895 9-5v-10" />
+        </svg>
+      )
     case 'parents':
       return (
         <svg className="w-6 h-6 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -170,6 +176,7 @@ export default function DashboardStats({ data = {} }) {
     teachers: 0,
     parents: 0,
     admins: 0,
+    students: 0,
     blogs: 0,
     contacts: 0,
     requests: 0,
@@ -180,6 +187,7 @@ export default function DashboardStats({ data = {} }) {
     { key: 'schoolLeaders', label: 'School Leaders', value: displayStats.schoolLeaders, icon: 'leaders' },
     { key: 'learningSpecialists', label: 'Learning Specialists', value: displayStats.learningSpecialists, icon: 'specialists' },
     { key: 'teachers', label: 'Teachers', value: displayStats.teachers, icon: 'teachers' },
+    { key: 'students', label: 'Students', value: displayStats.students, icon: 'students' },
     { key: 'parents', label: 'Parents', value: displayStats.parents, icon: 'parents' },
     { key: 'admins', label: 'Admin', value: displayStats.admins, icon: 'admin' },
     { key: 'blogs', label: 'Published Blogs', value: displayStats.blogs, icon: 'blogs' },
@@ -206,7 +214,7 @@ export default function DashboardStats({ data = {} }) {
         <LastUpdated timestamp={lastUpdated} />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {items.map((item) => (
           <div
             key={item.key}

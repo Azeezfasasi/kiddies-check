@@ -27,7 +27,7 @@ const verifyAdminToken = (req) => {
 // Middleware to check if user is admin
 const isAdmin = async (userId) => {
   const user = await User.findById(userId);
-  return user && user.role === 'admin';
+  return user && (user.role === 'admin' || user.role === 'learning-specialist' || user.isAdmin === true);
 };
 
 /**
