@@ -73,9 +73,9 @@ export default function Hero() {
     setDrag({ active: false, startX: 0, dx: 0 })
     
     // Reset auto-slide timer on manual interaction
-    if (autoSlideRef.current) {
-      clearInterval(autoSlideRef.current)
-    }
+    // if (autoSlideRef.current) {
+    //   clearInterval(autoSlideRef.current)
+    // }
   }
 
   // keyboard navigation
