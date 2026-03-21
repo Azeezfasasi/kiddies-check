@@ -117,7 +117,7 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
           if (!loading && !error) setIsOpen(!isOpen);
         }}
         disabled={loading || error}
-        className={`flex items-center gap-2 px-3 py-2 bg-white border rounded-lg transition ${
+        className={`flex items-center gap-2 px-1 md:px-3 py-2 bg-white border rounded-lg transition ${
           error
             ? 'border-red-300 bg-red-50 cursor-not-allowed'
             : loading

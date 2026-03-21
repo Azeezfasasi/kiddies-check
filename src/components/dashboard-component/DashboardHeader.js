@@ -71,7 +71,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
               <ArrowRightLeft className="w-6 h-6" />
             </button>
 
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="hidden md:flex items-center gap-3">
               <Image src="/img/kiddiestrans.png" alt="Kiddies Check Logo" width={160} height={40} className="w-14 md:w-24 block rounded-lg p-1" />
             </Link>
           </div>
@@ -109,13 +109,13 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
             <div className="relative" ref={dropdownRef}>
               <button
-                className="flex items-center gap-3 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                className="flex items-center gap-1 md:gap-3 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-900"
                 onClick={() => setDropdownOpen((open) => !open)}
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
               >
                 <div className="rounded-[50%] overflow-hidden">
-                  <Image src={avatar} alt="User avatar" width={32} height={32} className="object-cover md:h-10  md:w-10" />
+                  <Image src={avatar} alt="User avatar" width={62} height={62} className="object-cover h-7 md:h-10 w-7 md:w-10" />
                 </div>
                 <div className='hidden sm:flex flex-col items-start'>
                   <span className="hidden sm:block text-sm text-gray-700">{fullName || 'User'}</span>
