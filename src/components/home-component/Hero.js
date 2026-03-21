@@ -25,6 +25,7 @@ export default function Hero() {
   const [drag, setDrag] = useState({ active: false, startX: 0, dx: 0 })
   const containerRef = useRef(null)
   const [slideWidth, setSlideWidth] = useState(0)
+  const autoSlideRef = useRef(null)
 
   // Fetch slides from API
   useEffect(() => {
@@ -70,6 +71,11 @@ export default function Hero() {
     if (drag.dx > threshold) setIndex(i => Math.max(0, i - 1))
     else if (drag.dx < -threshold) setIndex(i => Math.min(slides.length - 1, i + 1))
     setDrag({ active: false, startX: 0, dx: 0 })
+    
+    // Reset auto-slide timer on manual interaction
+    if (autoSlideRef.current) {
+      clearInterval(autoSlideRef.current)
+    }
   }
 
   // keyboard navigation
@@ -80,6 +86,27 @@ export default function Hero() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [slides.length])
+
+  // auto slide effect
+  useEffect(() => {
+    if (slides.length <= 1) return
+
+    // Clear existing interval
+    if (autoSlideRef.current) clearInterval(autoSlideRef.current)
+
+    // Set up new interval for auto-slide
+    autoSlideRef.current = setInterval(() => {
+      setIndex(i => {
+        // Loop back to start when reaching the end
+        if (i >= slides.length - 1) return 0
+        return i + 1
+      })
+    }, 5000) // Change slide every 5 seconds
+
+    return () => {
+      if (autoSlideRef.current) clearInterval(autoSlideRef.current)
+    }
   }, [slides.length])
 
   // track container width and update on resize so we translate by exact pixels
@@ -172,14 +199,20 @@ export default function Hero() {
             <>
               <button
                 aria-label="Previous"
-                onClick={() => setIndex(i => Math.max(0, i - 1))}
+                onClick={() => {
+                  setIndex(i => Math.max(0, i - 1))
+                  if (autoSlideRef.current) clearInterval(autoSlideRef.current)
+                }}
                 className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/30 md:bg-white/80 hover:bg-white p-0.5 md:p-2 rounded-full shadow-md text-blue-900 cursor-pointer transition-all"
               >
                 <ArrowBigLeftDash />
               </button>
               <button
                 aria-label="Next"
-                onClick={() => setIndex(i => Math.min(slides.length - 1, i + 1))}
+                onClick={() => {
+                  setIndex(i => Math.min(slides.length - 1, i + 1))
+                  if (autoSlideRef.current) clearInterval(autoSlideRef.current)
+                }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/30 md:bg-white/80 hover:bg-white p-0.5 md:p-2 rounded-full shadow-md text-blue-900 cursor-pointer transition-all"
               >
                 <ArrowBigRightDash />
@@ -191,7 +224,10 @@ export default function Hero() {
                   <button
                     key={i}
                     aria-label={`Go to slide ${i + 1}`}
-                    onClick={() => setIndex(i)}
+                    onClick={() => {
+                      setIndex(i)
+                      if (autoSlideRef.current) clearInterval(autoSlideRef.current)
+                    }}
                     className={`w-3 h-3 rounded-full transition-all ${i === index ? 'bg-blue-900' : 'bg-white/70 border border-gray-200'}`}
                   />
                 ))}
