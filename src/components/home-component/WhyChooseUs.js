@@ -1,21 +1,22 @@
 import { CheckCircle } from "lucide-react";
 
+// align the content to match Kiddies check content for why choose us.
 const features = [
   {
-    title: "Expert Engineering Team",
-    description: "Our team consists of certified professionals with extensive experience across industrial, commercial, and residential projects.",
+    title: "Experienced Team",
+    description: "Our team consists of highly skilled professionals with extensive experience in educational management and curriculum development, ensuring top-quality service for our clients.",
   },
   {
     title: "Innovative Solutions",
-    description: "We apply the latest technology and best practices to deliver innovative and cost-effective engineering solutions.",
+    description: "We leverage the latest technologies and innovative approaches to create customized solutions that meet the unique needs of each school and educational institution we serve.",
   },
   {
-    title: "On-Time Delivery",
-    description: "We pride ourselves on meeting deadlines without compromising quality, ensuring client satisfaction on every project.",
+    title: "Proven Track Record",
+    description: "With a strong track record of successful projects and satisfied clients, Kiddies Check has established itself as a trusted partner in the education sector.",
   },
   {
     title: "Sustainable Practices",
-    description: "We implement sustainable engineering practices that minimize environmental impact and maximize efficiency.",
+    description: "We are committed to sustainability and social responsibility, implementing eco-friendly practices and supporting initiatives that promote education and community development.",
   },
 ];
 
