@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectDB } from '@/app/server/db/connect';
+import { connectDB } from '@/utils/db';
 import User from '@/app/server/models/User';
 import School from '@/app/server/models/School';
 

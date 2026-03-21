@@ -76,11 +76,11 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/schools',
       label: 'School Management',
       icon: 'Newsletter',
-      roles: ['admin', 'school-leader', 'learning-specialist'],
+      roles: ['admin', 'school-leader'],
       children: [
-        { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader', 'learning-specialist'] },
-        { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader', 'learning-specialist'] },
-        { href: '/dashboard/subscribers', label: 'Add Members', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader'] },
+        { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader'] },
+        { href: '/dashboard/subscribers', label: 'Add Members', roles: ['admin', 'school-leader'] },
       ]
     },
     {
@@ -128,7 +128,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] }
       ]
     },
-    { href: '/dashboard/my-profile', label: 'Profile', icon: 'dashboard', roles: ['admin', 'client', 'learning-specialist'] },
+    { href: '/dashboard/my-profile', label: 'Profile', icon: 'dashboard', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
     {
       href: '/dashboard/home',
       label: 'Homepage Contents',

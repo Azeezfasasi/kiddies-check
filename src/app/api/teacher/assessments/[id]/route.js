@@ -3,6 +3,14 @@ import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 
+function getGradeLevel(score) {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
 async function recalculateTrend(studentId, subjectId, schoolId, year) {
   // Fetch all assessments for this student-subject combination
   const assessments = await Assessment.find({ student: studentId, subject: subjectId, school: schoolId })
@@ -65,7 +73,11 @@ export async function GET(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (
+      (user.schoolId && user.schoolId.toString() === schoolId) || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
+    );
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -101,7 +113,9 @@ export async function PUT(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (user.schoolId.toString() === schoolId || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)));
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -113,11 +127,15 @@ export async function PUT(req, { params }) {
       return Response.json({ error: "Assessment not found" }, { status: 404 });
     }
 
+    // Auto-calculate grade level from score if score is being updated
+    const finalScore = score !== undefined ? score : assessment.score;
+    const finalGradeLevel = score !== undefined ? getGradeLevel(score) : (gradeLevel || assessment.gradeLevel);
+
     const updatedAssessment = await Assessment.findByIdAndUpdate(
       id,
       {
-        score: score !== undefined ? score : assessment.score,
-        gradeLevel: gradeLevel || assessment.gradeLevel,
+        score: finalScore,
+        gradeLevel: finalGradeLevel,
         remarks: remarks || assessment.remarks,
         assessmentType: assessmentType || assessment.assessmentType,
         updatedAt: new Date(),
@@ -170,7 +188,11 @@ export async function DELETE(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (
+      (user.schoolId && user.schoolId.toString() === schoolId) || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
+    );
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 

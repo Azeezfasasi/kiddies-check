@@ -14,7 +14,9 @@ export async function POST(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (user.schoolId.toString() === schoolId || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)));
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -63,7 +65,11 @@ export async function GET(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (
+      (user.schoolId && user.schoolId.toString() === schoolId) || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
+    );
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 

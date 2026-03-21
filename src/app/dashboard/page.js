@@ -35,7 +35,6 @@ export default function Dashboard() {
         <>
         <DashboardStats />
         <div className="flex flex-col lg:flex-row gap-6 justify-center mt-6">
-          {/* <QuoteChart /> */}
           <UserChart />
         </div>
         </>

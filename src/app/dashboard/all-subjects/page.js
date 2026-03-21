@@ -106,14 +106,14 @@ export default function AllSubjectsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-0 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Subjects Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Subjects Management</h1>
             <p className="text-gray-600 mt-2">Create and manage subjects for your school</p>
           </div>
           <button
             onClick={handleAddSubject}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+            className="flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
           >
             <Plus className="w-5 h-5" />
             Add Subject

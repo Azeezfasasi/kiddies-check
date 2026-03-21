@@ -55,6 +55,15 @@ export default function AssessmentModal({
     }));
   };
 
+  // Calculate grade based on score
+  const calculateGrade = (score) => {
+    if (score >= 90) return "A";
+    if (score >= 80) return "B";
+    if (score >= 70) return "C";
+    if (score >= 60) return "D";
+    return "F";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -76,6 +85,9 @@ export default function AssessmentModal({
 
       const method = assessmentData ? "PUT" : "POST";
 
+      // Auto-calculate grade from score
+      const autoGrade = calculateGrade(formData.score);
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -85,6 +97,7 @@ export default function AssessmentModal({
         body: JSON.stringify({
           schoolId,
           ...formData,
+          gradeLevel: autoGrade,
         }),
       });
 

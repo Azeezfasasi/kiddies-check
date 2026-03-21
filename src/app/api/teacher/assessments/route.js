@@ -3,6 +3,14 @@ import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 
+function getGradeLevel(score) {
+  if (score >= 90) return "A";
+  if (score >= 80) return "B";
+  if (score >= 70) return "C";
+  if (score >= 60) return "D";
+  return "F";
+}
+
 async function calculateTrend(studentId, subjectId, schoolId) {
   // Fetch all assessments for this student-subject combination
   const assessments = await Assessment.find({ student: studentId, subject: subjectId, school: schoolId })
@@ -53,7 +61,9 @@ export async function POST(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (user.schoolId.toString() === schoolId || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)));
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
@@ -72,6 +82,9 @@ export async function POST(req) {
       return Response.json({ error: "Assessment for this week already exists" }, { status: 400 });
     }
 
+    // Auto-calculate grade level if not provided
+    const finalGradeLevel = gradeLevel || getGradeLevel(score);
+
     const newAssessment = await Assessment.create({
       student: studentId,
       subject: subjectId,
@@ -82,7 +95,7 @@ export async function POST(req) {
       date: date || new Date(),
       score,
       maxScore: maxScore || 100,
-      gradeLevel,
+      gradeLevel: finalGradeLevel,
       remarks,
       assessmentType: assessmentType || "assignment",
       teacher: userId,
@@ -117,10 +130,14 @@ export async function POST(req) {
       );
     }
 
-    await newAssessment.populate("student", "firstName lastName").populate("subject", "name").populate("class", "name");
+    // Populate references after creation
+    const populatedAssessment = await Assessment.findById(newAssessment._id)
+      .populate("student", "firstName lastName")
+      .populate("subject", "name")
+      .populate("class", "name");
 
     return Response.json(
-      { message: "Assessment recorded successfully", assessment: newAssessment },
+      { message: "Assessment recorded successfully", assessment: populatedAssessment },
       { status: 201 }
     );
   } catch (error) {
@@ -143,7 +160,11 @@ export async function GET(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    if (!user || !user.schoolId.equals(schoolId) && !user.managedSchools?.includes(schoolId)) {
+    const hasAccess = user && (
+      (user.schoolId && user.schoolId.toString() === schoolId) || 
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
+    );
+    if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 

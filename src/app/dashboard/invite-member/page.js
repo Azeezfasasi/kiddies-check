@@ -9,7 +9,7 @@ const MEMBER_ROLES = [
   { value: 'school-leader', label: 'School Leader', color: 'bg-purple-100 text-purple-800' },
   { value: 'teacher', label: 'Teacher', color: 'bg-blue-100 text-blue-800' },
   { value: 'parent', label: 'Parent', color: 'bg-green-100 text-green-800' },
-  { value: 'staff', label: 'Staff', color: 'bg-gray-100 text-gray-800' },
+  // { value: 'staff', label: 'Staff', color: 'bg-gray-100 text-gray-800' },
 ];
 
 export default function InviteMemberPage() {
@@ -421,7 +421,7 @@ export default function InviteMemberPage() {
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Tabs */}
                 <div className="border-b border-gray-200">
-                  <div className="flex gap-4 px-6 py-4">
+                  <div className="flex gap-0 md:gap-4 px-2 md:px-6 py-4">
                     {['active', 'invited', 'inactive'].map((status) => (
                       <button
                         key={status}
