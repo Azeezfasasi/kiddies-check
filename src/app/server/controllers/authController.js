@@ -85,12 +85,22 @@ export const register = async (req) => {
     const body = await req.json();
     const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo } = body;
 
-    // Validation
-    if (!firstName || !lastName || !email || !phone || !role || !password || !school || !location || !model || !numberOfTeachers || !numberOfStudents || !schoolLogo) {
+    // Basic validation - required for all users
+    if (!firstName || !lastName || !email || !phone || !role || !password) {
       return NextResponse.json(
-        { success: false, message: "All fields are required" },
+        { success: false, message: "First name, last name, email, phone, role, and password are required" },
         { status: 400 }
       );
+    }
+
+    // School field validation - only required for school-leaders
+    if (role === 'school-leader') {
+      if (!school || !location || !model || !numberOfTeachers || !numberOfStudents || !schoolLogo) {
+        return NextResponse.json(
+          { success: false, message: "For school leaders, school name, location, model, number of teachers, number of students, and school logo are required" },
+          { status: 400 }
+        );
+      }
     }
 
     if (password !== confirmPassword) {
@@ -109,51 +119,60 @@ export const register = async (req) => {
       );
     }
 
-    // Create or find School
-    let schoolRecord = await School.findOne({ name: school });
-    if (!schoolRecord) {
-      schoolRecord = new School({
-        name: school,
-        email: email, // Use school email, can be updated later
-        location: location,
-        model: model,
-        numberOfTeachers: parseInt(numberOfTeachers) || 0,
-        numberOfStudents: parseInt(numberOfStudents) || 0,
-        logo: schoolLogo,
-        approvalStatus: 'pending',
-        isActive: true,
-      });
-      await schoolRecord.save();
-    } else {
-      // Update existing school with new info if provided
-      schoolRecord.numberOfTeachers = parseInt(numberOfTeachers) || schoolRecord.numberOfTeachers;
-      schoolRecord.numberOfStudents = parseInt(numberOfStudents) || schoolRecord.numberOfStudents;
-      if (schoolLogo) schoolRecord.logo = schoolLogo;
-      await schoolRecord.save();
+    let schoolRecord = null;
+
+    // Create or find School only for school-leaders
+    if (role === 'school-leader') {
+      schoolRecord = await School.findOne({ name: school });
+      if (!schoolRecord) {
+        schoolRecord = new School({
+          name: school,
+          email: email, // Use school email, can be updated later
+          location: location,
+          model: model,
+          numberOfTeachers: parseInt(numberOfTeachers) || 0,
+          numberOfStudents: parseInt(numberOfStudents) || 0,
+          logo: schoolLogo,
+          approvalStatus: 'pending',
+          isActive: true,
+        });
+        await schoolRecord.save();
+      } else {
+        // Update existing school with new info if provided
+        schoolRecord.numberOfTeachers = parseInt(numberOfTeachers) || schoolRecord.numberOfTeachers;
+        schoolRecord.numberOfStudents = parseInt(numberOfStudents) || schoolRecord.numberOfStudents;
+        if (schoolLogo) schoolRecord.logo = schoolLogo;
+        await schoolRecord.save();
+      }
     }
 
     // Create user
-    const user = new User({
+    const userData = {
       firstName,
       lastName,
       email,
       phone,
       role,
       password,
-      schoolId: schoolRecord._id,  // Reference to School model
-      schoolName: school,  // Keep for backward compatibility
-      location: location,
-      model: model,
-      numberOfTeachers: parseInt(numberOfTeachers),
-      numberOfStudents: parseInt(numberOfStudents),
-      schoolLogo: schoolLogo,
       isEmailVerified: false,
-    });
+    };
 
+    // Only add school-related fields for school-leaders
+    if (role === 'school-leader' && schoolRecord) {
+      userData.schoolId = schoolRecord._id;  // Reference to School model
+      userData.schoolName = school;  // Keep for backward compatibility
+      userData.location = location;
+      userData.model = model;
+      userData.numberOfTeachers = parseInt(numberOfTeachers);
+      userData.numberOfStudents = parseInt(numberOfStudents);
+      userData.schoolLogo = schoolLogo;
+    }
+
+    const user = new User(userData);
     await user.save();
 
     // Set as school principal if role is school-leader
-    if (role === 'school-leader') {
+    if (role === 'school-leader' && schoolRecord) {
       schoolRecord.principal = user._id;
       await schoolRecord.save();
     }
@@ -164,7 +183,8 @@ export const register = async (req) => {
 
     // Send OTP email
     try {
-      await sendOtpEmail(email, firstName, otp, school);
+      const schoolName = role === 'school-leader' ? school : 'Kiddies Check';
+      await sendOtpEmail(email, firstName, otp, schoolName);
     } catch (emailError) {
       console.error("Error sending OTP email:", emailError.message);
       // Continue with registration even if email fails
@@ -175,7 +195,7 @@ export const register = async (req) => {
         success: true,
         message: "Registration successful. OTP has been sent to your email. Please verify it to continue.",
         email,
-        schoolId: schoolRecord._id,
+        schoolId: role === 'school-leader' ? schoolRecord._id : null,
         requiresOtpVerification: true,
       },
       { status: 201 }

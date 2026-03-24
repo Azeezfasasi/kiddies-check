@@ -3,6 +3,7 @@ import { useState, useRef, memo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Eye, EyeClosed } from "lucide-react";
 
 // Separate FormField component to prevent re-creation on each render
 const FormField = memo(({
@@ -19,6 +20,8 @@ const FormField = memo(({
   onKeyDown,
   errors,
   disabled = false,
+  isPasswordVisible = false,
+  onTogglePasswordVisibility,
 }) => (
   <div className="mb-6">
     <label htmlFor={name} className="block text-gray-700 font-medium mb-2">
@@ -26,21 +29,33 @@ const FormField = memo(({
     </label>
 
     {as === "input" && (
-      <input
-        type={type}
-        id={name}
-        name={name}
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        disabled={disabled}
-        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
-          disabled ? 'bg-gray-100 cursor-not-allowed' : ''
-        } ${
-          errors[name] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
-        }`}
-        placeholder={placeholder}
-      />
+      <div className="relative">
+        <input
+          type={type === "password" && !isPasswordVisible ? "password" : "text"}
+          id={name}
+          name={name}
+          value={value}
+          onChange={onChange}
+          onKeyDown={onKeyDown}
+          disabled={disabled}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+            disabled ? 'bg-gray-100 cursor-not-allowed' : ''
+          } ${
+            errors[name] ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+          } ${type === "password" ? "pr-12" : ""}`}
+          placeholder={placeholder}
+        />
+        {type === "password" && (
+          <button
+            type="button"
+            onClick={onTogglePasswordVisibility}
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-900 transition"
+            tabIndex="-1"
+          >
+            {isPasswordVisible ? <Eye /> : <EyeClosed />}
+          </button>
+        )}
+      </div>
     )}
 
     {as === "select" && (
@@ -89,6 +104,8 @@ function RegisterContent() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [logoPreview, setLogoPreview] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -139,9 +156,11 @@ function RegisterContent() {
     fetchInvitationEmail();
   }, [isInvitation, invitedEmail, invitationToken, schoolId]);
 
-  // For invited users: skip role step, so totalSteps is 2 (personal info + password)
-  // For regular users: 5 steps
-  const totalSteps = isInvitation ? 2 : 5;
+  // Calculate total steps based on user type and role
+  // For invited users: 2 steps (personal info + password)
+  // For school-leader: 5 steps (personal + role + password + school info + logo)
+  // For other roles: 3 steps (personal + role + password)
+  const totalSteps = isInvitation ? 2 : (formData.role === "school-leader" ? 5 : 3);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -257,9 +276,14 @@ function RegisterContent() {
       if (!formData.terms) newErrors.terms = "You must agree to the terms";
     }
 
-    // Skip steps 4 and 5 for invited users
-    if (isInvitation && (step === 4 || step === 5)) {
+    // Skip steps 4 and 5 for invited users or non-school-leader roles
+    if ((isInvitation || formData.role !== "school-leader") && (step === 4 || step === 5)) {
       return true;
+    }
+
+    // For non-school-leaders, require terms acceptance on final submission (step 3)
+    if (!isInvitation && formData.role !== "school-leader" && step === 3) {
+      if (!formData.terms) newErrors.terms = "You must agree to the terms";
     }
 
     setErrors(newErrors);
@@ -268,12 +292,22 @@ function RegisterContent() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+      let nextStep = currentStep + 1;
+      // Skip steps 4 and 5 if not a school-leader
+      if (!isInvitation && formData.role !== "school-leader" && nextStep >= 4) {
+        nextStep = totalSteps + 1; // Go to submit
+      }
+      setCurrentStep((prev) => Math.min(nextStep, totalSteps));
     }
   };
 
   const handlePrevious = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    let prevStep = currentStep - 1;
+    // Skip steps 4 and 5 when going back if not a school-leader
+    if (!isInvitation && formData.role !== "school-leader" && prevStep >= 4) {
+      prevStep = 3;
+    }
+    setCurrentStep((prev) => Math.max(prevStep, 1));
   };
 
   const handleSubmit = async (e) => {
@@ -324,8 +358,8 @@ function RegisterContent() {
       // Regular registration flow (not invited)
       let schoolLogoUrl = null;
 
-      // Upload school logo to Cloudinary if available
-      if (formData.schoolLogoFile) {
+      // Upload school logo to Cloudinary if available (only for school-leader)
+      if (formData.schoolLogoFile && formData.role === "school-leader") {
         const uploadFormData = new FormData();
         uploadFormData.append("file", formData.schoolLogoFile);
         uploadFormData.append("folder", "rayob/school-logos");
@@ -357,12 +391,12 @@ function RegisterContent() {
         formData.role,
         formData.password,
         formData.confirmPassword,
-        formData.school,
-        formData.location,
-        formData.model,
-        formData.numberOfTeachers,
-        formData.numberOfStudents,
-        schoolLogoUrl || formData.schoolLogo
+        formData.role === "school-leader" ? formData.school : "",
+        formData.role === "school-leader" ? formData.location : "",
+        formData.role === "school-leader" ? formData.model : "",
+        formData.role === "school-leader" ? formData.numberOfTeachers : "",
+        formData.role === "school-leader" ? formData.numberOfStudents : "",
+        formData.role === "school-leader" ? (schoolLogoUrl || formData.schoolLogo) : null
       );
 
       if (result?.success) {
@@ -578,6 +612,8 @@ function RegisterContent() {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 errors={errors}
+                isPasswordVisible={showPassword}
+                onTogglePasswordVisibility={() => setShowPassword(!showPassword)}
               />
 
               <FormField
@@ -590,6 +626,8 @@ function RegisterContent() {
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 errors={errors}
+                isPasswordVisible={showConfirmPassword}
+                onTogglePasswordVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
               />
 
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
@@ -611,11 +649,49 @@ function RegisterContent() {
                   </li>
                 </ul>
               </div>
+
+              {/* Terms & Conditions for Non-School Leaders */}
+              {!isInvitation && formData.role !== "school-leader" && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="terms"
+                      checked={formData.terms}
+                      onChange={handleChange}
+                      className={`mt-1 h-5 w-5 rounded border text-blue-900 focus:ring-2 focus:ring-blue-900 transition ${
+                        errors.terms ? "border-red-500" : "border-gray-300"
+                      }`}
+                    />
+                    <span className="text-gray-700">
+                      I agree to the{" "}
+                      <Link
+                        href="/terms"
+                        className="text-blue-900 hover:text-blue-800 font-semibold"
+                      >
+                        Terms & Conditions
+                      </Link>
+                      {" "}and{" "}
+                      <Link
+                        href="/privacy"
+                        className="text-blue-900 hover:text-blue-800 font-semibold"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </span>
+                  </label>
+                  {errors.terms && (
+                    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                      <span>⚠</span> {errors.terms}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Step 4: School Information */}
-          {!isInvitation && currentStep === 4 && (
+          {/* Step 4: School Information - Only for School Leaders */}
+          {!isInvitation && formData.role === "school-leader" && currentStep === 4 && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -691,8 +767,8 @@ function RegisterContent() {
             </div>
           )}
 
-          {/* Step 5: School Logo & Agreement */}
-          {!isInvitation && currentStep === 5 && (
+          {/* Step 5: School Logo & Agreement - Only for School Leaders */}
+          {!isInvitation && formData.role === "school-leader" && currentStep === 5 && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">

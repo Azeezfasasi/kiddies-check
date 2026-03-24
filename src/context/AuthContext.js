@@ -90,24 +90,41 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo) => {
     try {
+      // Build registration object dynamically
+      const registrationData = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        role,
+        password,
+        confirmPassword,
+      };
+
+      // Only include school fields if they're provided (for school-leader role)
+      if (school) {
+        registrationData.school = school;
+      }
+      if (location) {
+        registrationData.location = location;
+      }
+      if (model) {
+        registrationData.model = model;
+      }
+      if (numberOfTeachers) {
+        registrationData.numberOfTeachers = parseInt(numberOfTeachers);
+      }
+      if (numberOfStudents) {
+        registrationData.numberOfStudents = parseInt(numberOfStudents);
+      }
+      if (schoolLogo) {
+        registrationData.schoolLogo = schoolLogo;
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          phone,
-          role,
-          password,
-          confirmPassword,
-          school,
-          location,
-          model,
-          numberOfTeachers: parseInt(numberOfTeachers),
-          numberOfStudents: parseInt(numberOfStudents),
-          schoolLogo,
-        }),
+        body: JSON.stringify(registrationData),
       });
       const data = await response.json();
       

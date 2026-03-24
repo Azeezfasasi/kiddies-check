@@ -70,7 +70,7 @@ export default function TeamSection() {
             Meet Our Leadership
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Our team combines industry expertise, technical excellence, and dedication to deliver outstanding engineering solutions.
+            Our team combines industry expertise, technical excellence and dedication to deliver outstanding educational product and technology initiative that create a world where every child&apos;s learning journey is visible, understood, and fully supported .
           </p>
         </div>
 
