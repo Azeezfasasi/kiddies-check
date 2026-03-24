@@ -470,7 +470,12 @@ export default function InviteMemberPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {members.map((member) => (
+                        {members.map((member) => {
+                          // Skip members without user references
+                          if (!member.user) {
+                            return null;
+                          }
+                          return (
                           <tr
                             key={member._id}
                             className="hover:bg-gray-50 transition"
@@ -572,7 +577,8 @@ export default function InviteMemberPage() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
