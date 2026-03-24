@@ -91,6 +91,8 @@ export default function SchoolMembersPage() {
     const data = [];
     Object.entries(membersByRole).forEach(([role, members]) => {
       members.forEach((member) => {
+        // Skip members without user references
+        if (!member.user) return;
         data.push({
           Name: `${member.user.firstName} ${member.user.lastName}`,
           Email: member.user.email,
@@ -237,7 +239,9 @@ export default function SchoolMembersPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {members.map((member) => (
+                          {members.map((member) => {
+                            if (!member.user) return null;
+                            return (
                             <tr key={member._id} className="hover:bg-gray-50">
                               <td className="px-4 sm:px-6 py-4">
                                 <div className="flex items-center gap-3">
@@ -282,14 +286,17 @@ export default function SchoolMembersPage() {
                                   : 'Never'}
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
 
                     {/* Mobile Card View */}
                     <div className="md:hidden divide-y divide-gray-200">
-                      {members.map((member) => (
+                      {members.map((member) => {
+                        if (!member.user) return null;
+                        return (
                         <div key={member._id} className="p-4 sm:p-6 space-y-3 hover:bg-gray-50">
                           {/* Name and Avatar */}
                           <div className="flex items-center gap-3">
@@ -346,7 +353,8 @@ export default function SchoolMembersPage() {
                             </p>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))
