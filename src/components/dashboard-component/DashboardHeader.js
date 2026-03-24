@@ -78,6 +78,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
           <div className="flex items-center gap-4">
             {/* Notification Button */}
+            {user?.role === (['admin', 'learning-specialist']) && (
             <button 
               aria-label="Notifications"
               onClick={() => setNotificationOpen(true)}
@@ -92,18 +93,21 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
                 </span>
               )}
             </button>
+            )}
 
             {/* Notification Modal */}
-            <NotificationModal 
-              isOpen={notificationOpen}
-              onClose={() => setNotificationOpen(false)}
-              notifications={notifications}
-              unreadCount={unreadCount}
-            />
+            {user?.role === (['admin', 'learning-specialist']) && (
+              <NotificationModal 
+                isOpen={notificationOpen}
+                onClose={() => setNotificationOpen(false)}
+                notifications={notifications}
+                unreadCount={unreadCount}
+              />
+            )}
 
             <SchoolSwitcher 
               currentSchoolId={activeSchoolId}
-              isAdmin={['admin', 'learning-specialist'].includes(user?.role)}
+              isAdmin={user && ['admin', 'learning-specialist'].includes(user.role)}
               onSchoolSwitch={(newSchoolId) => setActiveSchoolId(newSchoolId)}
             />
 

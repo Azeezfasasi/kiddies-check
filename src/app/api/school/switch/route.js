@@ -47,15 +47,6 @@ export async function POST(request) {
       );
     }
 
-    // Verify user has access to this school
-    const hasAccess = user.canAccessSchool(schoolId);
-    if (!hasAccess) {
-      return NextResponse.json(
-        { success: false, error: 'You do not have access to this school' },
-        { status: 403 }
-      );
-    }
-
     // Verify school exists
     const school = await School.findById(schoolId);
     if (!school) {
@@ -64,6 +55,9 @@ export async function POST(request) {
         { status: 404 }
       );
     }
+
+    // Admin and learning-specialist can switch to any school
+    // No access control needed - they have full access
 
     return NextResponse.json(
       {
@@ -123,13 +117,8 @@ export async function GET(request) {
     let accessibleSchools = [];
 
     if (['admin', 'learning-specialist'].includes(user.role)) {
-      // For admins/learning-specialists, fetch managed schools
-      if (user.managedSchools && user.managedSchools.length > 0) {
-        accessibleSchools = await School.find(
-          { _id: { $in: user.managedSchools } },
-          'name email location logo'
-        );
-      }
+      // For admins/learning-specialists, fetch ALL schools in the database
+      accessibleSchools = await School.find({}, 'name email location logo _id').sort({ name: 1 });
     } else if (user.schoolId) {
       // Return primary school for regular users
       const school = await School.findById(user.schoolId).select('name email location logo');

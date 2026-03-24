@@ -36,13 +36,13 @@ export async function GET(req) {
         status: "active",
       });
 
-      // Also allow if user is an admin/teacher with school management access
+      // Also allow if user is an admin/learning-specialist/teacher with school management access
       const hasManagementAccess =
         user &&
-        ((user.schoolId && user.schoolId.toString() === schoolId) ||
+        ((user.role === "admin" || user.role === "learning-specialist") ||
+          (user.schoolId && user.schoolId.toString() === schoolId) ||
           (user.managedSchools &&
-            user.managedSchools.some((id) => id.toString() === schoolId)) ||
-          user.role === "admin");
+            user.managedSchools.some((id) => id.toString() === schoolId)));
 
       const hasAccess = isTeacherInSchool || hasManagementAccess;
 

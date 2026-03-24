@@ -123,7 +123,13 @@ export const register = async (req) => {
 
     // Create or find School only for school-leaders
     if (role === 'school-leader') {
-      schoolRecord = await School.findOne({ name: school });
+      // Check for existing school by name or email to avoid duplicates
+      schoolRecord = await School.findOne({ 
+        $or: [
+          { name: school },
+          { email: email }
+        ] 
+      });
       if (!schoolRecord) {
         schoolRecord = new School({
           name: school,
@@ -747,8 +753,21 @@ export const updateUserProfile = async (req) => {
 
     const userId = req.user?.id;
     const body = await req.json();
-    const { firstName, lastName, phone, company, department, position, avatar } =
-      body;
+    const { 
+      firstName, 
+      lastName, 
+      phone, 
+      company, 
+      department, 
+      position, 
+      avatar,
+      school,
+      location,
+      model,
+      numberOfTeachers,
+      numberOfStudents,
+      schoolLogo
+    } = body;
 
     const user = await User.findById(userId);
 
@@ -767,6 +786,14 @@ export const updateUserProfile = async (req) => {
     if (department) user.department = department;
     if (position) user.position = position;
     if (avatar) user.avatar = avatar;
+    
+    // Update school-related fields (for school-leaders)
+    if (school) user.schoolName = school;
+    if (location) user.location = location;
+    if (model) user.model = model;
+    if (numberOfTeachers !== undefined && numberOfTeachers !== '') user.numberOfTeachers = numberOfTeachers;
+    if (numberOfStudents !== undefined && numberOfStudents !== '') user.numberOfStudents = numberOfStudents;
+    if (schoolLogo) user.schoolLogo = schoolLogo;
 
     user.updatedAt = Date.now();
     await user.save();

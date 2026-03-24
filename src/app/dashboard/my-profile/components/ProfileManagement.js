@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 export default function ProfileManagement() {
   const { user, token, updateUserData } = useAuth();
   const fileInputRef = useRef(null);
+  const schoolLogoInputRef = useRef(null);
 
   // Profile Update States
   const [profileForm, setProfileForm] = useState({
@@ -42,6 +43,9 @@ export default function ProfileManagement() {
   const [passwordError, setPasswordError] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [schoolLogoPreview, setSchoolLogoPreview] = useState(null);
+  const [schoolLogoFile, setSchoolLogoFile] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
 
   // Load user data on mount
@@ -55,7 +59,7 @@ export default function ProfileManagement() {
         department: user.department || '',
         position: user.position || '',
         avatar: user.avatar || '',
-        school: user.school || '',
+        school: user.schoolName || '',
         location: user.location || '',
         model: user.model || '',
         numberOfTeachers: user.numberOfTeachers || '',
@@ -64,6 +68,9 @@ export default function ProfileManagement() {
       });
       if (user.avatar) {
         setPreviewImage(user.avatar);
+      }
+      if (user.schoolLogo) {
+        setSchoolLogoPreview(user.schoolLogo);
       }
     }
   }, [user]);
@@ -109,6 +116,63 @@ export default function ProfileManagement() {
     reader.readAsDataURL(file);
   };
 
+  // Handle school logo selection
+  const handleSchoolLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileError('School logo size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setProfileError('Please select a valid image file for school logo');
+      return;
+    }
+
+    setSchoolLogoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSchoolLogoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload school logo to Cloudinary via API
+  const uploadSchoolLogoToCloudinary = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'kiddies-check/school-logos');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload school logo');
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.url) {
+        throw new Error('Upload returned invalid response');
+      }
+
+      return data.url;
+    } catch (error) {
+      console.error('School logo upload error:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to upload school logo');
+    }
+  };
+
   // Convert image to Base64
   const convertImageToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -147,6 +211,27 @@ export default function ProfileManagement() {
         updateData.avatar = base64Avatar;
       }
 
+      // Upload school logo to Cloudinary if changed
+      if (schoolLogoFile) {
+        setLogoUploading(true);
+        setProfileError('');
+        console.log('Starting school logo upload...');
+        try {
+          const logoUrl = await uploadSchoolLogoToCloudinary(schoolLogoFile);
+          console.log('School logo uploaded successfully:', logoUrl);
+          updateData.schoolLogo = logoUrl;
+          setSchoolLogoFile(null);
+          setSchoolLogoPreview(logoUrl);
+        } catch (error) {
+          console.error('School logo upload failed:', error);
+          setProfileError('Failed to upload school logo: ' + (error instanceof Error ? error.message : 'Unknown error'));
+          setLogoUploading(false);
+          setProfileLoading(false);
+          return;
+        }
+        setLogoUploading(false);
+      }
+
       const response = await axios.put('/api/users/profile', updateData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -157,10 +242,37 @@ export default function ProfileManagement() {
       if (response.data.success) {
         setProfileSuccess('Profile updated successfully!');
         setImageFile(null);
+        setSchoolLogoFile(null);
 
         // Update context with new user data
         if (updateUserData && response.data.user) {
-          updateUserData(response.data.user);
+          // Update form with new data to reflect changes
+          const updatedUser = response.data.user;
+          setProfileForm({
+            firstName: updatedUser.firstName || '',
+            lastName: updatedUser.lastName || '',
+            phone: updatedUser.phone || '',
+            company: updatedUser.company || '',
+            department: updatedUser.department || '',
+            position: updatedUser.position || '',
+            avatar: updatedUser.avatar || '',
+            school: updatedUser.schoolName || '',
+            location: updatedUser.location || '',
+            model: updatedUser.model || '',
+            numberOfTeachers: updatedUser.numberOfTeachers || '',
+            numberOfStudents: updatedUser.numberOfStudents || '',
+            schoolLogo: updatedUser.schoolLogo || '',
+          });
+          
+          // Update previews
+          if (updatedUser.avatar) {
+            setPreviewImage(updatedUser.avatar);
+          }
+          if (updatedUser.schoolLogo) {
+            setSchoolLogoPreview(updatedUser.schoolLogo);
+          }
+          
+          updateUserData(updatedUser);
         }
 
         // Clear success message after 3 seconds
@@ -402,104 +514,149 @@ export default function ProfileManagement() {
                 </div>
               </div>
 
-              {/* School Information Section */}
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">School Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      School Name
+              {/* School Information Section - Only for school-leader */}
+              {user?.role === 'school-leader' && (
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-6">School Information</h3>
+                  
+                  {/* School Logo Upload */}
+                  <div className="mb-8 pb-8 border-b border-gray-200">
+                    <label className="block text-sm font-medium text-gray-900 mb-4">
+                      School Logo
                     </label>
-                    <input
-                      type="text"
-                      name="school"
-                      value={profileForm.school}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                      placeholder="e.g., St. Mary's Academy"
-                    />
+                    <div className="flex flex-col sm:flex-row gap-6">
+                      <div className="flex flex-col items-center">
+                        <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-200 mb-4 border-2 border-gray-300 flex items-center justify-center">
+                          {schoolLogoPreview ? (
+                            <img
+                              src={schoolLogoPreview}
+                              alt="School Logo"
+                              className="w-full h-full object-contain p-2"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400">
+                              <span className="text-gray-600 text-center text-xs font-medium p-4">
+                                School Logo Preview
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => schoolLogoInputRef.current?.click()}
+                          disabled={logoUploading || profileLoading}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-60"
+                        >
+                          {logoUploading ? 'Uploading...' : 'Change Logo'}
+                        </button>
+                        <input
+                          ref={schoolLogoInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSchoolLogoChange}
+                          className="hidden"
+                        />
+                        <p className="text-sm text-gray-500 mt-2 text-center">
+                          PNG, JPG, GIF up to 5MB
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      School Model
-                    </label>
-                    <select
-                      name="model"
-                      value={profileForm.model}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                    >
-                      <option value="">Select School Model</option>
-                      <option value="primary">Primary School</option>
-                      <option value="secondary">Secondary School</option>
-                      <option value="both">Both Primary & Secondary</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        School Name
+                      </label>
+                      <input
+                        type="text"
+                        name="school"
+                        value={profileForm.school}
+                        onChange={handleProfileChange}
+                        disabled={profileLoading}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
+                        placeholder="e.g., St. Mary's Academy"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      School Location
-                    </label>
-                    <input
-                      type="text"
-                      name="location"
-                      value={profileForm.location}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                      placeholder="e.g., Lagos, Nigeria"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        School Model
+                      </label>
+                      <select
+                        name="model"
+                        value={profileForm.model}
+                        onChange={handleProfileChange}
+                        disabled={profileLoading}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
+                      >
+                        <option value="">Select School Model</option>
+                        <option value="primary">Primary School</option>
+                        <option value="secondary">Secondary School</option>
+                        <option value="both">Both Primary & Secondary</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Number of Teachers
-                    </label>
-                    <input
-                      type="number"
-                      name="numberOfTeachers"
-                      value={profileForm.numberOfTeachers}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                      placeholder="e.g., 25"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        School Location
+                      </label>
+                      <input
+                        type="text"
+                        name="location"
+                        value={profileForm.location}
+                        onChange={handleProfileChange}
+                        disabled={profileLoading}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
+                        placeholder="e.g., Lagos, Nigeria"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Number of Students
-                    </label>
-                    <input
-                      type="number"
-                      name="numberOfStudents"
-                      value={profileForm.numberOfStudents}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                      placeholder="e.g., 500"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Number of Teachers
+                      </label>
+                      <input
+                        type="number"
+                        name="numberOfTeachers"
+                        value={profileForm.numberOfTeachers}
+                        onChange={handleProfileChange}
+                        disabled={profileLoading}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
+                        placeholder="e.g., 25"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      School Logo URL
-                    </label>
-                    <input
-                      type="text"
-                      name="schoolLogo"
-                      value={profileForm.schoolLogo}
-                      onChange={handleProfileChange}
-                      disabled={profileLoading}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
-                      placeholder="https://example.com/logo.png"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-2">
+                        Number of Students
+                      </label>
+                      <input
+                        type="number"
+                        name="numberOfStudents"
+                        value={profileForm.numberOfStudents}
+                        onChange={handleProfileChange}
+                        disabled={profileLoading}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:bg-gray-100"
+                        placeholder="e.g., 500"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Messages */}
+              {profileError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {profileError}
+                </div>
+              )}
+              {profileSuccess && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                  ✓ {profileSuccess}
+                </div>
+              )}
+              
               <div className="flex justify-end">
                 <button
                   type="submit"
@@ -589,6 +746,18 @@ export default function ProfileManagement() {
                   placeholder="Confirm your new password"
                 />
               </div>
+              
+              {/* Messages */}
+              {profileError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {profileError}
+                </div>
+              )}
+              {profileSuccess && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                  ✓ {profileSuccess}
+                </div>
+              )}
 
               {/* Submit Button */}
               <div className="flex justify-end pt-4">

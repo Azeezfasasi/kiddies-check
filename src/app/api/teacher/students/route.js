@@ -27,12 +27,20 @@ export async function POST(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    const hasSchoolAccess = 
-      (user?.schoolId && user.schoolId.toString() === schoolId) || 
-      (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
     
-    if (!user || !hasSchoolAccess) {
+    if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+    
+    // Allow admin and learning-specialist full access to any school
+    if (!['admin', 'learning-specialist'].includes(user.role)) {
+      const hasSchoolAccess = 
+        (user?.schoolId && user.schoolId.toString() === schoolId) || 
+        (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
+      
+      if (!hasSchoolAccess) {
+        return Response.json({ error: "Access denied" }, { status: 403 });
+      }
     }
 
     await connectDB();
@@ -87,12 +95,20 @@ export async function GET(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    const hasAccess = user && (
-      (user.schoolId && user.schoolId.toString() === schoolId) || 
-      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
-    );
-    if (!hasAccess) {
+    
+    if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+    
+    // Allow admin and learning-specialist full access to any school
+    if (!['admin', 'learning-specialist'].includes(user.role)) {
+      const hasAccess = 
+        (user.schoolId && user.schoolId.toString() === schoolId) || 
+        (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
+      
+      if (!hasAccess) {
+        return Response.json({ error: "Access denied" }, { status: 403 });
+      }
     }
 
     await connectDB();

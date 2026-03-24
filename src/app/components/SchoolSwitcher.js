@@ -12,9 +12,16 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
   const [currentSchool, setCurrentSchool] = useState(null);
 
   // Only show for admin and learning-specialist
-  if (!isAdmin) return null;
+  // Don't hide immediately if not admin - let it attempt to load first
+  const shouldShow = isAdmin === true;
 
   useEffect(() => {
+    // If not admin, don't fetch schools
+    if (!shouldShow) {
+      setLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const fetchAccessibleSchools = async () => {
@@ -42,13 +49,16 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
           const fetchedSchools = data.data.schools || [];
           setSchools(fetchedSchools);
           
-          // Set current school - only set if currentSchoolId is explicitly provided
-          if (currentSchoolId && fetchedSchools) {
-            const current = fetchedSchools.find(s => s._id === currentSchoolId);
-            setCurrentSchool(current);
+          // Find and set current school from fetched list
+          if (fetchedSchools.length > 0) {
+            const schoolIdToFind = currentSchoolId || localStorage.getItem('schoolId');
+            if (schoolIdToFind) {
+              const current = fetchedSchools.find(s => s._id === schoolIdToFind);
+              if (current) {
+                setCurrentSchool(current);
+              }
+            }
           }
-          // Don't auto-select - let the user choose
-          // This allows the "Select School" state to remain until explicitly switched
         } else {
           const errorData = await response.json();
           setError(errorData.error || 'Failed to fetch schools');
@@ -70,7 +80,15 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
     return () => {
       isMounted = false;
     };
-  }, [currentSchoolId]);
+  }, [shouldShow, currentSchoolId]);
+
+  // Hide if not admin
+  if (!shouldShow) {
+    return null;
+  }
+
+  // Show even with no schools for admins - they might not have schools assigned yet
+  // Only hide on error or while loading indefinitely
 
   const handleSwitchSchool = async (schoolId) => {
     try {
@@ -105,17 +123,65 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
     }
   };
 
-  // Only hide if there are no schools after loading AND no error
-  if (!loading && !error && schools.length === 0) {
-    return null;
-  }
+  // Refetch schools when dropdown opens
+  const handleOpenDropdown = async () => {
+    // If closing, just toggle
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+
+    // If opening, refetch fresh school list
+    try {
+      setLoading(true);
+      setError(null);
+      const userId = localStorage.getItem('userId');
+      
+      if (!userId) {
+        setError('User ID not found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/school/switch?t=${Date.now()}`, {
+        headers: {
+          'x-user-id': userId,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedSchools = data.data.schools || [];
+        console.log('Fetched schools:', fetchedSchools);
+        setSchools(fetchedSchools);
+        
+        // Find and set current school from fetched list
+        if (fetchedSchools.length > 0) {
+          const schoolIdToFind = currentSchoolId || localStorage.getItem('schoolId');
+          if (schoolIdToFind) {
+            const current = fetchedSchools.find(s => s._id === schoolIdToFind);
+            if (current) {
+              setCurrentSchool(current);
+            }
+          }
+        }
+        setIsOpen(true);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to fetch schools');
+      }
+    } catch (err) {
+      console.error('Error fetching schools:', err);
+      setError('Failed to load schools');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative">
       <button
-        onClick={() => {
-          if (!loading && !error) setIsOpen(!isOpen);
-        }}
+        onClick={handleOpenDropdown}
         disabled={loading || error}
         className={`flex items-center gap-2 px-1 md:px-3 py-2 bg-white border rounded-lg transition ${
           error
@@ -128,38 +194,47 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
       >
         <Building2 className={`w-4 h-4 ${error ? 'text-red-600' : 'text-gray-600'} ${loading ? 'animate-spin' : ''}`} />
         <span className={`text-sm font-medium truncate max-w-xs ${error ? 'text-red-700' : 'text-gray-700'}`}>
-          {loading ? 'Loading...' : error ? 'Error Loading' : (currentSchool?.name || 'Select School')}
+          {loading ? 'Loading...' : error ? 'Error Loading' : schools.length === 0 ? 'No Schools' : (currentSchool?.name || 'Select School')}
         </span>
         <ChevronDown className={`w-4 h-4 text-gray-600 transition ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && !error && schools.length > 0 && (
+      {isOpen && !error && !loading && (
         <div className="absolute top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
           <div className="p-2">
-            <p className="text-xs font-semibold text-gray-600 px-2 py-1 mb-1">
-              Available Schools ({schools.length})
-            </p>
-            <div className="space-y-1 max-h-96 overflow-y-auto">
-              {schools.map((school) => (
-                <button
-                  key={school._id}
-                  onClick={() => handleSwitchSchool(school._id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${
-                    currentSchool?._id === school._id
-                      ? 'bg-blue-100 text-blue-900'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className="font-medium">{school.name}</div>
-                  {school.email && (
-                    <div className="text-xs text-gray-500">{school.email}</div>
-                  )}
-                  {school.location && (
-                    <div className="text-xs text-gray-500">{school.location}</div>
-                  )}
-                </button>
-              ))}
-            </div>
+            {schools.length > 0 ? (
+              <>
+                <p className="text-xs font-semibold text-gray-600 px-2 py-1 mb-1">
+                  Available Schools ({schools.length})
+                </p>
+                <div className="space-y-1 max-h-96 overflow-y-auto">
+                  {schools.map((school) => (
+                    <button
+                      key={school._id}
+                      onClick={() => handleSwitchSchool(school._id)}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition ${
+                        currentSchool?._id === school._id
+                          ? 'bg-blue-100 text-blue-900'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      <div className="font-medium">{school.name}</div>
+                      {school.email && (
+                        <div className="text-xs text-gray-500">{school.email}</div>
+                      )}
+                      {school.location && (
+                        <div className="text-xs text-gray-500">{school.location}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="px-2 py-4 text-center">
+                <p className="text-sm text-gray-600">No schools assigned yet</p>
+                <p className="text-xs text-gray-500 mt-1">Contact your administrator to assign schools to your account</p>
+              </div>
+            )}
           </div>
         </div>
       )}
