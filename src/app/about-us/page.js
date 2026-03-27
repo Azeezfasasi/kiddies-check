@@ -8,7 +8,7 @@ import React from 'react'
 export default function page() {
   return (
     <>
-    <PageTitle title="About Us" subtitle="Learn more about our company and values" />
+    <PageTitle title="About Us" subtitle="Learn more about our company and values" link="/about-us" label="About Us" />
     <CompanyOverview />
     <HistoryMilestones />
     <TeamSection />
