@@ -82,7 +82,7 @@ export default function CompanyOverview() {
             <div className="order-2 lg:order-1">
               <div className="relative w-full h-64 sm:h-80 lg:h-[450px] rounded-xl overflow-hidden shadow-lg">
                 <Image
-                  src="/img/kidimg1.png"
+                  src={data.companyInfo.image || "/img/kidimg1.png"}
                   alt="Kiddies Check Overview"
                   fill
                   sizes="100%"
