@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentModal from "@/app/components/StudentModal";
+import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 
 export default function AllStudentsPage() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export default function AllStudentsPage() {
   const [editingStudent, setEditingStudent] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [selectedClass, setSelectedClass] = useState("all");
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -102,6 +105,11 @@ export default function AllStudentsPage() {
   const handleStudentSaved = () => {
     setShowModal(false);
     fetchData(activeSchoolId, userId);
+  };
+
+  const handleViewStudent = (studentId) => {
+    setSelectedStudentId(studentId);
+    setShowDetailsModal(true);
   };
 
   const filteredStudents = selectedClass === "all" 
@@ -215,6 +223,13 @@ export default function AllStudentsPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button
+                              onClick={() => handleViewStudent(student._id)}
+                              className="text-green-600 hover:text-green-800 transition-colors p-1"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleEditStudent(student)}
                               className="text-blue-600 hover:text-blue-800 transition-colors p-1"
                             >
@@ -274,6 +289,13 @@ export default function AllStudentsPage() {
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t border-gray-200">
                     <button
+                      onClick={() => handleViewStudent(student._id)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </button>
+                    <button
                       onClick={() => handleEditStudent(student)}
                       className="flex-1 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg transition-colors text-sm font-medium"
                     >
@@ -304,6 +326,16 @@ export default function AllStudentsPage() {
           classes={classes}
           onClose={() => setShowModal(false)}
           onSave={handleStudentSaved}
+        />
+      )}
+
+      {/* Student Details Modal */}
+      {showDetailsModal && selectedStudentId && (
+        <StudentDetailsModal
+          studentId={selectedStudentId}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => setShowDetailsModal(false)}
         />
       )}
 

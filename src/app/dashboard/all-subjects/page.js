@@ -159,7 +159,7 @@ export default function AllSubjectsPage() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Credit Hours:</span>
+                      <span className="text-gray-600">Lesson Duration:</span>
                       <span className="font-semibold text-gray-800">{subject.creditHours || 0}</span>
                     </div>
                     {subject.description && (

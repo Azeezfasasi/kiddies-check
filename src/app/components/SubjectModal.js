@@ -127,7 +127,7 @@ export default function SubjectModal({ subjectData, schoolId, userId, onClose, o
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Credit Hours
+                Lesson Duration <span className="text-gray-500 text-xs">(E.g. 30 minutes)</span>
               </label>
               <input
                 type="number"

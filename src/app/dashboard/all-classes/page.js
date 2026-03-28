@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, AlertCircle, Loader } from "lucide-react";
 import toast from "react-hot-toast";
 import ClassModal from "@/app/components/ClassModal";
+import ClassStudentsList from "@/app/components/ClassStudentsList";
+import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 
 export default function AllClassesPage() {
   const router = useRouter();
@@ -15,6 +17,7 @@ export default function AllClassesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -203,6 +206,14 @@ export default function AllClassesPage() {
                       Delete
                     </button>
                   </div>
+
+                  {/* Students List */}
+                  <ClassStudentsList
+                    classId={classData._id}
+                    schoolId={activeSchoolId}
+                    userId={userId}
+                    onStudentClick={setSelectedStudentId}
+                  />
                 </div>
               </div>
             ))}
@@ -245,6 +256,16 @@ export default function AllClassesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Student Details Modal */}
+      {selectedStudentId && (
+        <StudentDetailsModal
+          studentId={selectedStudentId}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => setSelectedStudentId(null)}
+        />
       )}
     </div>
   );
