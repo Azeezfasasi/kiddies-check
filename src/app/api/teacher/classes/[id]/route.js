@@ -1,13 +1,15 @@
 import Class from "@/app/server/models/Class";
 import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
+import SchoolMember from "@/app/server/models/SchoolMember";
 import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
 
 export async function GET(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -44,7 +46,7 @@ export async function PUT(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
     const { name, level, section, classTeacher, numberOfStudents, description, isActive, subjects } = await req.json();
 
     if (!userId || !schoolId) {
@@ -115,23 +117,47 @@ export async function DELETE(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
 
-    // Verify user access
+    await connectDB();
+
+    // Verify user has access to this school
     const user = await User.findById(userId);
-    const hasAccess = user && (
-      (user.schoolId && user.schoolId.toString() === schoolId) || 
-      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
-    );
-    if (!hasAccess) {
+    
+    if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    await connectDB();
+    const schoolObjectId = new Types.ObjectId(schoolId);
+    
+    // Allow admin and learning-specialist full access to any school
+    let hasAccess = ['admin', 'learning-specialist'].includes(user.role);
+
+    // If not admin/learning-specialist, check schoolId or SchoolMember
+    if (!hasAccess) {
+      // Check User model for schoolId
+      if (user.schoolId && user.schoolId.toString() === schoolId) {
+        hasAccess = true;
+      } else if (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId)) {
+        hasAccess = true;
+      } else {
+        // Check SchoolMember for teachers, school-leaders, etc.
+        const schoolMemberAccess = await SchoolMember.findOne({
+          user: userId,
+          school: schoolObjectId,
+          status: "active",
+        });
+        hasAccess = !!schoolMemberAccess;
+      }
+    }
+
+    if (!hasAccess) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
 
     const classData = await Class.findOne({ _id: id, school: schoolId });
     if (!classData) {
