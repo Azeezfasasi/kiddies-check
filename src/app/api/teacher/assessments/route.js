@@ -1,6 +1,7 @@
 import Assessment from "@/app/server/models/Assessment";
 import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
+import SchoolMember from "@/app/server/models/SchoolMember";
 import { connectDB } from "@/utils/db";
 
 function getGradeLevel(score) {
@@ -61,14 +62,27 @@ export async function POST(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    const hasSchoolAccess = 
-      (user?.schoolId && user.schoolId.toString() === schoolId) || 
-      (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
-    if (!user || !hasSchoolAccess) {
+    if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
     await connectDB();
+
+    // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
+    const hasSchoolAccess =
+      user.role === "admin" ||
+      user.role === "learning-specialist" ||
+      (user.schoolId && user.schoolId.toString() === schoolId) ||
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)) ||
+      (await SchoolMember.findOne({
+        user: userId,
+        school: schoolId,
+        status: "active",
+      }));
+
+    if (!hasSchoolAccess) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
 
     // Check if assessment already exists for this week
     const existing = await Assessment.findOne({
@@ -161,23 +175,27 @@ export async function GET(req) {
 
     // Verify user has access to this school
     const user = await User.findById(userId);
-    
     if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
-    
-    // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
-      const hasAccess = 
-        (user.schoolId && user.schoolId.toString() === schoolId) || 
-        (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
-      
-      if (!hasAccess) {
-        return Response.json({ error: "Access denied" }, { status: 403 });
-      }
-    }
 
     await connectDB();
+
+    // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
+    const hasSchoolAccess =
+      user.role === "admin" ||
+      user.role === "learning-specialist" ||
+      (user.schoolId && user.schoolId.toString() === schoolId) ||
+      (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)) ||
+      (await SchoolMember.findOne({
+        user: userId,
+        school: schoolId,
+        status: "active",
+      }));
+
+    if (!hasSchoolAccess) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
 
     const query = { school: schoolId };
     if (studentId) query.student = studentId;
