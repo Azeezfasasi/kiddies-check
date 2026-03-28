@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Loader } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Loader, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function ClassModal({ classData, schoolId, userId, onClose, onSave }) {
@@ -11,8 +11,63 @@ export default function ClassModal({ classData, schoolId, userId, onClose, onSav
     section: "A",
     numberOfStudents: 0,
     description: "",
+    subjects: [],
+    classTeacher: "",
   });
   const [loading, setLoading] = useState(false);
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [showSubjectsDropdown, setShowSubjectsDropdown] = useState(false);
+  const [staffLoading, setStaffLoading] = useState(true);
+  const [availableStaff, setAvailableStaff] = useState([]);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    // Fetch available subjects
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch(`/api/teacher/subjects?schoolId=${schoolId}`, {
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableSubjects(data.subjects || []);
+        }
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+        toast.error("Failed to load subjects");
+      } finally {
+        setSubjectsLoading(false);
+      }
+    };
+
+    // Fetch available staff
+    const fetchStaff = async () => {
+      try {
+        const response = await fetch(`/api/teacher/staff?schoolId=${schoolId}`, {
+          headers: {
+            "x-user-id": userId,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableStaff(data.staff || []);
+        }
+      } catch (error) {
+        console.error("Error fetching staff:", error);
+        toast.error("Failed to load staff");
+      } finally {
+        setStaffLoading(false);
+      }
+    };
+
+    if (schoolId && userId) {
+      fetchSubjects();
+      fetchStaff();
+    }
+  }, [schoolId, userId]);
 
   useEffect(() => {
     if (classData) {
@@ -22,17 +77,59 @@ export default function ClassModal({ classData, schoolId, userId, onClose, onSav
         section: classData.section,
         numberOfStudents: classData.numberOfStudents || 0,
         description: classData.description || "",
+        subjects: classData.subjects?.map(s => (typeof s === 'string' ? s : s._id)) || [],
+        classTeacher: classData.classTeacher?._id || classData.classTeacher || "",
       });
     }
   }, [classData]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, selectedOptions } = e.target;
+    
+    if (type === "select-multiple") {
+      const selectedValues = Array.from(selectedOptions).map(option => option.value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: selectedValues,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: name === "numberOfStudents" ? parseInt(value) || 0 : value,
+      }));
+    }
+  };
+
+  const handleSubjectToggle = (subjectId) => {
+    setFormData((prev) => {
+      const isSelected = prev.subjects.includes(subjectId);
+      return {
+        ...prev,
+        subjects: isSelected
+          ? prev.subjects.filter((id) => id !== subjectId)
+          : [...prev.subjects, subjectId],
+      };
+    });
+  };
+
+  const removeSubject = (subjectId) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "numberOfStudents" ? parseInt(value) || 0 : value,
+      subjects: prev.subjects.filter((id) => id !== subjectId),
     }));
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowSubjectsDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,8 +176,14 @@ export default function ClassModal({ classData, schoolId, userId, onClose, onSav
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-lg shadow-lg max-w-md w-full h-[600px] md:h-[500px] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-bold text-gray-800">
             {classData ? "Edit Class" : "Create New Class"}
@@ -158,6 +261,35 @@ export default function ClassModal({ classData, schoolId, userId, onClose, onSav
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Class Teacher
+            </label>
+            {staffLoading ? (
+              <div className="flex items-center justify-center py-2">
+                <Loader className="w-4 h-4 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <select
+                name="classTeacher"
+                value={formData.classTeacher}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a class teacher</option>
+                {availableStaff.length === 0 ? (
+                  <option disabled>No staff available</option>
+                ) : (
+                  availableStaff.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.firstName} {staff.lastName} ({staff.email})
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Description
             </label>
             <textarea
@@ -168,6 +300,94 @@ export default function ClassModal({ classData, schoolId, userId, onClose, onSav
               rows="3"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Subjects
+            </label>
+            {subjectsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader className="w-4 h-4 animate-spin text-blue-600" />
+              </div>
+            ) : (
+              <div ref={dropdownRef} className="relative">
+                {/* Selected Subjects Tags */}
+                {formData.subjects.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.subjects.map((subjectId) => {
+                      const subject = availableSubjects.find((s) => s._id === subjectId);
+                      return subject ? (
+                        <div
+                          key={subjectId}
+                          className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+                        >
+                          {subject.name}
+                          <button
+                            type="button"
+                            onClick={() => removeSubject(subjectId)}
+                            className="hover:text-blue-900 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
+                {/* Dropdown Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowSubjectsDropdown(!showSubjectsDropdown)}
+                  className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-700">
+                    {formData.subjects.length > 0
+                      ? `${formData.subjects.length} subject(s) selected`
+                      : "Select subjects"}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-500 transition-transform ${
+                      showSubjectsDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showSubjectsDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                    {availableSubjects.length === 0 ? (
+                      <div className="p-3 text-center text-gray-600 text-sm">
+                        No subjects available
+                      </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto">
+                        {availableSubjects.map((subject) => (
+                          <label
+                            key={subject._id}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-b last:border-b-0"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={formData.subjects.includes(subject._id)}
+                              onChange={() => handleSubjectToggle(subject._id)}
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-700 flex-1">
+                              {subject.name}
+                              {subject.code && (
+                                <span className="text-gray-500 ml-2">({subject.code})</span>
+                              )}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 pt-4">

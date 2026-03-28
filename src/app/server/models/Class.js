@@ -34,6 +34,12 @@ const classSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    subjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subject",
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

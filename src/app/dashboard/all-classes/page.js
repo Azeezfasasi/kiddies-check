@@ -166,6 +166,21 @@ export default function AllClassesPage() {
                         {classData.classTeacher?.firstName} {classData.classTeacher?.lastName || "Unassigned"}
                       </span>
                     </div>
+                    {classData.subjects && classData.subjects.length > 0 && (
+                      <div className="pt-3 border-t">
+                        <p className="text-gray-600 text-sm font-medium mb-2">Subjects:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {classData.subjects.map((subject) => (
+                            <span
+                              key={subject._id}
+                              className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700"
+                            >
+                              {subject.name} {subject.code && `(${subject.code})`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {classData.description && (
                       <div className="pt-3 border-t">
                         <p className="text-gray-600 text-sm">{classData.description}</p>

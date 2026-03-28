@@ -1,11 +1,12 @@
 import Class from "@/app/server/models/Class";
+import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 
 export async function POST(req) {
   try {
     const userId = req.headers.get("x-user-id");
-    const { schoolId, name, level, section, classTeacher, numberOfStudents, description } = await req.json();
+    const { schoolId, name, level, section, classTeacher, numberOfStudents, description, subjects } = await req.json();
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -45,6 +46,7 @@ export async function POST(req) {
       classTeacher: classTeacher || userId,
       numberOfStudents: numberOfStudents || 0,
       description,
+      subjects: subjects || [],
       createdBy: userId,
     });
 
@@ -89,6 +91,7 @@ export async function GET(req) {
 
     const classes = await Class.find({ school: schoolId, isActive: true })
       .populate("classTeacher", "firstName lastName email")
+      .populate("subjects", "name code")
       .sort({ name: 1 });
 
     return Response.json({ classes }, { status: 200 });

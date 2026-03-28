@@ -1,4 +1,5 @@
 import Class from "@/app/server/models/Class";
+import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 
@@ -24,7 +25,9 @@ export async function GET(req, { params }) {
 
     await connectDB();
 
-    const classData = await Class.findOne({ _id: id, school: schoolId }).populate("classTeacher", "firstName lastName email");
+    const classData = await Class.findOne({ _id: id, school: schoolId })
+      .populate("classTeacher", "firstName lastName email")
+      .populate("subjects", "name code");
 
     if (!classData) {
       return Response.json({ error: "Class not found" }, { status: 404 });
@@ -42,7 +45,7 @@ export async function PUT(req, { params }) {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = params;
-    const { name, level, section, classTeacher, numberOfStudents, description, isActive } = await req.json();
+    const { name, level, section, classTeacher, numberOfStudents, description, isActive, subjects } = await req.json();
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -91,10 +94,12 @@ export async function PUT(req, { params }) {
         classTeacher: classTeacher || classData.classTeacher,
         numberOfStudents: numberOfStudents !== undefined ? numberOfStudents : classData.numberOfStudents,
         description: description || classData.description,
+        subjects: subjects !== undefined ? subjects : classData.subjects,
         isActive: isActive !== undefined ? isActive : classData.isActive,
       },
       { new: true }
-    ).populate("classTeacher", "firstName lastName email");
+    ).populate("classTeacher", "firstName lastName email")
+      .populate("subjects", "name code");
 
     return Response.json(
       { message: "Class updated successfully", class: updatedClass },
