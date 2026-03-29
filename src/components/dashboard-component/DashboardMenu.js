@@ -99,7 +99,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin', 'learning-specialist'] },
     {
       href: '/dashboard/schools',
-      label: 'School Management',
+      label: 'School Manager',
       icon: 'graduation',
       roles: ['admin', 'school-leader'],
       children: [
@@ -109,7 +109,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     },
     {
       href: '/dashboard/teachers',
-      label: 'Teacher',
+      label: 'Learning Specialist',
       icon: 'teacher',
       roles: ['admin', 'school-leader', 'learning-specialist', 'teacher', 'school-leader'],
       children: [
