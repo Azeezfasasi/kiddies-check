@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
 import School from "../models/School.js";
+import Student from "../models/Student.js";
 import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
@@ -290,6 +291,15 @@ export const login = async (req) => {
     // Generate token
     const token = generateToken(user._id);
 
+    // For parents, get schoolId from their assigned students
+    let parentSchoolId = user.schoolId?._id || user.schoolId;
+    if (user.role === 'parent' && !parentSchoolId) {
+      const assignedStudent = await Student.findOne({ parent: user._id, isActive: true });
+      if (assignedStudent) {
+        parentSchoolId = assignedStudent.school;
+      }
+    }
+
     // Return user info with approval status
     const userProfile = user.getPublicProfile();
 
@@ -300,10 +310,10 @@ export const login = async (req) => {
         token,
         user: {
           ...userProfile,
-          schoolId: user.schoolId?._id || user.schoolId,
+          schoolId: parentSchoolId,
           schoolName: user.schoolId?.name,
         },
-        schoolId: user.schoolId?._id || user.schoolId,
+        schoolId: parentSchoolId,
         approvalStatus: user.approvalStatus,
         canAccessDashboard: user.approvalStatus === 'approved',
       },

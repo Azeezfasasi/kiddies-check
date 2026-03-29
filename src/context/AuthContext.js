@@ -80,6 +80,10 @@ export const AuthProvider = ({ children }) => {
         if (data.user?._id) {
           localStorage.setItem("userId", data.user._id);
         }
+        // Save user role
+        if (data.user?.role) {
+          localStorage.setItem("userRole", data.user.role);
+        }
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -139,6 +143,10 @@ export const AuthProvider = ({ children }) => {
         // Also save userId for API calls
         if (data.user?._id) {
           localStorage.setItem("userId", data.user._id);
+        }
+        // Save user role
+        if (data.user?.role) {
+          localStorage.setItem("userRole", data.user.role);
         }
         return { success: true };
       }

@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentModal from "@/app/components/StudentModal";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
+import ParentAssignmentModal from "@/app/components/ParentAssignmentModal";
+import ParentProfileModal from "@/app/components/ParentProfileModal";
+import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
 
 export default function AllStudentsPage() {
   const router = useRouter();
@@ -20,6 +23,12 @@ export default function AllStudentsPage() {
   const [selectedClass, setSelectedClass] = useState("all");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [showParentAssignmentModal, setShowParentAssignmentModal] = useState(false);
+  const [studentForParentAssignment, setStudentForParentAssignment] = useState(null);
+  const [showParentProfileModal, setShowParentProfileModal] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState(null);
+  const [showFeedbackPanel, setShowFeedbackPanel] = useState(false);
+  const [selectedStudentForFeedback, setSelectedStudentForFeedback] = useState(null);
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -112,6 +121,17 @@ export default function AllStudentsPage() {
     setShowDetailsModal(true);
   };
 
+  const handleOpenParentAssignment = (student) => {
+    setStudentForParentAssignment(student);
+    setShowParentAssignmentModal(true);
+  };
+
+  const handleParentAssigned = () => {
+    setShowParentAssignmentModal(false);
+    setStudentForParentAssignment(null);
+    fetchData(activeSchoolId, userId);
+  };
+
   const filteredStudents = selectedClass === "all" 
     ? students 
     : students.filter(s => s.class?._id === selectedClass);
@@ -187,7 +207,8 @@ export default function AllStudentsPage() {
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Class</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Phone</th>
+                      {/* <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Phone</th> */}
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Parent</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Enrollment</th>
                       <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Actions</th>
                     </tr>
@@ -214,8 +235,29 @@ export default function AllStudentsPage() {
                         <td className="px-6 py-4">
                           <span className="text-gray-600 text-sm">{student.email || "—"}</span>
                         </td>
-                        <td className="px-6 py-4">
+                        {/* <td className="px-6 py-4">
                           <span className="text-gray-600 text-sm">{student.phone || "—"}</span>
+                        </td> */}
+                        <td className="px-6 py-4">
+                          {student.parent ? (
+                            <button
+                              onClick={() => {
+                                setSelectedParentId(student.parent._id);
+                                setShowParentProfileModal(true);
+                              }}
+                              className="flex items-center gap-2 hover:bg-green-50 rounded-lg p-1 transition-colors"
+                            >
+                              <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                {student.parent.firstName.charAt(0)}{student.parent.lastName.charAt(0)}
+                              </div>
+                              <div className="text-sm text-left">
+                                <p className="font-medium text-green-700 hover:underline cursor-pointer">{student.parent.firstName} {student.parent.lastName}</p>
+                                <p className="text-xs text-gray-500">{student.parent.email}</p>
+                              </div>
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-sm italic">Not assigned</span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-gray-600 text-sm">{student.enrollmentNo || "—"}</span>
@@ -228,6 +270,23 @@ export default function AllStudentsPage() {
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedStudentForFeedback(student);
+                                setShowFeedbackPanel(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                              title="View Feedback"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenParentAssignment(student)}
+                              className="text-purple-600 hover:text-purple-800 transition-colors p-1"
+                              title="Assign Parent"
+                            >
+                              <UserPlus className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleEditStudent(student)}
@@ -284,6 +343,16 @@ export default function AllStudentsPage() {
                       <p className="text-gray-500 font-medium mb-1">Enrollment No.</p>
                       <p className="text-gray-600">{student.enrollmentNo || "—"}</p>
                     </div>
+                    <div>
+                      <p className="text-gray-500 font-medium mb-1">Parent</p>
+                      {student.parent ? (
+                        <p className="text-gray-800 font-medium">
+                          {student.parent.firstName.charAt(0)}{student.parent.lastName.charAt(0)}...
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic">Not assigned</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -294,6 +363,23 @@ export default function AllStudentsPage() {
                     >
                       <Eye className="w-4 h-4" />
                       View
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedStudentForFeedback(student);
+                        setShowFeedbackPanel(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Feedback
+                    </button>
+                    <button
+                      onClick={() => handleOpenParentAssignment(student)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-purple-50 hover:bg-purple-100 text-purple-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Parent
                     </button>
                     <button
                       onClick={() => handleEditStudent(student)}
@@ -336,6 +422,42 @@ export default function AllStudentsPage() {
           schoolId={activeSchoolId}
           userId={userId}
           onClose={() => setShowDetailsModal(false)}
+        />
+      )}
+
+      {/* Parent Assignment Modal */}
+      {showParentAssignmentModal && studentForParentAssignment && (
+        <ParentAssignmentModal
+          studentData={studentForParentAssignment}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => setShowParentAssignmentModal(false)}
+          onAssign={handleParentAssigned}
+        />
+      )}
+
+      {/* Parent Profile Modal */}
+      {showParentProfileModal && selectedParentId && (
+        <ParentProfileModal
+          parentId={selectedParentId}
+          onClose={() => {
+            setShowParentProfileModal(false);
+            setSelectedParentId(null);
+          }}
+        />
+      )}
+
+      {/* Student Feedback Panel */}
+      {showFeedbackPanel && selectedStudentForFeedback && (
+        <StudentFeedbackPanel
+          studentId={selectedStudentForFeedback._id}
+          studentName={`${selectedStudentForFeedback.firstName} ${selectedStudentForFeedback.lastName}`}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => {
+            setShowFeedbackPanel(false);
+            setSelectedStudentForFeedback(null);
+          }}
         />
       )}
 

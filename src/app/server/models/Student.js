@@ -59,6 +59,18 @@ const studentSchema = new mongoose.Schema(
       default: true,
     },
     admissionDate: Date,
+    // Parent assignment
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    parentAssignedAt: Date,
+    parentAssignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -79,5 +91,7 @@ const studentSchema = new mongoose.Schema(
 studentSchema.index({ school: 1, class: 1 });
 studentSchema.index({ school: 1, firstName: 1, lastName: 1 });
 studentSchema.index({ school: 1, isActive: 1 });
+studentSchema.index({ parent: 1 }); // For parent to view their students
+studentSchema.index({ school: 1, parent: 1 }); // Combined for efficient queries
 
 export default mongoose.models.Student || mongoose.model("Student", studentSchema);

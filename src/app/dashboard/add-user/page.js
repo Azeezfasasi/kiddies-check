@@ -19,7 +19,7 @@ export default function AddUserPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "client",
+    role: "teacher",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

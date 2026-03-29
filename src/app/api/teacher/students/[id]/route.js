@@ -6,7 +6,7 @@ export async function GET(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -32,7 +32,7 @@ export async function GET(req, { params }) {
 
     await connectDB();
 
-    const student = await Student.findOne({ _id: id, school: schoolId }).populate("class", "name level section");
+    const student = await Student.findOne({ _id: id, school: schoolId }).populate("class", "name level section").populate("parent", "firstName lastName email phone avatar");
 
     if (!student) {
       return Response.json({ error: "Student not found" }, { status: 404 });
@@ -49,7 +49,7 @@ export async function PUT(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
     const updateData = await req.json();
 
     if (!userId || !schoolId) {
@@ -110,7 +110,7 @@ export async function DELETE(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });

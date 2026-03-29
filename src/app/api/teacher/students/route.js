@@ -120,6 +120,7 @@ export async function GET(req) {
 
     const students = await Student.find(query)
       .populate("class", "name level section")
+      .populate("parent", "firstName lastName email phone avatar")
       .sort({ firstName: 1, lastName: 1 });
 
     return Response.json({ students }, { status: 200 });
