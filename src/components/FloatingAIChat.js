@@ -38,6 +38,17 @@ export default function FloatingAIChat({
 
     const fetchContext = async () => {
       try {
+        // Check if we have cached context that's less than 5 minutes old
+        const cached = sessionStorage.getItem('ai_context_cache');
+        const cacheTime = sessionStorage.getItem('ai_context_cache_time');
+        const now = Date.now();
+        
+        if (cached && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+          setContextData(JSON.parse(cached));
+          setContextLoading(false);
+          return;
+        }
+
         const headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -49,6 +60,9 @@ export default function FloatingAIChat({
 
         if (response.ok) {
           const data = await response.json();
+          // Cache the context
+          sessionStorage.setItem('ai_context_cache', JSON.stringify(data));
+          sessionStorage.setItem('ai_context_cache_time', Date.now().toString());
           setContextData(data);
         } else {
           console.error(
