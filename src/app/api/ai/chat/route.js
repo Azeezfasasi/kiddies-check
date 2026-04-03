@@ -25,6 +25,26 @@ export async function POST(req) {
     // Get role-appropriate system prompt with database context
     const systemPrompt = getSystemPrompt(userRole, studentData, schoolContext, contextData);
 
+    // Extract and log the student records section specifically
+    const studentRecordsStart = systemPrompt.indexOf('AVAILABLE STUDENT DATA');
+    const studentRecordsSection = studentRecordsStart !== -1 
+      ? systemPrompt.substring(studentRecordsStart, studentRecordsStart + 1200)
+      : 'NOT FOUND';
+
+    // Check if critical context is present
+    const hasCriticalContext = systemPrompt.includes('CRITICAL CONTEXT');
+    const hasStudentNameData = contextData?.students && contextData.students.length > 0;
+
+    console.log('System prompt for AI:', {
+      userRole,
+      contextDataStudents: contextData?.students?.length || 0,
+      studentNames: contextData?.students?.map(s => s.name) || [],
+      promptLength: systemPrompt.length,
+      promptPreview: systemPrompt.substring(0, 500),
+      hasCriticalContext,
+      hasStudentDataSection: studentRecordsStart !== -1,
+    });
+
     // Convert messages to OpenAI format
     const groqMessages = [
       {
@@ -36,6 +56,14 @@ export async function POST(req) {
         content: msg.content,
       })),
     ];
+
+    console.log('Groq API Request:', {
+      systemPromptLength: systemPrompt.length,
+      messagesCount: groqMessages.length,
+      systemPromptPreview: systemPrompt.substring(0, 300),
+      hasStudentData: hasCriticalContext && hasStudentNameData,
+      hasBevantData: systemPrompt.includes('Bevan'),
+    });
 
     // Get completion from Groq using official model
     const completion = await client.chat.completions.create({

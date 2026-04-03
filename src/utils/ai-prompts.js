@@ -108,74 +108,81 @@ TONE: Professional, evidence-based, compassionate, and collaborative
 Remember: You support the specialist's expertise - never replace formal assessments, evaluations, or professional clinical judgment.`;
 
 export function getSystemPrompt(userRole, studentData = null, schoolContext = null, contextData = null) {
+  // START WITH DATABASE CONTEXT FIRST (models read top-down)
   let prompt = '';
+  
+  // Add database context at the very beginning before role-specific instructions
+  if (contextData) {
+    prompt += `CRITICAL CONTEXT - READ THIS FIRST:\n`;
+    prompt += `You have access to the following real student records:\n\n`;
+    
+    if (contextData.students && contextData.students.length > 0) {
+      prompt += `AVAILABLE STUDENT DATA:\n`;
+      contextData.students.forEach((student, idx) => {
+        prompt += `\n${idx + 1}. Student: ${student.name}`;
+        if (student.enrollmentNo) prompt += ` (ID: ${student.enrollmentNo})`;
+        if (student.email) prompt += ` | Email: ${student.email}`;
+        
+        if (student.performance) {
+          console.log(`Adding to prompt for ${student.name}:`, {
+            totalAssessments: student.performance.totalAssessments,
+            averageScore: student.performance.averageScore,
+          });
 
+          if (student.performance.totalAssessments > 0) {
+            prompt += `\n   Performance: Average Score = ${student.performance.averageScore}%, Total Assessments = ${student.performance.totalAssessments}`;
+            if (student.performance.recentScore !== 'No data') {
+              prompt += `, Recent = ${student.performance.recentScore}% (Grade ${student.performance.recentGrade})`;
+            }
+            
+            if (student.performance.assessments && student.performance.assessments.length > 0) {
+              prompt += `\n   Assessments: ${student.performance.assessments.slice(0, 3).map((a, i) => `${i+1}. ${a.type}: ${a.score}% (${a.grade})`).join(', ')}`;
+            }
+          } else {
+            prompt += `\n   Performance: No assessments recorded yet`;
+          }
+        }
+      });
+      
+      prompt += `\n\n*** IMPORTANT: These are REAL students in the system. When asked about any of these students, provide their specific data from above. ***\n`;
+    }
+
+    if (contextData.teachers && contextData.teachers.length > 0) {
+      prompt += `\nTeachers: ${contextData.teachers.map(t => t.name).join(', ')}\n`;
+    }
+    if (contextData.parents && contextData.parents.length > 0) {
+      prompt += `Parents: ${contextData.parents.map(p => p.name).join(', ')}\n`;
+    }
+  }
+
+  // Now add role-specific instructions
+  prompt += `\n${'='.repeat(80)}\n`;
+  
   // Select base prompt by role
   switch (userRole?.toLowerCase()) {
     case 'parent':
     case 'guardian':
-      prompt = PARENT_PROMPT;
+      prompt += PARENT_PROMPT;
       break;
     case 'teacher':
     case 'educator':
-      prompt = TEACHER_PROMPT;
+      prompt += TEACHER_PROMPT;
       break;
     case 'schoolleader':
     case 'principal':
     case 'administrator':
     case 'admin':
     case 'school-leader':
-      prompt = SCHOOL_LEADER_PROMPT;
+      prompt += SCHOOL_LEADER_PROMPT;
       break;
     case 'learningspecialist':
     case 'specialist':
     case 'schoolpsychologist':
     case 'learning-specialist':
-      prompt = LEARNING_SPECIALIST_PROMPT;
+      prompt += LEARNING_SPECIALIST_PROMPT;
       break;
     default:
-      prompt = PARENT_PROMPT; // Default to parent-friendly responses
-  }
-
-  // Add database context from API if provided
-  if (contextData) {
-    prompt += `\n\nCURRENT DATA CONTEXT:`;
-    
-    if (contextData.summary) {
-      prompt += `\n${contextData.summary}`;
-    }
-    
-    // Detailed student analysis
-    if (contextData.students && contextData.students.length > 0) {
-      prompt += `\n\nSTUDENT RECORDS YOU CAN ANALYZE:`;
-      contextData.students.forEach((student, idx) => {
-        prompt += `\n${idx + 1}. ${student.name}`;
-        if (student.gradeLevel) prompt += ` - Grade ${student.gradeLevel}`;
-        if (student.subjects) prompt += ` - Subjects: ${student.subjects.join(', ')}`;
-        if (student.performance) prompt += ` - Performance: ${student.performance}`;
-        if (student.attendance) prompt += ` - Attendance: ${student.attendance}`;
-        if (student.assessments) prompt += ` - Assessments: ${JSON.stringify(student.assessments, null, 2)}`;
-        if (student.teacherNames) prompt += ` - Teachers: ${student.teacherNames.join(', ')}`;
-        if (student.parentNames) prompt += ` - Parents: ${student.parentNames.join(', ')}`;
-        if (student.specialNeeds) prompt += ` - Special Needs: ${student.specialNeeds}`;
-      });
-      prompt += `\n\nYou can answer detailed questions about any of these students based on the data provided above.`;
-    }
-    
-    if (contextData.teachers && contextData.teachers.length > 0) {
-      prompt += `\n\nTeachers available: ${contextData.teachers.map(t => `${t.name} (${t.email})`).join(', ')}`;
-    }
-    
-    if (contextData.parents && contextData.parents.length > 0) {
-      prompt += `\n\nParents/Guardians available: ${contextData.parents.map(p => `${p.name} (${p.email})`).join(', ')}`;
-    }
-    
-    if (contextData.school) {
-      prompt += `\n\nSchool: ${contextData.school.name || 'Multiple Schools'}`;
-      if (contextData.school.address) prompt += ` (${contextData.school.address})`;
-    }
-
-    prompt += `\n\nINSTRUCTION: Base your analysis and recommendations directly on the student data provided above. When asked about specific students, reference their actual performance metrics, assessment results, and attendance records. Provide specific, data-driven insights.`;
+      prompt += PARENT_PROMPT; // Default to parent-friendly responses
   }
 
   // Add legacy contextual information if provided
@@ -195,7 +202,7 @@ export function getSystemPrompt(userRole, studentData = null, schoolContext = nu
     if (schoolContext.district) prompt += `\nDistrict: ${schoolContext.district}`;
   }
 
-  prompt += `\n\nALWAYS REMEMBER: You are a support assistant, not a replacement for professional educators, counselors, or medical professionals. When in doubt, recommend appropriate human expertise. Only discuss information relevant to the current user's role and access level.`;
+  prompt += `\n\nFINAL INSTRUCTIONS:\n- You are a support assistant for KiddiesCheck educational platform\n- ALWAYS refer to real student data provided at the top when answering questions\n- Only discuss students that are in the provided list\n- Provide specific metrics and performance data when available\n- When in doubt, recommend appropriate human expertise`;
 
   return prompt;
 }

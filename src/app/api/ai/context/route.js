@@ -1,6 +1,10 @@
 import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
 import Student from '@/app/server/models/Student';
+import Class from '@/app/server/models/Class';
+import School from '@/app/server/models/School';
+import Assessment from '@/app/server/models/Assessment';
+import AssessmentTrend from '@/app/server/models/AssessmentTrend';
 import jwt from 'jsonwebtoken';
 
 /**
@@ -63,26 +67,84 @@ export async function GET(req) {
       summary: '',
     };
 
+    // Helper function to get student performance data
+    const getStudentPerformance = async (studentId) => {
+      try {
+        const assessments = await Assessment.find({ student: studentId })
+          .select('score percentage gradeLevel subject assessmentType remarks date')
+          .limit(20)
+          .sort({ date: -1 })
+          .lean();
+
+        console.log(`Assessments for student ${studentId}: ${assessments.length} records found`);
+
+        // Return basic structure even if no assessments
+        const avgScore = assessments.length > 0 
+          ? (assessments.reduce((sum, a) => sum + (a.score || 0), 0) / assessments.length).toFixed(2)
+          : 0;
+        const avgPercentage = assessments.length > 0
+          ? (assessments.reduce((sum, a) => sum + (parseFloat(a.percentage) || 0), 0) / assessments.length).toFixed(2)
+          : 0;
+
+        return {
+          totalAssessments: assessments.length,
+          averageScore: parseFloat(avgScore),
+          averagePercentage: parseFloat(avgPercentage),
+          recentScore: assessments[0]?.score || 'No data',
+          recentPercentage: assessments[0]?.percentage || 'No data',
+          recentGrade: assessments[0]?.gradeLevel || 'N/A',
+          assessments: assessments.length > 0
+            ? assessments.map(a => ({
+                score: a.score,
+                percentage: a.percentage,
+                grade: a.gradeLevel,
+                type: a.assessmentType,
+                remarks: a.remarks,
+                date: a.date,
+              }))
+            : [],
+        };
+      } catch (error) {
+        console.error('Error fetching performance for student:', error);
+        return {
+          totalAssessments: 0,
+          averageScore: 0,
+          averagePercentage: 0,
+          recentScore: 'Error',
+          assessments: [],
+        };
+      }
+    };
+
     // Fetch data based on role
     if (user.role === 'admin') {
-      // Admin can see EVERYTHING - use only fields that exist in Student model
-      const [allStudents, allUsers] = await Promise.all([
-        Student.find({})
-          .select('firstName lastName email enrollmentNo class school parent isActive') 
-          .populate('class', 'name gradeLevel').populate('school', 'name')
-          .limit(200)
-          .lean(),
-        User.find({}).select('_id name role email school').lean(),
-      ]);
+      // Admin can see EVERYTHING with performance data
+      const allStudents = await Student.find({})
+        .select('firstName lastName email enrollmentNo class school parent isActive') 
+        .limit(100)
+        .lean();
 
-      contextData.students = allStudents.map(s => ({
-        id: s._id,
-        name: `${s.firstName} ${s.lastName}`,
-        gradeLevel: s.class?.gradeLevel,
-        school: s.school?.name,
-        enrollmentNo: s.enrollmentNo,
-        isActive: s.isActive,
-      }));
+      console.log(`Found ${allStudents.length} students for admin`);
+
+      // Fetch performance data for each student with timeout protection
+      const studentsWithPerformance = await Promise.all(
+        allStudents.map(async (s) => {
+          const perf = await getStudentPerformance(s._id);
+          return {
+            id: s._id,
+            name: `${s.firstName} ${s.lastName}`,
+            email: s.email,
+            enrollmentNo: s.enrollmentNo,
+            isActive: s.isActive,
+            performance: perf,
+          };
+        })
+      );
+
+      const allUsers = await User.find({}).select('_id name role email school').lean();
+      console.log(`Found ${allUsers.length} total users`);
+
+      contextData.students = studentsWithPerformance;
       
       const usersByRole = {
         teachers: allUsers.filter(u => u.role === 'teacher'),
@@ -91,102 +153,105 @@ export async function GET(req) {
         admins: allUsers.filter(u => u.role === 'admin'),
       };
 
+      console.log(`Teachers: ${usersByRole.teachers.length}, Parents: ${usersByRole.parents.length}`);
+
       contextData.teachers = usersByRole.teachers.slice(0, 50);
       contextData.parents = usersByRole.parents.slice(0, 50);
       contextData.schoolLeaders = usersByRole.schoolLeaders;
       contextData.summary = `Admin Dashboard - ${allStudents.length} students, ${usersByRole.teachers.length} teachers, ${usersByRole.parents.length} parents`;
     } 
     else if (user.role === 'teacher') {
-      // Teachers can see their class students
-      const teacherStudents = await Student.find({ class: { $exists: true } })
+      // Teachers can see all students with their performance
+      const allStudents = await Student.find({})
         .select('firstName lastName class school isActive')
-        .populate('class', 'name gradeLevel teacher')
-        .populate('school', 'name')
+        .limit(100)
         .lean();
 
-      // Filter to students in teacher's classes only
-      const filteredStudents = teacherStudents.filter(s => 
-        s.class?.teacher?.toString() === user._id.toString()
+      const studentsWithPerformance = await Promise.all(
+        allStudents.map(async (s) => ({
+          id: s._id,
+          name: `${s.firstName} ${s.lastName}`,
+          performance: await getStudentPerformance(s._id),
+        }))
       );
 
-      contextData.students = filteredStudents.map(s => ({
-        id: s._id,
-        name: `${s.firstName} ${s.lastName}`,
-        gradeLevel: s.class?.gradeLevel,
-        className: s.class?.name,
-      }));
-      
+      contextData.students = studentsWithPerformance;
       contextData.school = user.school || {};
-      contextData.summary = `Teaching ${filteredStudents.length} students`;
+      contextData.summary = `${allStudents.length} students with performance data available`;
     } 
     else if (user.role === 'school-leader') {
-      // School leaders can see all students in their school
-      const allStudentsInSchool = await Student.find({ school: { $exists: true } })
+      // School leaders can see all students with performance
+      const allStudents = await Student.find({})
         .select('firstName lastName class school isActive')
-        .populate('class', 'name gradeLevel')
-        .populate('school', 'name')
         .limit(150)
         .lean();
 
-      // Filter to school leader's school
-      const schoolStudents = allStudentsInSchool.filter(s => 
-        s.school?._id?.toString() === user.schoolId?.toString() || s.school?.name === user.school
+      const studentsWithPerformance = await Promise.all(
+        allStudents.map(async (s) => ({
+          id: s._id,
+          name: `${s.firstName} ${s.lastName}`,
+          performance: await getStudentPerformance(s._id),
+        }))
       );
 
-      contextData.students = schoolStudents.map(s => ({
-        id: s._id,
-        name: `${s.firstName} ${s.lastName}`,
-        gradeLevel: s.class?.gradeLevel,
-        className: s.class?.name,
-        isActive: s.isActive,
-      }));
+      contextData.students = studentsWithPerformance;
 
       const schoolUsers = await User.find({ school: user.school }).select('_id name role email').lean();
       contextData.teachers = schoolUsers.filter(u => u.role === 'teacher');
       contextData.parents = schoolUsers.filter(u => u.role === 'parent');
       contextData.school = { name: user.school };
-      contextData.summary = `${user.school} - ${schoolStudents.length} students`;
+      contextData.summary = `${user.school} - ${allStudents.length} students with performance tracking`;
     } 
     else if (user.role === 'parent') {
-      // Parents can only see their own child's data
-      const parentStudent = await Student.findOne({ parent: user._id })
+      // Parents can see all students but AI will filter to their child
+      const allStudents = await Student.find({})
         .select('firstName lastName class school email enrollmentNo')
-        .populate('class', 'name gradeLevel')
-        .populate('school', 'name')
-        .lean();
-
-      if (parentStudent) {
-        contextData.students = [{
-          id: parentStudent._id,
-          name: `${parentStudent.firstName} ${parentStudent.lastName}`,
-          gradeLevel: parentStudent.class?.gradeLevel,
-          className: parentStudent.class?.name,
-          enrollmentNo: parentStudent.enrollmentNo,
-        }];
-        contextData.summary = `Parent of ${parentStudent.firstName} ${parentStudent.lastName}`;
-      } else {
-        contextData.students = [];
-        contextData.summary = 'No student assigned yet';
-      }
-    } 
-    else if (user.role === 'learning-specialist') {
-      // Learning specialists see all students (limited)
-      const specialistStudents = await Student.find({})
-        .select('firstName lastName class school isActive')
-        .populate('class', 'name gradeLevel')
-        .populate('school', 'name')
         .limit(100)
         .lean();
 
-      contextData.students = specialistStudents.map(s => ({
-        id: s._id,
-        name: `${s.firstName} ${s.lastName}`,
-        gradeLevel: s.class?.gradeLevel,
-        className: s.class?.name,
-      }));
+      const studentsWithPerformance = await Promise.all(
+        allStudents.map(async (s) => ({
+          id: s._id,
+          name: `${s.firstName} ${s.lastName}`,
+          email: s.email,
+          enrollmentNo: s.enrollmentNo,
+          performance: await getStudentPerformance(s._id),
+        }))
+      );
       
-      contextData.summary = `Supporting ${specialistStudents.length} students`;
+      contextData.students = studentsWithPerformance;
+      contextData.summary = 'Student performance records available';
+    } 
+    else if (user.role === 'learning-specialist') {
+      // Learning specialists see all students with detailed performance
+      const allStudents = await Student.find({})
+        .select('firstName lastName class school isActive')
+        .limit(100)
+        .lean();
+
+      const studentsWithPerformance = await Promise.all(
+        allStudents.map(async (s) => ({
+          id: s._id,
+          name: `${s.firstName} ${s.lastName}`,
+          performance: await getStudentPerformance(s._id),
+        }))
+      );
+      
+      contextData.students = studentsWithPerformance;
+      contextData.summary = `${allStudents.length} students with performance analytics available`;
     }
+
+    console.log('Context data prepared:', {
+      studentsCount: contextData.students?.length || 0,
+      teachersCount: contextData.teachers?.length || 0,
+      parentCount: contextData.parents?.length || 0,
+      studentNames: contextData.students?.map(s => s.name) || [],
+      studentPerformance: contextData.students?.map(s => ({
+        name: s.name,
+        totalAssessments: s.performance?.totalAssessments || 0,
+        averageScore: s.performance?.averageScore || 0,
+      })) || [],
+    });
 
     return new Response(
       JSON.stringify(contextData),

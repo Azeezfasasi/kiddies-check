@@ -24,6 +24,10 @@ export default function FloatingAIChat({
   // Load token from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Clear old cache since data structure changed
+      sessionStorage.removeItem('ai_context_cache');
+      sessionStorage.removeItem('ai_context_cache_time');
+      
       const storedToken = localStorage.getItem('token');
       setToken(storedToken);
     }
@@ -38,28 +42,23 @@ export default function FloatingAIChat({
 
     const fetchContext = async () => {
       try {
-        // Check if we have cached context that's less than 5 minutes old
-        const cached = sessionStorage.getItem('ai_context_cache');
-        const cacheTime = sessionStorage.getItem('ai_context_cache_time');
-        const now = Date.now();
-        
-        if (cached && cacheTime && (now - parseInt(cacheTime)) < 300000) {
-          setContextData(JSON.parse(cached));
-          setContextLoading(false);
-          return;
-        }
-
         const headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         };
 
-        const response = await fetch('/api/ai/context', {
+        // Add cache busting to ensure fresh data
+        const response = await fetch(`/api/ai/context?t=${Date.now()}`, {
           headers,
         });
 
         if (response.ok) {
           const data = await response.json();
+          console.log('AI context loaded:', {
+            studentsCount: data.students?.length,
+            teachersCount: data.teachers?.length,
+            parentsCount: data.parents?.length,
+          });
           // Cache the context
           sessionStorage.setItem('ai_context_cache', JSON.stringify(data));
           sessionStorage.setItem('ai_context_cache_time', Date.now().toString());
@@ -124,6 +123,13 @@ export default function FloatingAIChat({
           studentData,
           contextData, // Pass the full context data to the API
         }),
+      });
+
+      console.log('Sending to AI chat:', {
+        messagesCount: [...messages, userMessage].length,
+        userRole,
+        contextStudents: contextData?.students?.length || 0,
+        studentNames: contextData?.students?.map(s => s.name) || [],
       });
 
       if (!response.ok) {
