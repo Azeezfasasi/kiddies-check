@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
 import AssessmentModal from "@/app/components/AssessmentModal";
 import TrendChart from "@/app/components/TrendChart";
@@ -23,6 +23,10 @@ export default function StudentAssessmentsPage() {
   const [selectedStudent, setSelectedStudent] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
+  const [expandedAssessments, setExpandedAssessments] = useState(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -119,6 +123,18 @@ export default function StudentAssessmentsPage() {
     fetchData(activeSchoolId, userId);
   };
 
+  const toggleAssessmentExpand = (assessmentId) => {
+    setExpandedAssessments((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(assessmentId)) {
+        newSet.delete(assessmentId);
+      } else {
+        newSet.add(assessmentId);
+      }
+      return newSet;
+    });
+  };
+
   // Filter assessments
   let filteredAssessments = assessments;
   if (selectedStudent) {
@@ -130,6 +146,34 @@ export default function StudentAssessmentsPage() {
   if (selectedClass) {
     filteredAssessments = filteredAssessments.filter((a) => a.class?._id === selectedClass);
   }
+
+  // Search filter
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filteredAssessments = filteredAssessments.filter((a) => {
+      const studentName = `${a.student?.firstName} ${a.student?.lastName}`.toLowerCase();
+      const subjectName = a.subject?.name.toLowerCase();
+      const className = a.class?.name.toLowerCase();
+      const week = a.week?.toString();
+
+      return (
+        studentName.includes(query) ||
+        subjectName.includes(query) ||
+        className.includes(query) ||
+        week.includes(query)
+      );
+    });
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAssessments.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedAssessments = filteredAssessments.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedStudent, selectedSubject, selectedClass, searchQuery]);
 
   const getTrendIcon = (trend) => {
     switch (trend) {
@@ -222,6 +266,33 @@ export default function StudentAssessmentsPage() {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by student name, subject, class, or week..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="text-sm text-gray-600 mt-2">
+              Found {filteredAssessments.length} result{filteredAssessments.length !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+
         {/* Assessments List */}
         {filteredAssessments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
@@ -237,82 +308,167 @@ export default function StudentAssessmentsPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {filteredAssessments.map((assessment) => (
-              <div key={assessment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="border-l-4 border-purple-600 p-6">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-800">
-                          {assessment.student?.firstName} {assessment.student?.lastName}
-                        </h3>
-                        <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
-                          {assessment.subject?.name}
-                        </span>
+          <div>
+            <div className="space-y-4">
+              {paginatedAssessments.map((assessment) => {
+                const isExpanded = expandedAssessments.has(assessment._id);
+                return (
+                  <div key={assessment._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                    {/* Collapsible Header */}
+                    <div className="border-l-4 border-purple-600 p-6">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <button
+                            onClick={() => toggleAssessmentExpand(assessment._id)}
+                            className="flex items-center gap-3 w-full text-left hover:opacity-70 transition-opacity"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-bold text-gray-800">
+                                  {assessment.student?.firstName} {assessment.student?.lastName}
+                                </h3>
+                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                                  {assessment.subject?.name}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 text-sm">
+                                {assessment.class?.name} • Week {assessment.week}
+                              </p>
+                            </div>
+                          </button>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditAssessment(assessment)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors p-2 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(assessment._id)}
+                            className="text-red-600 hover:text-red-800 transition-colors p-2 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-gray-600 text-sm">
-                        {assessment.class?.name} • Week {assessment.week}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEditAssessment(assessment)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors p-2 hover:bg-blue-50 rounded-lg"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(assessment._id)}
-                        className="text-red-600 hover:text-red-800 transition-colors p-2 hover:bg-red-50 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                      {/* Score Display */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 pl-8">
+                        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg">
+                          <p className="text-gray-600 text-xs mb-1">Score</p>
+                          <p className="text-xl font-bold text-purple-600">{assessment.score}%</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg">
+                          <p className="text-gray-600 text-xs mb-1">Type</p>
+                          <p className="text-sm font-semibold text-blue-600 capitalize">{assessment.assessmentType}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg">
+                          <p className="text-gray-600 text-xs mb-1">Date</p>
+                          <p className="text-sm font-semibold text-green-600">
+                            {new Date(assessment.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-3 rounded-lg">
+                          <p className="text-gray-600 text-xs mb-1">Grade</p>
+                          <p className="text-xl font-bold text-yellow-600">{assessment.gradeLevel || "—"}</p>
+                        </div>
+                      </div>
+
+                      {/* Expandable Details */}
+                      {isExpanded && (
+                        <div className="mt-6 pl-8 space-y-4 border-t pt-4">
+                          {/* Remarks */}
+                          {assessment.remarks && (
+                            <div className="p-4 bg-gray-50 rounded-lg border-l-2 border-gray-300">
+                              <p className="text-sm font-semibold text-gray-700 mb-1">Remarks</p>
+                              <p className="text-gray-600">{assessment.remarks}</p>
+                            </div>
+                          )}
+
+                          {/* Trend Chart */}
+                          <TrendChart
+                            studentId={assessment.student?._id}
+                            subjectId={assessment.subject?._id}
+                            schoolId={activeSchoolId}
+                            userId={userId}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Score Display */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
-                      <p className="text-gray-600 text-sm mb-1">Score</p>
-                      <p className="text-2xl font-bold text-purple-600">{assessment.score}%</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
-                      <p className="text-gray-600 text-sm mb-1">Type</p>
-                      <p className="text-md font-semibold text-blue-600 capitalize">{assessment.assessmentType}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg">
-                      <p className="text-gray-600 text-sm mb-1">Date</p>
-                      <p className="text-md font-semibold text-green-600">
-                        {new Date(assessment.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg">
-                      <p className="text-gray-600 text-sm mb-1">Grade</p>
-                      <p className="text-2xl font-bold text-yellow-600">{assessment.gradeLevel || "—"}</p>
-                    </div>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Items per page:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                    <option value={20}>20</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-center gap-4">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-800 rounded-lg font-medium transition-colors"
+                  >
+                    Previous
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                          currentPage === page
+                            ? "bg-purple-600 text-white"
+                            : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* Remarks */}
-                  {assessment.remarks && (
-                    <div className="mb-4 p-4 bg-gray-50 rounded-lg border-l-2 border-gray-300">
-                      <p className="text-sm font-semibold text-gray-700 mb-1">Remarks</p>
-                      <p className="text-gray-600">{assessment.remarks}</p>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-800 rounded-lg font-medium transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
 
-                  {/* Trend Chart */}
-                  <TrendChart
-                    studentId={assessment.student?._id}
-                    subjectId={assessment.subject?._id}
-                    schoolId={activeSchoolId}
-                    userId={userId}
-                  />
+                <div className="text-sm text-gray-600 text-center md:text-right">
+                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredAssessments.length)} of{" "}
+                  {filteredAssessments.length} assessments
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
+
       </div>
 
       {/* Add/Edit Modal */}

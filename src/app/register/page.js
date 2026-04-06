@@ -123,7 +123,19 @@ function RegisterContent() {
     schoolLogo: null,
     schoolLogoFile: null,
     terms: false,
+    // Teacher-specific fields
+    teacherClass: "",
+    numberOfLearners: "",
+    subjects: [],
+    // Parent-specific fields
+    children: [],
   });
+
+  const [newChild, setNewChild] = useState({ name: "", className: "", grade: "" });
+  const [availableClasses, setAvailableClasses] = useState([]);
+  const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [loadingTeacherOptions, setLoadingTeacherOptions] = useState(false);
+  const [teacherOptionsError, setTeacherOptionsError] = useState(null);
 
   // Pre-fill invited email from URL parameter or by checking invitations
   useEffect(() => {
@@ -156,11 +168,59 @@ function RegisterContent() {
     fetchInvitationEmail();
   }, [isInvitation, invitedEmail, invitationToken, schoolId]);
 
+  // Fetch teacher classes and subjects from backend
+  useEffect(() => {
+    const fetchTeacherOptions = async () => {
+      setLoadingTeacherOptions(true);
+      setTeacherOptionsError(null);
+      try {
+        const response = await fetch('/api/register/teacher-options');
+        if (!response.ok) {
+          throw new Error('Failed to fetch teacher options');
+        }
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setAvailableClasses(data.data.classes || []);
+          setAvailableSubjects(data.data.subjects || []);
+        } else {
+          throw new Error(data.error || 'Invalid response format');
+        }
+      } catch (err) {
+        console.error('Failed to fetch teacher options:', err);
+        setTeacherOptionsError(err.message);
+        // Set default fallback options in case of error
+        setAvailableClasses([
+          "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+          "JSS 1", "JSS 2", "JSS 3",
+          "SS 1", "SS 2", "SS 3"
+        ]);
+        setAvailableSubjects([
+          "Mathematics", "English Language", "Science", "Social Studies", "Civic Education",
+          "Physical Education", "Fine Arts", "Computer Studies", "Yoruba", "French",
+          "History", "Geography", "Chemistry", "Physics", "Biology", "Literature in English"
+        ]);
+      } finally {
+        setLoadingTeacherOptions(false);
+      }
+    };
+
+    fetchTeacherOptions();
+  }, []);
+
   // Calculate total steps based on user type and role
   // For invited users: 2 steps (personal info + password)
+  // For teacher: 4 steps (personal + role + role-specific + password)
+  // For parent: 4 steps (personal + role + role-specific + password)
+  // For learning-specialist: 3 steps (personal + role + password)
   // For school-leader: 5 steps (personal + role + password + school info + logo)
-  // For other roles: 3 steps (personal + role + password)
-  const totalSteps = isInvitation ? 2 : (formData.role === "school-leader" ? 5 : 3);
+  const calculateTotalSteps = () => {
+    if (isInvitation) return 2;
+    if (formData.role === "school-leader") return 5;
+    if (formData.role === "teacher" || formData.role === "parent") return 4;
+    return 3; // learning-specialist and other roles
+  };
+  const totalSteps = calculateTotalSteps();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -175,6 +235,44 @@ function RegisterContent() {
         [name]: "",
       }));
     }
+  };
+
+  const toggleSubject = (subject) => {
+    setFormData((prev) => ({
+      ...prev,
+      subjects: prev.subjects.includes(subject)
+        ? prev.subjects.filter((s) => s !== subject)
+        : [...prev.subjects, subject],
+    }));
+  };
+
+  const addChild = () => {
+    if (newChild.name.trim() && newChild.className) {
+      setFormData((prev) => ({
+        ...prev,
+        children: [...prev.children, { ...newChild, id: Date.now() }],
+      }));
+      setNewChild({ name: "", className: "", grade: "" });
+      // Clear child errors
+      setErrors((prev) => ({
+        ...prev,
+        childName: "",
+        childClass: "",
+      }));
+    } else {
+      setErrors((prev) => ({
+        ...prev,
+        childName: !newChild.name.trim() ? "Child name is required" : "",
+        childClass: !newChild.className ? "Class is required" : "",
+      }));
+    }
+  };
+
+  const removeChild = (id) => {
+    setFormData((prev) => ({
+      ...prev,
+      children: prev.children.filter((child) => child.id !== id),
+    }));
   };
 
   const handleKeyDown = (e) => {
@@ -249,9 +347,10 @@ function RegisterContent() {
       if (!formData.role) newErrors.role = "Role is required";
     }
 
-    // For invited users, password is step 2; for regular users, it's step 3
+    // For invited users, password is step 2; for regular users (non-teacher/parent), it's step 3
+    // Teachers and parents have password on step 4, so skip password validation on step 3 for them
     const passwordStep = isInvitation ? 2 : 3;
-    if (step === passwordStep) {
+    if (step === passwordStep && (isInvitation || (formData.role !== "teacher" && formData.role !== "parent"))) {
       if (!formData.password) newErrors.password = "Password is required";
       else if (formData.password.length < 6)
         newErrors.password = "Password must be at least 6 characters";
@@ -281,8 +380,32 @@ function RegisterContent() {
       return true;
     }
 
-    // For non-school-leaders, require terms acceptance on final submission (step 3)
-    if (!isInvitation && formData.role !== "school-leader" && step === 3) {
+    // Teacher-specific validation (step 3)
+    if (!isInvitation && formData.role === "teacher" && step === 3) {
+      if (!formData.teacherClass) newErrors.teacherClass = "Please select your class";
+      if (!formData.numberOfLearners) newErrors.numberOfLearners = "Number of learners is required";
+      if (formData.subjects.length === 0) newErrors.subjects = "Select at least one subject";
+    }
+
+    // Parent-specific validation (step 3)
+    if (!isInvitation && formData.role === "parent" && step === 3) {
+      if (formData.children.length === 0) newErrors.children = "Add at least one child";
+    }
+
+    // Password step for teacher and parent (step 4 instead of 3)
+    if (!isInvitation && (formData.role === "teacher" || formData.role === "parent") && step === 4) {
+      if (!formData.password) newErrors.password = "Password is required";
+      else if (formData.password.length < 6)
+        newErrors.password = "Password must be at least 6 characters";
+      if (!formData.confirmPassword)
+        newErrors.confirmPassword = "Please confirm password";
+      else if (formData.password !== formData.confirmPassword)
+        newErrors.confirmPassword = "Passwords do not match";
+      if (!formData.terms) newErrors.terms = "You must agree to the terms";
+    }
+
+    // For non-school-leaders and not teacher/parent, require terms acceptance on final submission (step 3)
+    if (!isInvitation && formData.role !== "school-leader" && formData.role !== "teacher" && formData.role !== "parent" && step === 3) {
       if (!formData.terms) newErrors.terms = "You must agree to the terms";
     }
 
@@ -294,7 +417,9 @@ function RegisterContent() {
     if (validateStep(currentStep)) {
       let nextStep = currentStep + 1;
       // Skip steps 4 and 5 if not a school-leader
-      if (!isInvitation && formData.role !== "school-leader" && nextStep >= 4) {
+      if (!isInvitation && formData.role === "school-leader" && nextStep > 5) {
+        nextStep = totalSteps + 1; // Go to submit
+      } else if (!isInvitation && formData.role !== "school-leader" && nextStep > totalSteps) {
         nextStep = totalSteps + 1; // Go to submit
       }
       setCurrentStep((prev) => Math.min(nextStep, totalSteps));
@@ -302,12 +427,7 @@ function RegisterContent() {
   };
 
   const handlePrevious = () => {
-    let prevStep = currentStep - 1;
-    // Skip steps 4 and 5 when going back if not a school-leader
-    if (!isInvitation && formData.role !== "school-leader" && prevStep >= 4) {
-      prevStep = 3;
-    }
-    setCurrentStep((prev) => Math.max(prevStep, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e) => {
@@ -396,7 +516,11 @@ function RegisterContent() {
         formData.role === "school-leader" ? formData.model : "",
         formData.role === "school-leader" ? formData.numberOfTeachers : "",
         formData.role === "school-leader" ? formData.numberOfStudents : "",
-        formData.role === "school-leader" ? (schoolLogoUrl || formData.schoolLogo) : null
+        formData.role === "school-leader" ? (schoolLogoUrl || formData.schoolLogo) : null,
+        formData.role === "teacher" ? formData.teacherClass : null,
+        formData.role === "teacher" ? formData.numberOfLearners : null,
+        formData.role === "teacher" ? formData.subjects : null,
+        formData.role === "parent" ? formData.children : null
       );
 
       if (result?.success) {
@@ -590,8 +714,224 @@ function RegisterContent() {
             </div>
           )}
 
-          {/* Step 3/2: Password Setup - Step 3 for regular users, Step 2 for invited users */}
-          {currentStep === (isInvitation ? 2 : 3) && (
+          {/* Step 3: Teacher Details - Only for Teachers */}
+          {!isInvitation && formData.role === "teacher" && currentStep === 3 && (
+            <div className="animate-fadeIn space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Your Teaching Information
+                </h2>
+                <p className="text-gray-600">
+                  Tell us about the class you teach and your subjects
+                </p>
+              </div>
+
+              {/* Class Selection */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  Which class are you teaching? <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="teacherClass"
+                  value={formData.teacherClass}
+                  onChange={handleChange}
+                  disabled={loadingTeacherOptions}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+                    loadingTeacherOptions ? 'bg-gray-100 cursor-not-allowed' : ''
+                  } ${
+                    errors.teacherClass ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                  }`}
+                >
+                  <option value="">
+                    {loadingTeacherOptions ? "Loading classes..." : "Select your class"}
+                  </option>
+                  {availableClasses.map((cls) => (
+                    <option key={cls} value={cls}>
+                      {cls}
+                    </option>
+                  ))}
+                </select>
+                {teacherOptionsError && (
+                  <p className="text-amber-600 text-sm mt-1">
+                    ⚠ Using default options - could not fetch from server
+                  </p>
+                )}
+                {errors.teacherClass && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <span>⚠</span> {errors.teacherClass}
+                  </p>
+                )}
+              </div>
+
+              {/* Number of Learners */}
+              <FormField
+                label="How many learners are in your class?"
+                name="numberOfLearners"
+                type="number"
+                placeholder="e.g., 35"
+                required
+                value={formData.numberOfLearners}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
+                errors={errors}
+              />
+
+              {/* Subjects Selection */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-3">
+                  What subjects do your learners offer? <span className="text-red-500">*</span>
+                </label>
+                {loadingTeacherOptions ? (
+                  <div className="p-4 text-center text-gray-600">
+                    Loading subjects...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {availableSubjects.map((subject) => (
+                      <label
+                        key={subject}
+                        className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-blue-50 cursor-pointer transition"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.subjects.includes(subject)}
+                          onChange={() => toggleSubject(subject)}
+                          className="h-5 w-5 text-blue-900 rounded focus:ring-2 focus:ring-blue-900"
+                        />
+                        <span className="text-gray-700 text-sm font-medium">{subject}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {teacherOptionsError && (
+                  <p className="text-amber-600 text-sm mt-2">
+                    ⚠ Using default options - could not fetch from server
+                  </p>
+                )}
+                {errors.subjects && (
+                  <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                    <span>⚠</span> {errors.subjects}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Parent Details - Only for Parents */}
+          {!isInvitation && formData.role === "parent" && currentStep === 3 && (
+            <div className="animate-fadeIn space-y-6">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Your Children's Information
+                </h2>
+                <p className="text-gray-600">
+                  Add details about your children and their classes
+                </p>
+              </div>
+
+              {/* Add Child Form */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 space-y-4">
+                <h3 className="font-semibold text-gray-900">Add a Child</h3>
+                
+                <FormField
+                  label="Child's Full Name"
+                  name="childName"
+                  placeholder="e.g., John Doe"
+                  required
+                  value={newChild.name}
+                  onChange={(e) => {
+                    setNewChild({ ...newChild, name: e.target.value });
+                    if (errors.childName) setErrors((prev) => ({ ...prev, childName: "" }));
+                  }}
+                  onKeyDown={handleKeyDown}
+                  errors={errors}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Class <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newChild.className}
+                      onChange={(e) => {
+                        setNewChild({ ...newChild, className: e.target.value });
+                        if (errors.childClass) setErrors((prev) => ({ ...prev, childClass: "" }));
+                      }}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+                        errors.childClass ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Select class</option>
+                      {availableClasses.map((cls) => (
+                        <option key={cls} value={cls}>
+                          {cls}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.childClass && (
+                      <p className="text-red-500 text-sm mt-1">
+                        <span>⚠</span> {errors.childClass}
+                      </p>
+                    )}
+                  </div>
+
+                  <FormField
+                    label="Grade/Age Range"
+                    name="grade"
+                    placeholder="e.g., 5-6 years"
+                    required={false}
+                    value={newChild.grade}
+                    onChange={(e) => setNewChild({ ...newChild, grade: e.target.value })}
+                    onKeyDown={handleKeyDown}
+                    errors={errors}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addChild}
+                  className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-2 rounded-lg transition"
+                >
+                  + Add Child
+                </button>
+              </div>
+
+              {/* Children List */}
+              {formData.children.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-gray-900">Added Children ({formData.children.length})</h3>
+                  {formData.children.map((child) => (
+                    <div
+                      key={child.id}
+                      className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{child.name}</p>
+                        <p className="text-sm text-gray-600">{child.className}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeChild(child.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded-lg transition"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {errors.children && (
+                <p className="text-red-500 text-sm flex items-center gap-1">
+                  <span>⚠</span> {errors.children}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Step 4/3: Password Setup - Updated for new flows */}
+          {currentStep === (isInvitation ? 2 : (formData.role === "teacher" || formData.role === "parent" ? 4 : 3)) && (
             <div className="animate-fadeIn space-y-6">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">

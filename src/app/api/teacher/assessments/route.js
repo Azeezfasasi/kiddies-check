@@ -12,6 +12,7 @@ function getGradeLevel(score) {
   return "F";
 }
 
+// Recalculate trend after assessment creation/update/deletion
 async function calculateTrend(studentId, subjectId, schoolId) {
   // Fetch all assessments for this student-subject combination
   const assessments = await Assessment.find({ student: studentId, subject: subjectId, school: schoolId })
@@ -50,6 +51,7 @@ async function calculateTrend(studentId, subjectId, schoolId) {
   };
 }
 
+// POST /api/teacher/assessments - Create a new assessment
 export async function POST(req) {
   try {
     const userId = req.headers.get("x-user-id");
@@ -85,17 +87,17 @@ export async function POST(req) {
     }
 
     // Check if assessment already exists for this week
-    const existing = await Assessment.findOne({
-      student: studentId,
-      subject: subjectId,
-      school: schoolId,
-      week,
-      year,
-    });
+    // const existing = await Assessment.findOne({
+    //   student: studentId,
+    //   subject: subjectId,
+    //   school: schoolId,
+    //   week,
+    //   year,
+    // });
 
-    if (existing) {
-      return Response.json({ error: "Assessment for this week already exists" }, { status: 400 });
-    }
+    // if (existing) {
+    //   return Response.json({ error: "Assessment for this week already exists" }, { status: 400 });
+    // }
 
     // Auto-calculate grade level if not provided
     const finalGradeLevel = gradeLevel || getGradeLevel(score);
@@ -161,6 +163,7 @@ export async function POST(req) {
   }
 }
 
+// PUT /api/teacher/assessments/:id - Update an existing assessment
 export async function GET(req) {
   try {
     const userId = req.headers.get("x-user-id");

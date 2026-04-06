@@ -61,7 +61,7 @@ const assessmentSchema = new mongoose.Schema(
     remarks: String,
     assessmentType: {
       type: String,
-      enum: ["assignment", "quiz", "test", "project", "participation"],
+      enum: ["assignment", "classwork", "test", "project", "participation"],
       default: "assignment",
     },
     teacher: {
