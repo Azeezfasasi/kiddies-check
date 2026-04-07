@@ -48,7 +48,7 @@ function PendingApprovalContent() {
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
               <p className="text-blue-900 font-medium mb-2">What happens next?</p>
               <p className="text-sm text-blue-800 leading-relaxed">
-                Our administration team will review your school registration and details. We'll send you an approval confirmation email once the review is complete.
+                Our administration team will review your registration and details. We'll send you an approval confirmation email once the review is complete.
               </p>
             </div>
 
