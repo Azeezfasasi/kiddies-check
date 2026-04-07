@@ -15,6 +15,14 @@ export async function GET(req, { params }) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
 
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
     // Verify user access
     const user = await User.findById(userId);
     const hasAccess = user && (
@@ -24,8 +32,6 @@ export async function GET(req, { params }) {
     if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
-
-    await connectDB();
 
     const classData = await Class.findOne({ _id: id, school: schoolId })
       .populate("classTeacher", "firstName lastName email")
@@ -53,6 +59,14 @@ export async function PUT(req, { params }) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
 
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
     // Verify user access
     const user = await User.findById(userId);
     
@@ -70,8 +84,6 @@ export async function PUT(req, { params }) {
         return Response.json({ error: "Access denied" }, { status: 403 });
       }
     }
-
-    await connectDB();
 
     // Check class exists
     const classData = await Class.findOne({ _id: id, school: schoolId });

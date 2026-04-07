@@ -1,5 +1,6 @@
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
 
 export async function GET(req) {
   try {
@@ -10,6 +11,14 @@ export async function GET(req) {
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
 
     // Verify user access
     const user = await User.findById(userId);

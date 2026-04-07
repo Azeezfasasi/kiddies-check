@@ -204,6 +204,14 @@ export async function DELETE(req, { params }) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
 
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
     // Verify user access
     const user = await User.findById(userId);
     
@@ -221,8 +229,6 @@ export async function DELETE(req, { params }) {
         return Response.json({ error: "Access denied" }, { status: 403 });
       }
     }
-
-    await connectDB();
 
     const assessment = await Assessment.findOne({ _id: id, school: schoolId });
     if (!assessment) {

@@ -1,6 +1,7 @@
 import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
 
 export async function POST(req) {
   try {
@@ -11,6 +12,14 @@ export async function POST(req) {
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
 
     // Verify user has access to this school
     const user = await User.findById(userId);
@@ -29,8 +38,6 @@ export async function POST(req) {
         return Response.json({ error: "Access denied" }, { status: 403 });
       }
     }
-
-    await connectDB();
 
     // Check if subject already exists
     const existing = await Subject.findOne({ school: schoolId, name });
@@ -72,6 +79,14 @@ export async function GET(req) {
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
 
     // Verify user has access to this school
     const user = await User.findById(userId);

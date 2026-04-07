@@ -2,6 +2,7 @@ import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Assessment from "@/app/server/models/Assessment";
 import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
 
 export async function GET(req, { params }) {
   try {
@@ -13,14 +14,20 @@ export async function GET(req, { params }) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
     }
 
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(id) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
     // Verify user access
     const user = await User.findById(userId);
     
     if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
-
-    await connectDB();
 
     const student = await Student.findOne({ _id: id, school: schoolId })
       .populate("class", "name section")
