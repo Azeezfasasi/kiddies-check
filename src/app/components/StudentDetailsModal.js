@@ -241,7 +241,7 @@ export default function StudentDetailsModal({ studentId, schoolId, userId, onClo
           </div>
 
           {/* Attendance Chart */}
-          {attendance.length > 0 && (
+          {/* {attendance.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
@@ -276,7 +276,7 @@ export default function StudentDetailsModal({ studentId, schoolId, userId, onClo
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          )}
+          )} */}
 
           {/* Close Button */}
           <div className="flex justify-end pt-4">
