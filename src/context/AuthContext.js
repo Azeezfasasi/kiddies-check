@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo) => {
+  const register = async (firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, teacherClass, numberOfLearners, subjects, children, schoolType) => {
     try {
       // Build registration object dynamically
       const registrationData = {
@@ -123,6 +123,9 @@ export const AuthProvider = ({ children }) => {
       }
       if (schoolLogo) {
         registrationData.schoolLogo = schoolLogo;
+      }
+      if (schoolType) {
+        registrationData.schoolType = schoolType;
       }
 
       const response = await fetch("/api/auth/register", {

@@ -34,6 +34,11 @@ const schoolSchema = new mongoose.Schema(
       trim: true,
       description: 'School model/type (e.g., public, private, hybrid)',
     },
+    schoolType: {
+      type: String,
+      enum: ['my-childs-school', 'home-school'],
+      description: 'Type of school (My Child\'s School or Home School)',
+    },
     logo: {
       type: String,
       trim: true,

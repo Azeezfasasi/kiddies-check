@@ -70,6 +70,11 @@ const userSchema = new mongoose.Schema(
     numberOfTeachers: { type: Number },
     numberOfStudents: { type: Number },
     schoolLogo: { type: String, trim: true },
+    schoolType: {
+      type: String,
+      enum: ['my-childs-school', 'home-school'],
+      description: 'Type of school (My Child\'s School or Home School)',
+    },
 
     // Authentication
     password: {

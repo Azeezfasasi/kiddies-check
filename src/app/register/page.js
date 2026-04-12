@@ -113,6 +113,7 @@ function RegisterContent() {
     email: "", // Will be populated in useEffect if invitation
     phone: "",
     role: "", // Will be set automatically for invited users
+    schoolType: "", // My Child's School or Home School
     password: "",
     confirmPassword: "",
     school: "",
@@ -345,6 +346,10 @@ function RegisterContent() {
     // Skip role validation for invited users (they already have a role assigned)
     if (step === 2 && !isInvitation) {
       if (!formData.role) newErrors.role = "Role is required";
+      // Validate schoolType for school-leader, teacher, and parent
+      if (["school-leader", "teacher", "parent"].includes(formData.role)) {
+        if (!formData.schoolType) newErrors.schoolType = "School type is required";
+      }
     }
 
     // For invited users, password is step 2; for regular users (non-teacher/parent), it's step 3
@@ -520,7 +525,8 @@ function RegisterContent() {
         formData.role === "teacher" ? formData.teacherClass : null,
         formData.role === "teacher" ? formData.numberOfLearners : null,
         formData.role === "teacher" ? formData.subjects : null,
-        formData.role === "parent" ? formData.children : null
+        formData.role === "parent" ? formData.children : null,
+        formData.schoolType || "" // Pass schoolType for school-leader, teacher, and parent
       );
 
       if (result?.success) {
@@ -710,6 +716,48 @@ function RegisterContent() {
                 <p className="text-red-500 text-sm mt-4 flex items-center gap-1">
                   <span>⚠</span> {errors.role}
                 </p>
+              )}
+
+              {/* School Type Selection - for school-leader, teacher, and parent */}
+              {formData.role && ["parent"].includes(formData.role) && (
+                <div className="border-t pt-6 mt-6">
+                  <label className="block text-gray-700 font-medium mb-3">
+                    What type of school? <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { value: "my-childs-school", label: "My Child's School", description: "A private or public educational institution" },
+                      { value: "home-school", label: "Home School", description: "Home-based learning environment" },
+                    ].map((typeOption) => (
+                      <label
+                        key={typeOption.value}
+                        className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                          formData.schoolType === typeOption.value
+                            ? "border-blue-900 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="schoolType"
+                          value={typeOption.value}
+                          checked={formData.schoolType === typeOption.value}
+                          onChange={handleChange}
+                          className="h-5 w-5 text-blue-900 border-gray-300 focus:ring-2 focus:ring-blue-900 cursor-pointer mt-1"
+                        />
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900 block">{typeOption.label}</span>
+                          <span className="text-sm text-gray-600">{typeOption.description}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.schoolType && (
+                    <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                      <span>⚠</span> {errors.schoolType}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}

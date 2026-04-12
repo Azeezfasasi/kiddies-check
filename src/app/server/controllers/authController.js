@@ -84,7 +84,7 @@ export const register = async (req) => {
     await connectDB();
 
     const body = await req.json();
-    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo } = body;
+    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType } = body;
 
     // Basic validation - required for all users
     if (!firstName || !lastName || !email || !phone || !role || !password) {
@@ -137,6 +137,7 @@ export const register = async (req) => {
           email: email, // Use school email, can be updated later
           location: location,
           model: model,
+          schoolType: schoolType,
           numberOfTeachers: parseInt(numberOfTeachers) || 0,
           numberOfStudents: parseInt(numberOfStudents) || 0,
           logo: schoolLogo,
@@ -149,6 +150,7 @@ export const register = async (req) => {
         schoolRecord.numberOfTeachers = parseInt(numberOfTeachers) || schoolRecord.numberOfTeachers;
         schoolRecord.numberOfStudents = parseInt(numberOfStudents) || schoolRecord.numberOfStudents;
         if (schoolLogo) schoolRecord.logo = schoolLogo;
+        if (schoolType) schoolRecord.schoolType = schoolType;
         await schoolRecord.save();
       }
     }
@@ -173,6 +175,10 @@ export const register = async (req) => {
       userData.numberOfTeachers = parseInt(numberOfTeachers);
       userData.numberOfStudents = parseInt(numberOfStudents);
       userData.schoolLogo = schoolLogo;
+      userData.schoolType = schoolType;
+    } else if (schoolType) {
+      // For teachers and parents, also store schoolType
+      userData.schoolType = schoolType;
     }
 
     const user = new User(userData);
