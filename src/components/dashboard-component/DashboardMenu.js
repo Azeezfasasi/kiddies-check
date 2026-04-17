@@ -118,7 +118,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/all-classes', label: 'Classes', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
         { href: '/dashboard/all-students', label: 'All Students', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
         { href: '/dashboard/all-subjects', label: 'Subjects', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/student-assessments', label: 'Student Assessments', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+        { href: '/dashboard/student-assessments', label: 'Student Learning Data', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
       ]
     },
     {
