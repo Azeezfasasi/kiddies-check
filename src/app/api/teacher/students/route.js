@@ -88,6 +88,7 @@ export async function GET(req) {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const classId = req.nextUrl.searchParams.get("classId");
+    const parentId = req.nextUrl.searchParams.get("parentId");
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -117,13 +118,16 @@ export async function GET(req) {
     if (classId) {
       query.class = classId;
     }
+    if (parentId) {
+      query.parent = parentId;
+    }
 
     const students = await Student.find(query)
       .populate("class", "name level section")
       .populate("parent", "firstName lastName email phone avatar")
       .sort({ firstName: 1, lastName: 1 });
 
-    return Response.json({ students }, { status: 200 });
+    return Response.json({ data: students }, { status: 200 });
   } catch (error) {
     console.error("[Students Get Error]", error);
     return Response.json({ error: error.message }, { status: 500 });
