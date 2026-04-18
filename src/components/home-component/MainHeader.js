@@ -161,23 +161,24 @@ export default function MainHeader() {
                 const submenuData = {
                   sections: [
                     {
-                      title: 'EdTech for',
+                      title: 'KiddiesChecks for',
                       items: [
-                        { href: '/ai-observatory', label: 'AI Observatory' },
-                        { href: '/climate-resilience', label: 'Climate Resilience' },
-                        { href: '/cost-effectiveness', label: 'Cost-Effectiveness' },
-                        { href: '/data-decision-making', label: 'Supporting Data-informed Decision-making' },
-                        { href: '/digital-learning', label: 'Digital Personalised Learning' },
+                        { href: '/challenges/big-challenges', label: 'Big Challenges' },
+                        { href: '/challenges/ai-observatory', label: 'AI Observatory' },
+                        { href: '/challenges/climate-resilience', label: 'Climate Resilience' },
+                        { href: '/challenges/cost-effectiveness', label: 'Cost-Effectiveness' },
+                        { href: '/challenges/data-decision-making', label: 'Supporting Data-informed Decision-making' },
+                        { href: '/challenges/digital-learning', label: 'Digital Personalised Learning' },
                       ]
                     },
                     {
                       title: 'Key Focus Areas',
                       items: [
-                        { href: '/emergencies', label: 'Education in Emergencies' },
-                        { href: '/girls-education', label: 'Girls\' Education and Technology' },
-                        { href: '/special-needs', label: 'Special Educational Needs & Disabilities' },
-                        { href: '/participation', label: 'Participation and Messaging' },
-                        { href: '/teacher-development', label: 'Teacher Continuous Professional Development' },
+                        { href: '/challenges/education-in-emergencies', label: 'Education in Emergencies' },
+                        { href: '/challenges/girls-education', label: 'Girls\' Education and Technology' },
+                        { href: '/challenges/special-needs', label: 'Special Educational Needs & Disabilities' },
+                        { href: '/challenges/participation', label: 'Participation and Messaging' },
+                        { href: '/challenges/teacher-development', label: 'Teacher Continuous Professional Development' },
                       ]
                     }
                   ]
@@ -366,23 +367,24 @@ export default function MainHeader() {
                   const submenuData = {
                     sections: [
                       {
-                        title: 'EdTech for',
+                        title: 'KiddiesChecks for',
                         items: [
-                          { href: '/ai-observatory', label: 'AI Observatory' },
-                          { href: '/climate-resilience', label: 'Climate Resilience' },
-                          { href: '/cost-effectiveness', label: 'Cost-Effectiveness' },
-                          { href: '/data-decision-making', label: 'Supporting Data-informed Decision-making' },
-                          { href: '/digital-learning', label: 'Digital Personalised Learning' },
+                          { href: '/challenges/big-challenges', label: 'Big Challenges' },
+                          { href: '/challenges/ai-observatory', label: 'AI Observatory' },
+                          { href: '/challenges/climate-resilience', label: 'Climate Resilience' },
+                          { href: '/challenges/cost-effectiveness', label: 'Cost-Effectiveness' },
+                          { href: '/challenges/data-decision-making', label: 'Supporting Data-informed Decision-making' },
+                          { href: '/challenges/digital-learning', label: 'Digital Personalised Learning' },
                         ]
                       },
                       {
                         title: 'Key Focus Areas',
                         items: [
-                          { href: '/emergencies', label: 'Education in Emergencies' },
-                          { href: '/girls-education', label: 'Girls\' Education and Technology' },
-                          { href: '/special-needs', label: 'Special Educational Needs & Disabilities' },
-                          { href: '/participation', label: 'Participation and Messaging' },
-                          { href: '/teacher-development', label: 'Teacher Continuous Professional Development' },
+                          { href: '/challenges/education-in-emergencies', label: 'Education in Emergencies' },
+                          { href: '/challenges/girls-education', label: 'Girls\' Education and Technology' },
+                          { href: '/challenges/special-needs', label: 'Special Educational Needs & Disabilities' },
+                          { href: '/challenges/participation', label: 'Participation and Messaging' },
+                          { href: '/challenges/teacher-development', label: 'Teacher Continuous Professional Development' },
                         ]
                       }
                     ]
