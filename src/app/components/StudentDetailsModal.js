@@ -157,6 +157,15 @@ export default function StudentDetailsModal({ studentId, schoolId, userId, onClo
                   <p className="text-lg font-bold text-gray-800">{studentData.school?.name || "N/A"}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-gray-600">School Type</p>
+                  <p className="text-lg font-bold text-gray-800">
+                    {studentData.schoolType 
+                      ? (studentData.schoolType === 'my-childs-school' ? "My Child's School" : studentData.schoolType === 'home-school' ? "Home School" : studentData.schoolType)
+                      : "N/A"
+                    }
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm text-gray-600">Class</p>
                   <p className="text-lg font-bold text-gray-800">
                     {studentData.class?.name}

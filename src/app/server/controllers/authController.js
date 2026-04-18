@@ -84,7 +84,7 @@ export const register = async (req) => {
     await connectDB();
 
     const body = await req.json();
-    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType } = body;
+    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType, schoolId } = body;
 
     // Basic validation - required for all users
     if (!firstName || !lastName || !email || !phone || !role || !password) {
@@ -176,8 +176,16 @@ export const register = async (req) => {
       userData.numberOfStudents = parseInt(numberOfStudents);
       userData.schoolLogo = schoolLogo;
       userData.schoolType = schoolType;
+    } else if (role === 'parent' || role === 'teacher') {
+      // For teachers and parents, store schoolType and schoolId
+      if (schoolType) {
+        userData.schoolType = schoolType;
+      }
+      if (schoolId) {
+        userData.schoolId = schoolId;
+      }
     } else if (schoolType) {
-      // For teachers and parents, also store schoolType
+      // For other roles, also store schoolType if provided
       userData.schoolType = schoolType;
     }
 

@@ -54,6 +54,12 @@ const studentSchema = new mongoose.Schema(
     phone: String,
     medicalInfo: String,
     photo: String,
+    schoolType: {
+      type: String,
+      enum: ['my-childs-school', 'home-school', ''],
+      default: '',
+      description: 'Type of school (My Child\'s School or Home School)',
+    },
     isActive: {
       type: Boolean,
       default: true,

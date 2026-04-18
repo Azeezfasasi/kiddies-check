@@ -114,6 +114,7 @@ function RegisterContent() {
     phone: "",
     role: "", // Will be set automatically for invited users
     schoolType: "", // My Child's School or Home School
+    schoolId: "", // For parents and teachers to select existing school
     password: "",
     confirmPassword: "",
     school: "",
@@ -135,7 +136,9 @@ function RegisterContent() {
   const [newChild, setNewChild] = useState({ name: "", className: "", grade: "" });
   const [availableClasses, setAvailableClasses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
+  const [availableSchools, setAvailableSchools] = useState([]);
   const [loadingTeacherOptions, setLoadingTeacherOptions] = useState(false);
+  const [loadingSchools, setLoadingSchools] = useState(false);
   const [teacherOptionsError, setTeacherOptionsError] = useState(null);
 
   // Pre-fill invited email from URL parameter or by checking invitations
@@ -208,6 +211,43 @@ function RegisterContent() {
 
     fetchTeacherOptions();
   }, []);
+
+  // Fetch schools for parent and teacher selection
+  useEffect(() => {
+    const fetchSchools = async () => {
+      if (formData.role !== 'parent' && formData.role !== 'teacher') {
+        setAvailableSchools([]);
+        return;
+      }
+
+      setLoadingSchools(true);
+      try {
+        const queryParams = new URLSearchParams();
+        if (formData.schoolType) {
+          queryParams.append('schoolType', formData.schoolType);
+        }
+
+        const response = await fetch(`/api/register/schools?${queryParams}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch schools');
+        }
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.data)) {
+          setAvailableSchools(data.data);
+        } else {
+          throw new Error(data.error || 'Invalid response format');
+        }
+      } catch (err) {
+        console.error('Failed to fetch schools:', err);
+        setAvailableSchools([]);
+      } finally {
+        setLoadingSchools(false);
+      }
+    };
+
+    fetchSchools();
+  }, [formData.role, formData.schoolType]);
 
   // Calculate total steps based on user type and role
   // For invited users: 2 steps (personal info + password)
@@ -349,6 +389,10 @@ function RegisterContent() {
       // Validate schoolType for school-leader, teacher, and parent
       if (["school-leader", "teacher", "parent"].includes(formData.role)) {
         if (!formData.schoolType) newErrors.schoolType = "School type is required";
+      }
+      // Validate schoolId for parent and teacher
+      if (["parent", "teacher"].includes(formData.role)) {
+        if (!formData.schoolId) newErrors.schoolId = "Please select a school";
       }
     }
 
@@ -526,7 +570,8 @@ function RegisterContent() {
         formData.role === "teacher" ? formData.numberOfLearners : null,
         formData.role === "teacher" ? formData.subjects : null,
         formData.role === "parent" ? formData.children : null,
-        formData.schoolType || "" // Pass schoolType for school-leader, teacher, and parent
+        formData.schoolType || "", // Pass schoolType for school-leader, teacher, and parent
+        formData.role === "parent" || formData.role === "teacher" ? formData.schoolId : "" // Pass schoolId for parent and teacher
       );
 
       if (result?.success) {
@@ -718,8 +763,8 @@ function RegisterContent() {
                 </p>
               )}
 
-              {/* School Type Selection - for school-leader, teacher, and parent */}
-              {formData.role && ["parent"].includes(formData.role) && (
+              {/* School Type Selection - for teacher and parent */}
+              {formData.role && ["parent", "teacher"].includes(formData.role) && (
                 <div className="border-t pt-6 mt-6">
                   <label className="block text-gray-700 font-medium mb-3">
                     What type of school? <span className="text-red-500">*</span>
@@ -756,6 +801,45 @@ function RegisterContent() {
                     <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
                       <span>⚠</span> {errors.schoolType}
                     </p>
+                  )}
+
+                  {/* School Selection - for parents and teachers */}
+                  {formData.schoolType && (
+                    <div className="pt-6 mt-6 border-t">
+                      <label className="block text-gray-700 font-medium mb-3">
+                        Select Your School <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="schoolId"
+                        value={formData.schoolId}
+                        onChange={handleChange}
+                        disabled={loadingSchools || availableSchools.length === 0}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 transition ${
+                          loadingSchools ? 'bg-gray-100 cursor-not-allowed' : ''
+                        } ${
+                          errors.schoolId ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">
+                          {loadingSchools ? "Loading schools..." : availableSchools.length === 0 ? "No schools available" : "Select a school"}
+                        </option>
+                        {availableSchools.map((school) => (
+                          <option key={school._id} value={school._id}>
+                            {school.name} ({school.location})
+                          </option>
+                        ))}
+                      </select>
+                      {errors.schoolId && (
+                        <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                          <span>⚠</span> {errors.schoolId}
+                        </p>
+                      )}
+                      {availableSchools.length === 0 && !loadingSchools && formData.schoolType && (
+                        <p className="text-amber-600 text-sm mt-2">
+                          ⚠ No schools available for your selection. Please try a different school type.
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

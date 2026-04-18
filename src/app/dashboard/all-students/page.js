@@ -69,7 +69,7 @@ export default function AllStudentsPage() {
       }
 
       const studentData = await studentRes.json();
-      setStudents(studentData.students || []);
+      setStudents(studentData.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
@@ -206,8 +206,7 @@ export default function AllStudentsPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Name</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Class</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
-                      {/* <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Phone</th> */}
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">School Type</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Parent</th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Enrollment</th>
                       <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Actions</th>
@@ -233,11 +232,13 @@ export default function AllStudentsPage() {
                           <span className="text-gray-800">{student.class?.name || "N/A"}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-gray-600 text-sm">{student.email || "—"}</span>
+                          <span className="text-gray-600 text-sm">
+                            {student.schoolType 
+                              ? (student.schoolType === 'my-childs-school' ? "My Child's School" : "Home School")
+                              : "N/A"
+                            }
+                          </span>
                         </td>
-                        {/* <td className="px-6 py-4">
-                          <span className="text-gray-600 text-sm">{student.phone || "—"}</span>
-                        </td> */}
                         <td className="px-6 py-4">
                           {student.parent ? (
                             <button

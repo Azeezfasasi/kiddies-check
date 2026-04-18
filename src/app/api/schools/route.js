@@ -45,13 +45,18 @@ export async function GET(req) {
         query.approvalStatus = approvalStatus;
       }
 
+      const schoolType = searchParams.get("schoolType");
+      if (schoolType && schoolType !== "all") {
+        query.schoolType = schoolType;
+      }
+
       // Execute query with pagination
       const totalCount = await School.countDocuments(query);
       const totalPages = Math.ceil(totalCount / pageSize);
 
       const schools = await School.find(query)
         .select(
-          "name email phone location model logo website description numberOfStudents numberOfTeachers approvalStatus isActive createdAt principal"
+          "name email phone location model schoolType logo website description numberOfStudents numberOfTeachers approvalStatus isActive createdAt principal"
         )
         .populate({
           path: "principal",

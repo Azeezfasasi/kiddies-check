@@ -172,6 +172,7 @@ export async function GET(req, { params }) {
           school: student.school,
           phone: student.phone,
           photo: student.photo,
+          schoolType: student.schoolType,
         },
         performance: performanceData,
         stats: {

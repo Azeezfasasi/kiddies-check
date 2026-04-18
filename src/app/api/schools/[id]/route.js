@@ -36,7 +36,7 @@ export async function PUT(req, { params }) {
       }
 
       const body = await req.json();
-      const { name, email, phone, location, model, website, description } =
+      const { name, email, phone, location, model, website, description, schoolType } =
         body;
 
       // Check if email is being changed and if new email exists
@@ -61,6 +61,7 @@ export async function PUT(req, { params }) {
       if (model !== undefined) school.model = model;
       if (website !== undefined) school.website = website;
       if (description !== undefined) school.description = description;
+      if (schoolType !== undefined) school.schoolType = schoolType;
 
       school.updatedAt = new Date();
       await school.save();

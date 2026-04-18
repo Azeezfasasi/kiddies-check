@@ -19,6 +19,7 @@ export async function POST(req) {
       phone,
       medicalInfo,
       photo,
+      schoolType,
     } = await req.json();
 
     if (!userId || !schoolId || !classId) {
@@ -45,19 +46,34 @@ export async function POST(req) {
 
     await connectDB();
 
-    // Check if enrollment number already exists
-    if (enrollmentNo) {
-      const existing = await Student.findOne({ school: schoolId, enrollmentNo });
-      if (existing) {
-        return Response.json({ error: "Enrollment number already exists" }, { status: 400 });
+    // Auto-generate enrollment number
+    let generatedEnrollmentNo = enrollmentNo;
+    
+    if (!enrollmentNo) {
+      // Find the highest enrollment number for this school
+      const lastStudent = await Student.findOne({ school: schoolId, enrollmentNo: { $exists: true, $ne: null } })
+        .sort({ enrollmentNo: -1 })
+        .select("enrollmentNo");
+      
+      let nextNumber = 1;
+      
+      if (lastStudent && lastStudent.enrollmentNo) {
+        // Extract the number from format KIDSTU-000001
+        const match = lastStudent.enrollmentNo.match(/KIDSTU-(\d+)/);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
       }
+      
+      // Generate new enrollment number with leading zeros
+      generatedEnrollmentNo = `KIDSTU-${String(nextNumber).padStart(6, '0')}`;
     }
 
     const newStudent = await Student.create({
       firstName,
       lastName,
       email,
-      enrollmentNo,
+      enrollmentNo: generatedEnrollmentNo,
       dateOfBirth,
       gender,
       class: classId,
@@ -67,6 +83,7 @@ export async function POST(req) {
       phone,
       medicalInfo,
       photo,
+      schoolType,
       admissionDate: new Date(),
       createdBy: userId,
     });

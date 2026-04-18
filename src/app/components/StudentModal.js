@@ -14,6 +14,7 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
     class: "",
     phone: "",
     dateOfBirth: "",
+    schoolType: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +29,7 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
         class: studentData.class?._id || "",
         phone: studentData.phone || "",
         dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.split("T")[0] : "",
+        schoolType: studentData.school?.schoolType || "",
       });
     }
   }, [studentData]);
@@ -78,6 +80,7 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
           phone: formData.phone,
           dateOfBirth: formData.dateOfBirth || undefined,
           class: formData.class,
+          schoolType: formData.schoolType,
         }),
       });
 
@@ -143,6 +146,21 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
           </div>
 
           <div>
+            {/* school type */}
+            <label className="block text-sm font-semibold text-gray-700 mb-2">School Type</label>
+            <select
+              name="schoolType"
+              value={formData.schoolType}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select school type</option>
+              <option value="my-childs-school">My Child's School</option>
+              <option value="home-school">Home School</option>
+            </select>
+          </div>
+          
+          <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Class *
             </label>
@@ -207,10 +225,13 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
                 type="text"
                 name="enrollmentNo"
                 value={formData.enrollmentNo}
-                onChange={handleChange}
-                placeholder="STU-001"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled
+                placeholder="Auto-generated"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600"
               />
+              <span className="text-xs text-blue-600">
+                Auto-generated
+              </span>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>

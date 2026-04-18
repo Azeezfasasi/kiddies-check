@@ -37,6 +37,7 @@ export default function MainHeader() {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/about-us', label: 'About Us' },
+    { href: '/big-challenges', label: 'Big Challenges' },
     { href: '/services', label: 'Our Services' },
     { href: '/blog', label: 'Blog' },
     { href: '/contact-us', label: 'Contact Us' }
@@ -45,19 +46,28 @@ export default function MainHeader() {
 
   // About submenu state/ref
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [bigChallengesOpen, setBigChallengesOpen] = useState(false)
   const aboutRef = useRef(null)
+  const bigChallengesRef = useRef(null)
   const mobileSubmenuRef = useRef(null)
 
   // Close about submenu on outside click or Escape
   useEffect(() => {
     function onDocClick(e) {
-      if (!aboutRef.current) return
+      if (aboutRef.current && !aboutRef.current.contains(e.target)) {
+        setAboutOpen(false)
+      }
+      if (bigChallengesRef.current && !bigChallengesRef.current.contains(e.target)) {
+        setBigChallengesOpen(false)
+      }
       // Don't close if clicking inside the mobile submenu
       if (mobileSubmenuRef.current && mobileSubmenuRef.current.contains(e.target)) return
-      if (!aboutRef.current.contains(e.target)) setAboutOpen(false)
     }
     function onDocKey(e) {
-      if (e.key === 'Escape') setAboutOpen(false)
+      if (e.key === 'Escape') {
+        setAboutOpen(false)
+        setBigChallengesOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDocClick)
     document.addEventListener('keydown', onDocKey)
@@ -140,6 +150,80 @@ export default function MainHeader() {
                             {si.label}
                           </Link>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              // Big Challenges  submenu
+              if (l.label === 'Big Challenges') {
+                const submenuData = {
+                  sections: [
+                    {
+                      title: 'EdTech for',
+                      items: [
+                        { href: '/ai-observatory', label: 'AI Observatory' },
+                        { href: '/climate-resilience', label: 'Climate Resilience' },
+                        { href: '/cost-effectiveness', label: 'Cost-Effectiveness' },
+                        { href: '/data-decision-making', label: 'Supporting Data-informed Decision-making' },
+                        { href: '/digital-learning', label: 'Digital Personalised Learning' },
+                      ]
+                    },
+                    {
+                      title: 'Key Focus Areas',
+                      items: [
+                        { href: '/emergencies', label: 'Education in Emergencies' },
+                        { href: '/girls-education', label: 'Girls\' Education and Technology' },
+                        { href: '/special-needs', label: 'Special Educational Needs & Disabilities' },
+                        { href: '/participation', label: 'Participation and Messaging' },
+                        { href: '/teacher-development', label: 'Teacher Continuous Professional Development' },
+                      ]
+                    }
+                  ]
+                }
+
+                return (
+                  <div
+                    key={l.href}
+                    className="relative"
+                    onMouseEnter={() => setBigChallengesOpen(true)}
+                    onMouseLeave={() => setBigChallengesOpen(false)}
+                  >
+                    <button
+                      aria-haspopup="menu"
+                      aria-expanded={bigChallengesOpen}
+                      onClick={() => setBigChallengesOpen(s => !s)}
+                      className={`transition inline-flex items-center gap-2 ${isActive(l.href) ? 'text-blue-900 font-semibold' : 'text-gray-700 hover:text-gray-900'}`}
+                    >
+                      {l.label}
+                      <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06-.02L10 10.672l3.71-3.484a.75.75 0 111.04 1.08l-4.24 3.99a.75.75 0 01-1.04 0l-4.24-3.99a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+
+                    {/* Dropdown */}
+                    {bigChallengesOpen && (
+                      <div className="absolute left-0 mt-0 w-max bg-white rounded-lg shadow-xl p-8 z-40 border border-gray-100">
+                        <div className="grid grid-cols-2 gap-12">
+                          {submenuData.sections.map((section, idx) => (
+                            <div key={idx}>
+                              <h3 className="font-semibold text-gray-900 text-sm mb-4">{section.title}</h3>
+                              <ul className="space-y-3">
+                                {section.items.map(item => (
+                                  <li key={item.href}>
+                                    <Link
+                                      href={item.href}
+                                      className="text-sm text-gray-700 hover:text-blue-900 transition-colors"
+                                    >
+                                      {item.label}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -237,7 +321,7 @@ export default function MainHeader() {
       <div ref={panelRef} className="fixed inset-0 z-50" aria-hidden={!open}>
         <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)}></div>
 
-        <div className="absolute right-0 top-0 h-full w-80 max-w-full bg-white shadow-2xl">
+        <div className="absolute right-0 top-0 h-full overflow-y-auto w-80 max-w-full bg-white shadow-2xl">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <Link href="/" className="flex items-center gap-3">
@@ -271,6 +355,61 @@ export default function MainHeader() {
                             }} className={`block px-3 py-2 rounded-md ${isActive(si.href) ? 'text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>
                               {si.label}
                             </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                if (l.label === 'Big Challenges') {
+                  const submenuData = {
+                    sections: [
+                      {
+                        title: 'EdTech for',
+                        items: [
+                          { href: '/ai-observatory', label: 'AI Observatory' },
+                          { href: '/climate-resilience', label: 'Climate Resilience' },
+                          { href: '/cost-effectiveness', label: 'Cost-Effectiveness' },
+                          { href: '/data-decision-making', label: 'Supporting Data-informed Decision-making' },
+                          { href: '/digital-learning', label: 'Digital Personalised Learning' },
+                        ]
+                      },
+                      {
+                        title: 'Key Focus Areas',
+                        items: [
+                          { href: '/emergencies', label: 'Education in Emergencies' },
+                          { href: '/girls-education', label: 'Girls\' Education and Technology' },
+                          { href: '/special-needs', label: 'Special Educational Needs & Disabilities' },
+                          { href: '/participation', label: 'Participation and Messaging' },
+                          { href: '/teacher-development', label: 'Teacher Continuous Professional Development' },
+                        ]
+                      }
+                    ]
+                  }
+
+                  return (
+                    <div key={l.href}>
+                      <button
+                        onClick={() => setBigChallengesOpen(s => !s)}
+                        className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-50 ${isActive(l.href) ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
+                      >
+                        {l.label}
+                      </button>
+                      {bigChallengesOpen && (
+                        <div ref={mobileSubmenuRef} className="pl-4 mt-1 flex flex-col gap-1">
+                          {submenuData.sections.map((section) => (
+                            <div key={section.title}>
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase mt-2 mb-1">{section.title}</h4>
+                              {section.items.map(si => (
+                                <Link key={si.href} href={si.href} onClick={() => {
+                                  setOpen(false)
+                                  setBigChallengesOpen(false)
+                                }} className={`block px-3 py-2 rounded-md ${isActive(si.href) ? 'text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>
+                                  {si.label}
+                                </Link>
+                              ))}
+                            </div>
                           ))}
                         </div>
                       )}

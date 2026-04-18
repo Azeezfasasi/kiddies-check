@@ -119,6 +119,17 @@ const AddEditModal = React.memo(({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                School Type
+              </label>
+              <select value={formData.schoolType} onChange={(e) => setFormData({ ...formData, schoolType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="">Select type</option>
+                <option value="my-childs-school">My Child's School</option>
+                <option value="home-school">Home School</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Website <span className="text-gray-600">(Optional)</span>
               </label>
               <input
@@ -217,6 +228,7 @@ export default function SchoolManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [approvalFilter, setApprovalFilter] = useState("all");
+  const [schoolTypeFilter, setSchoolTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize] = useState(10);
@@ -234,6 +246,7 @@ export default function SchoolManagement() {
     model: "",
     website: "",
     description: "",
+    schoolType: "",
   });
 
   // Fetch schools
@@ -248,6 +261,7 @@ export default function SchoolManagement() {
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter !== "all" && { isActive: statusFilter }),
         ...(approvalFilter !== "all" && { approvalStatus: approvalFilter }),
+        ...(schoolTypeFilter !== "all" && { schoolType: schoolTypeFilter }),
       });
 
       const response = await axios.get(`/api/schools?${params}`, {
@@ -272,7 +286,7 @@ export default function SchoolManagement() {
     if (token) {
       fetchSchools();
     }
-  }, [token, page, searchTerm, statusFilter, approvalFilter]);
+  }, [token, page, searchTerm, statusFilter, approvalFilter, schoolTypeFilter]);
 
   // Handle add school
   const handleAddSchool = async () => {
@@ -293,6 +307,7 @@ export default function SchoolManagement() {
           model: "",
           website: "",
           description: "",
+          schoolType: "",
         });
         setPage(1);
         fetchSchools();
@@ -327,6 +342,7 @@ export default function SchoolManagement() {
           model: "",
           website: "",
           description: "",
+          schoolType: "",
         });
         fetchSchools();
       }
@@ -396,6 +412,7 @@ export default function SchoolManagement() {
       model: school.model || "",
       website: school.website || "",
       description: school.description || "",
+      schoolType: school.schoolType || "",
     });
     setShowEditModal(true);
   };
@@ -436,7 +453,7 @@ export default function SchoolManagement() {
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -481,15 +498,30 @@ export default function SchoolManagement() {
               <option value="rejected">Rejected</option>
             </select>
 
+            {/* School Type Filter */}
+            <select
+              value={schoolTypeFilter}
+              onChange={(e) => {
+                setSchoolTypeFilter(e.target.value);
+                setPage(1);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="all">All School Types</option>
+              <option value="my-childs-school">My Child's School</option>
+              <option value="home-school">Home School</option>
+            </select>
+
             {/* Reset button */}
             <button
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("all");
                 setApprovalFilter("all");
+                setSchoolTypeFilter("all");
                 setPage(1);
               }}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors col-span-1 sm:col-span-2 lg:col-span-1"
             >
               Reset Filters
             </button>
@@ -516,7 +548,7 @@ export default function SchoolManagement() {
                       School Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Email
+                      School Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Location
@@ -564,7 +596,11 @@ export default function SchoolManagement() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {school.email}
+                        {school.schoolType === "my-childs-school"
+                          ? "My Child's School"
+                          : school.schoolType === "home-school"
+                          ? "Home School"
+                          : "—"}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {school.location || "—"}
