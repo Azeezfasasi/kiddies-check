@@ -60,6 +60,12 @@ const studentSchema = new mongoose.Schema(
       default: '',
       description: 'Type of school (My Child\'s School or Home School)',
     },
+    qrCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     isActive: {
       type: Boolean,
       default: true,

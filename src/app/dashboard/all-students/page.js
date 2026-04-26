@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentModal from "@/app/components/StudentModal";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 import ParentAssignmentModal from "@/app/components/ParentAssignmentModal";
 import ParentProfileModal from "@/app/components/ParentProfileModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
+import QRCodeDisplay from "@/app/components/QRCodeDisplay";
 
 export default function AllStudentsPage() {
   const router = useRouter();
@@ -29,6 +30,8 @@ export default function AllStudentsPage() {
   const [selectedParentId, setSelectedParentId] = useState(null);
   const [showFeedbackPanel, setShowFeedbackPanel] = useState(false);
   const [selectedStudentForFeedback, setSelectedStudentForFeedback] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedStudentForQR, setSelectedStudentForQR] = useState(null);
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -266,6 +269,16 @@ export default function AllStudentsPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button
+                              onClick={() => {
+                                setSelectedStudentForQR(student);
+                                setShowQRModal(true);
+                              }}
+                              className="text-indigo-600 hover:text-indigo-800 transition-colors p-1"
+                              title="Show QR Code"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleViewStudent(student._id)}
                               className="text-green-600 hover:text-green-800 transition-colors p-1"
                               title="View Details"
@@ -358,6 +371,16 @@ export default function AllStudentsPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSelectedStudentForQR(student);
+                        setShowQRModal(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <QrCode className="w-4 h-4" />
+                      QR
+                    </button>
                     <button
                       onClick={() => handleViewStudent(student._id)}
                       className="flex-1 flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg transition-colors text-sm font-medium"
@@ -458,6 +481,20 @@ export default function AllStudentsPage() {
           onClose={() => {
             setShowFeedbackPanel(false);
             setSelectedStudentForFeedback(null);
+          }}
+        />
+      )}
+
+      {/* QR Code Display Modal */}
+      {showQRModal && selectedStudentForQR && (
+        <QRCodeDisplay
+          studentId={selectedStudentForQR._id}
+          schoolId={activeSchoolId}
+          userId={userId}
+          studentName={`${selectedStudentForQR.firstName} ${selectedStudentForQR.lastName}`}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedStudentForQR(null);
           }}
         />
       )}

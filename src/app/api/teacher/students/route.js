@@ -1,6 +1,7 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
+import crypto from "crypto";
 
 export async function POST(req) {
   try {
@@ -87,6 +88,11 @@ export async function POST(req) {
       admissionDate: new Date(),
       createdBy: userId,
     });
+
+    // Generate unique QR code string for the student
+    const qrCodeString = `KC-STU-${schoolId}-${newStudent._id.toString()}-${crypto.randomBytes(4).toString("hex")}`.toUpperCase();
+    newStudent.qrCode = qrCodeString;
+    await newStudent.save();
 
     await newStudent.populate("class", "name level section");
 
