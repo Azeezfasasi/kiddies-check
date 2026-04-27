@@ -295,7 +295,7 @@ export default function LearningImpactPage() {
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <SummaryCard icon={<Target className="w-5 h-5" />} label="Lesson Objectives" value={summary.lessonObjectives?.averageRating?.toFixed(1) || "0.0"} subtext={`${summary.lessonObjectives?.totalRatings || 0} ratings`} color="blue" />
-            <SummaryCard icon={<GraduationCap className="w-5 h-5" />} label="Academic Progress" value={summary.academicObjectives?.averageProgress?.toFixed(1) || "0.0"} subtext={`${summary.academicObjectives?.totalRatings || 0} ratings`} color="green" />
+            <SummaryCard icon={<GraduationCap className="w-5 h-5" />} label="Academic Objective" value={summary.academicObjectives?.averageProgress?.toFixed(1) || "0.0"} subtext={`${summary.academicObjectives?.totalRatings || 0} ratings`} color="green" />
             <SummaryCard icon={<UserCheck className="w-5 h-5" />} label="Pupil Effort" value={summary.pupilEfforts?.averageEffort?.toFixed(1) || "0.0"} subtext={`${summary.pupilEfforts?.totalSubmissions || 0} submissions`} color="amber" />
             <SummaryCard icon={<Star className="w-5 h-5" />} label="Teacher Ratings" value={summary.teacherRatings?.averageScore?.toFixed(1) || "0.0"} subtext={`${summary.teacherRatings?.totalRatings || 0} ratings`} color="purple" />
           </div>
