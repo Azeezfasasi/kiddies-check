@@ -5,6 +5,10 @@ import Class from '@/app/server/models/Class';
 import School from '@/app/server/models/School';
 import Assessment from '@/app/server/models/Assessment';
 import AssessmentTrend from '@/app/server/models/AssessmentTrend';
+import LessonObjectiveRating from '@/app/server/models/LessonObjectiveRating';
+import AcademicObjectiveRating from '@/app/server/models/AcademicObjectiveRating';
+import PupilEffort from '@/app/server/models/PupilEffort';
+import TeacherRating from '@/app/server/models/TeacherRating';
 import jwt from 'jsonwebtoken';
 
 /**
@@ -116,6 +120,46 @@ export async function GET(req) {
       }
     };
 
+    // Helper function to get learning impact summary
+    const getLearningImpactSummary = async (schoolId) => {
+      try {
+        const currentYear = new Date().getFullYear();
+        const [
+          lessonObjectiveStats,
+          academicObjectiveStats,
+          pupilEffortStats,
+          teacherRatingStats,
+        ] = await Promise.all([
+          LessonObjectiveRating.aggregate([
+            { $match: { school: schoolId, year: currentYear } },
+            { $group: { _id: null, avgRating: { $avg: "$overallRating" }, total: { $sum: 1 } } },
+          ]),
+          AcademicObjectiveRating.aggregate([
+            { $match: { school: schoolId, year: currentYear } },
+            { $group: { _id: null, avgProgress: { $avg: "$overallProgress" }, total: { $sum: 1 } } },
+          ]),
+          PupilEffort.aggregate([
+            { $match: { school: schoolId, year: currentYear } },
+            { $group: { _id: null, avgEffort: { $avg: "$overallEffort" }, total: { $sum: 1 } } },
+          ]),
+          TeacherRating.aggregate([
+            { $match: { school: schoolId, year: currentYear } },
+            { $group: { _id: null, avgScore: { $avg: "$overallScore" }, total: { $sum: 1 } } },
+          ]),
+        ]);
+
+        return {
+          lessonObjectives: { averageRating: lessonObjectiveStats[0]?.avgRating || 0, totalRatings: lessonObjectiveStats[0]?.total || 0 },
+          academicObjectives: { averageProgress: academicObjectiveStats[0]?.avgProgress || 0, totalRatings: academicObjectiveStats[0]?.total || 0 },
+          pupilEfforts: { averageEffort: pupilEffortStats[0]?.avgEffort || 0, totalSubmissions: pupilEffortStats[0]?.total || 0 },
+          teacherRatings: { averageScore: teacherRatingStats[0]?.avgScore || 0, totalRatings: teacherRatingStats[0]?.total || 0 },
+        };
+      } catch (error) {
+        console.error('Error fetching learning impact summary:', error);
+        return null;
+      }
+    };
+
     // Fetch data based on role
     if (user.role === 'admin') {
       // Admin can see EVERYTHING with performance data
@@ -158,6 +202,7 @@ export async function GET(req) {
       contextData.teachers = usersByRole.teachers.slice(0, 50);
       contextData.parents = usersByRole.parents.slice(0, 50);
       contextData.schoolLeaders = usersByRole.schoolLeaders;
+      contextData.learningImpact = await getLearningImpactSummary(user.schoolId);
       contextData.summary = `Admin Dashboard - ${allStudents.length} students, ${usersByRole.teachers.length} teachers, ${usersByRole.parents.length} parents`;
     } 
     else if (user.role === 'teacher') {
@@ -238,6 +283,7 @@ export async function GET(req) {
       );
       
       contextData.students = studentsWithPerformance;
+      contextData.learningImpact = await getLearningImpactSummary(user.schoolId);
       contextData.summary = `${allStudents.length} students with performance analytics available`;
     }
 

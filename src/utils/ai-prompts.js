@@ -217,6 +217,24 @@ export function getSystemPrompt(userRole, studentData = null, schoolContext = nu
     if (contextData.teachers && contextData.teachers.length > 0) {
       prompt += `\nTeachers in school: ${contextData.teachers.map(t => t.name).join(', ')}\n`;
     }
+
+    if (contextData.learningImpact) {
+      const li = contextData.learningImpact;
+      prompt += `\nLEARNING IMPACT DATA (Current Year):\n`;
+      if (li.lessonObjectives) {
+        prompt += `Lesson Objective Ratings: Avg ${li.lessonObjectives.averageRating?.toFixed(1) || 'N/A'}/5 (${li.lessonObjectives.totalRatings} ratings)\n`;
+      }
+      if (li.academicObjectives) {
+        prompt += `Academic Objective Progress: Avg ${li.academicObjectives.averageProgress?.toFixed(1) || 'N/A'}/5 (${li.academicObjectives.totalRatings} ratings)\n`;
+      }
+      if (li.pupilEfforts) {
+        prompt += `Pupil Effort Submissions: Avg ${li.pupilEfforts.averageEffort?.toFixed(1) || 'N/A'}/5 (${li.pupilEfforts.totalSubmissions} submissions)\n`;
+      }
+      if (li.teacherRatings) {
+        prompt += `Teacher Ratings: Avg ${li.teacherRatings.averageScore?.toFixed(1) || 'N/A'}/5 (${li.teacherRatings.totalRatings} ratings)\n`;
+      }
+      prompt += `\nUse this learning impact data to suggest improvement plans when asked. Focus on areas with lower ratings and suggest evidence-based strategies.\n`;
+    }
   }
 
   prompt += `\n${'='.repeat(80)}\n\n`;
@@ -285,3 +303,4 @@ Remember: This conversation is about THEIR reality, not about listing guidelines
 
 // Export individual prompts for reference
 export { PARENT_PROMPT, TEACHER_PROMPT, SCHOOL_LEADER_PROMPT, LEARNING_SPECIALIST_PROMPT };
+
