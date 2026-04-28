@@ -1,6 +1,8 @@
 "use client";
 
 export function SelectField({ label, value, onChange, options, required }) {
+  const optionsArray = Array.isArray(options) ? options : [];
+  
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
@@ -11,11 +13,15 @@ export function SelectField({ label, value, onChange, options, required }) {
         required={required}
       >
         <option value="">{`Select ${label}`}</option>
-        {options.map((opt) => (
-          <option key={opt._id} value={opt._id}>
-            {opt.firstName ? `${opt.firstName} ${opt.lastName}` : opt.name}
-          </option>
-        ))}
+        {optionsArray.length > 0 ? (
+          optionsArray.map((opt) => (
+            <option key={opt._id} value={opt._id}>
+              {opt.firstName ? `${opt.firstName} ${opt.lastName}` : opt.name || opt.className || "Unnamed"}
+            </option>
+          ))
+        ) : (
+          <option disabled>No {label.toLowerCase()}s available</option>
+        )}
       </select>
     </div>
   );

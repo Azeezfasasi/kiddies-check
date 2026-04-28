@@ -170,6 +170,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       roles: ['admin', 'learning-specialist'],
       children: [
         { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: ['admin', 'learning-specialist'] },
+        { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/home-cta', label: 'Home CTA', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/our-services-contents', label: 'Our Services', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: ['admin', 'learning-specialist'] },

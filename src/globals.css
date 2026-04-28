@@ -6,3 +6,23 @@
 body.hide-site-header .site-main-header {
   display: none !important;
 }
+
+/* Marquee animation for slider ticker messages */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+}

@@ -117,33 +117,53 @@ export default function LearningImpactPage() {
 
   const fetchReferenceData = async (sid, uid) => {
     const headers = { "x-user-id": uid };
-    const [classesRes, studentsRes, subjectsRes] = await Promise.all([
-      fetch(`/api/teacher/classes?schoolId=${sid}`, { headers }),
-      fetch(`/api/teacher/students?schoolId=${sid}`, { headers }),
-      fetch(`/api/teacher/subjects?schoolId=${sid}`, { headers }),
-    ]);
-
-    if (classesRes.ok) {
-      const data = await classesRes.json();
-      setClasses(data.classes || []);
-    }
-    if (studentsRes.ok) {
-      const data = await studentsRes.json();
-      setStudents(data.data || []);
-    }
-    if (subjectsRes.ok) {
-      const data = await subjectsRes.json();
-      setSubjects(data.subjects || []);
-    }
-
     try {
-      const usersRes = await fetch(`/api/teacher/staff?schoolId=${sid}`, { headers });
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        setTeachers(data.staff || []);
+      const [classesRes, studentsRes, subjectsRes] = await Promise.all([
+        fetch(`/api/teacher/classes?schoolId=${sid}`, { headers }),
+        fetch(`/api/teacher/students?schoolId=${sid}`, { headers }),
+        fetch(`/api/teacher/subjects?schoolId=${sid}`, { headers }),
+      ]);
+
+      if (classesRes.ok) {
+        const data = await classesRes.json();
+        console.log("Classes loaded:", data.classes);
+        setClasses(data.classes || []);
+      } else {
+        console.error("Failed to fetch classes:", classesRes.status, classesRes.statusText);
+        const errorData = await classesRes.json().catch(() => ({}));
+        console.error("Error details:", errorData);
       }
-    } catch (e) {
-      setTeachers([]);
+
+      if (studentsRes.ok) {
+        const data = await studentsRes.json();
+        setStudents(data.data || []);
+      } else {
+        console.error("Failed to fetch students:", studentsRes.status);
+      }
+
+      if (subjectsRes.ok) {
+        const data = await subjectsRes.json();
+        setSubjects(data.subjects || []);
+      } else {
+        console.error("Failed to fetch subjects:", subjectsRes.status);
+      }
+
+      try {
+        const usersRes = await fetch(`/api/teacher/staff?schoolId=${sid}`, { headers });
+        if (usersRes.ok) {
+          const data = await usersRes.json();
+          setTeachers(data.staff || []);
+        } else {
+          console.error("Failed to fetch teachers:", usersRes.status);
+          setTeachers([]);
+        }
+      } catch (e) {
+        console.error("Error fetching teachers:", e);
+        setTeachers([]);
+      }
+    } catch (error) {
+      console.error("Error in fetchReferenceData:", error);
+      toast.error("Failed to load reference data");
     }
   };
 
