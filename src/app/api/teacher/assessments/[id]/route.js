@@ -4,10 +4,13 @@ import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 
 function getGradeLevel(score) {
-  if (score >= 90) return "A";
-  if (score >= 80) return "B";
-  if (score >= 70) return "C";
-  if (score >= 60) return "D";
+  if (score >= 75) return "A1";
+  if (score >= 70) return "B2";
+  if (score >= 65) return "C4";
+  if (score >= 55) return "C5";
+  if (score >= 50) return "C6";
+  if (score >= 45) return "D7";
+  if (score >= 40) return "E8";
   return "F";
 }
 

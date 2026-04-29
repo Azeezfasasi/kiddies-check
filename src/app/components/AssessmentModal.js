@@ -57,10 +57,14 @@ export default function AssessmentModal({
 
   // Calculate grade based on score
   const calculateGrade = (score) => {
-    if (score >= 90) return "A";
-    if (score >= 80) return "B";
-    if (score >= 70) return "C";
-    if (score >= 60) return "D";
+    if (score >= 75) return "A1";
+    if (score >= 70) return "B2";
+    if (score >= 65) return "C4";
+    if (score >= 55) return "C5";
+    if (score >= 50) return "C6";
+    if (score >= 50) return "C6";
+    if (score >= 50) return "C6";
+    if (score >= 40) return "E8";
     return "F";
   };
 
@@ -119,17 +123,23 @@ export default function AssessmentModal({
     }
   };
 
-  // Filter students by selected class
-  const filteredStudents = formData.classId
-    ? students.filter((s) => s.class?._id === formData.classId)
-    : students;
+  // Filter students by selected class, with fallback to all students
+  let filteredStudents = students;
+  if (formData.classId) {
+    const classFilteredStudents = students.filter((s) => s.class?._id === formData.classId);
+    // If students are found for this class, use them; otherwise show all students
+    filteredStudents = classFilteredStudents.length > 0 ? classFilteredStudents : students;
+  }
 
   // Calculate grade based on score
   const getGrade = (score) => {
-    if (score >= 90) return "A";
-    if (score >= 80) return "B";
-    if (score >= 70) return "C";
-    if (score >= 60) return "D";
+    if (score >= 75) return "A1";
+    if (score >= 70) return "B2";
+    if (score >= 65) return "C4";
+    if (score >= 55) return "C5";
+    if (score >= 50) return "C6";
+    if (score >= 45) return "D7";
+    if (score >= 40) return "E8";
     return "F";
   };
 

@@ -55,13 +55,17 @@ export default function StudentAssessmentsPage() {
       if (classRes.ok) {
         const classData = await classRes.json();
         setClasses(classData.classes || []);
+        console.log("Classes loaded:", classData.classes?.length);
       }
 
       // Fetch students
       const studentRes = await fetch(`/api/teacher/students?schoolId=${schoolId}`, { headers });
       if (studentRes.ok) {
         const studentData = await studentRes.json();
-        setStudents(studentData.students || []);
+        console.log("Students response:", studentData);
+        setStudents(studentData.data || []);
+      } else {
+        console.error("Failed to fetch students:", studentRes.status);
       }
 
       // Fetch subjects
@@ -69,6 +73,7 @@ export default function StudentAssessmentsPage() {
       if (subjectRes.ok) {
         const subjectData = await subjectRes.json();
         setSubjects(subjectData.subjects || []);
+        console.log("Subjects loaded:", subjectData.subjects?.length);
       }
 
       // Fetch assessments

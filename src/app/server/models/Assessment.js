@@ -56,7 +56,7 @@ const assessmentSchema = new mongoose.Schema(
     },
     gradeLevel: {
       type: String,
-      enum: ["A", "B", "C", "D", "F"],
+      enum: ["A1", "B2", "C4", "C5", "C6", "D7", "E8", "F"],
     },
     remarks: String,
     assessmentType: {
