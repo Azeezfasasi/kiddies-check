@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentModal from "@/app/components/StudentModal";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
@@ -10,6 +10,7 @@ import ParentAssignmentModal from "@/app/components/ParentAssignmentModal";
 import ParentProfileModal from "@/app/components/ParentProfileModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
 import QRCodeDisplay from "@/app/components/QRCodeDisplay";
+import AccessCard from "@/app/components/AccessCard";
 
 export default function AllStudentsPage() {
   const router = useRouter();
@@ -32,12 +33,16 @@ export default function AllStudentsPage() {
   const [selectedStudentForFeedback, setSelectedStudentForFeedback] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedStudentForQR, setSelectedStudentForQR] = useState(null);
+  const [showAccessCardModal, setShowAccessCardModal] = useState(false);
+  const [selectedStudentForAccessCard, setSelectedStudentForAccessCard] = useState(null);
+  const [schoolName, setSchoolName] = useState("");
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
     const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
     const userId = localStorage.getItem("userId");
     const token = localStorage.getItem("token");
+    const schoolName = localStorage.getItem("schoolName") || "School Name";
 
     if (!token || !schoolId || !userId) {
       router.push("/login");
@@ -46,6 +51,7 @@ export default function AllStudentsPage() {
 
     setActiveSchoolId(schoolId);
     setUserId(userId);
+    setSchoolName(schoolName);
     fetchData(schoolId, userId);
   }, [router]);
 
@@ -270,6 +276,16 @@ export default function AllStudentsPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => {
+                                setSelectedStudentForAccessCard(student);
+                                setShowAccessCardModal(true);
+                              }}
+                              className="text-amber-600 hover:text-amber-800 transition-colors p-1"
+                              title="View Access Card"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
                                 setSelectedStudentForQR(student);
                                 setShowQRModal(true);
                               }}
@@ -371,6 +387,16 @@ export default function AllStudentsPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSelectedStudentForAccessCard(student);
+                        setShowAccessCardModal(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Card
+                    </button>
                     <button
                       onClick={() => {
                         setSelectedStudentForQR(student);
@@ -495,6 +521,23 @@ export default function AllStudentsPage() {
           onClose={() => {
             setShowQRModal(false);
             setSelectedStudentForQR(null);
+          }}
+        />
+      )}
+
+      {/* Access Card Modal */}
+      {showAccessCardModal && selectedStudentForAccessCard && (
+        <AccessCard
+          student={{
+            ...selectedStudentForAccessCard,
+            name: `${selectedStudentForAccessCard.firstName} ${selectedStudentForAccessCard.lastName}`,
+            className: selectedStudentForAccessCard.class?.name,
+            gradeLevel: selectedStudentForAccessCard.gradeLevel || selectedStudentForAccessCard.class?.name,
+          }}
+          schoolName={schoolName}
+          onClose={() => {
+            setShowAccessCardModal(false);
+            setSelectedStudentForAccessCard(null);
           }}
         />
       )}
