@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Loader, User as UserIcon, Mail, Phone, Calendar, Award } from "lucide-react";
+import { X, Loader, User as UserIcon, Mail, Phone, Calendar, Award, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
+import StudentNotebookGallery from "./StudentNotebookGallery";
 import {
   BarChart,
   Bar,
@@ -286,6 +287,15 @@ export default function StudentDetailsModal({ studentId, schoolId, userId, onClo
               </ResponsiveContainer>
             </div>
           )} */}
+
+          {/* Notebook Gallery */}
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <StudentNotebookGallery 
+              studentId={studentId} 
+              studentName={`${studentData.firstName} ${studentData.lastName}`}
+              userId={userId}
+            />
+          </div>
 
           {/* Close Button */}
           <div className="flex justify-end pt-4">

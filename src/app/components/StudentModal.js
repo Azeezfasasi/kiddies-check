@@ -102,7 +102,7 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full max-h-[450px] md:max-h-[550px] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-xl font-bold text-gray-800">
             {studentData ? "Edit Student" : "Add New Student"}

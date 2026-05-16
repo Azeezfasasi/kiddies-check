@@ -19,7 +19,6 @@ const studentSchema = new mongoose.Schema(
     },
     enrollmentNo: {
       type: String,
-      unique: true,
       sparse: true,
     },
     dateOfBirth: Date,
@@ -83,6 +82,23 @@ const studentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    // Notebook images
+    notebookImages: [
+      {
+        _id: mongoose.Schema.Types.ObjectId,
+        url: String,
+        publicId: String, // Cloudinary public ID
+        caption: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -103,7 +119,8 @@ const studentSchema = new mongoose.Schema(
 studentSchema.index({ school: 1, class: 1 });
 studentSchema.index({ school: 1, firstName: 1, lastName: 1 });
 studentSchema.index({ school: 1, isActive: 1 });
-studentSchema.index({ parent: 1 }); // For parent to view their students
 studentSchema.index({ school: 1, parent: 1 }); // Combined for efficient queries
+// Compound unique index for enrollment number per school
+studentSchema.index({ school: 1, enrollmentNo: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Student || mongoose.model("Student", studentSchema);

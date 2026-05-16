@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock } from "lucide-react";
+import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
+import StudentNotebookGallery from "@/app/components/StudentNotebookGallery";
 
 export default function MyChildrenPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function MyChildrenPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
   const [feedbackLoadingFeedback, setLoadingFeedback] = useState(false);
+  const [expandedStudents, setExpandedStudents] = useState({});
 
   useEffect(() => {
     const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -68,6 +70,13 @@ export default function MyChildrenPage() {
   const handleViewStudent = (student) => {
     setSelectedStudent(student);
     setShowDetailsModal(true);
+  };
+
+  const toggleStudentExpand = (studentId) => {
+    setExpandedStudents((prev) => ({
+      ...prev,
+      [studentId]: !prev[studentId],
+    }));
   };
 
   const handleViewFeedback = async (student) => {
@@ -130,67 +139,96 @@ export default function MyChildrenPage() {
               >
                 {/* Card Header */}
                 <div className="p-6 bg-gradient-to-r from-blue-50 to-blue-100">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {student.firstName.charAt(0)}{student.lastName.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-800">
-                        {student.firstName} {student.lastName}
-                      </h3>
-                      <p className="text-sm text-gray-600">{student.class?.name || "N/A"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Content */}
-                <div className="p-6 space-y-4">
-                  {/* Student Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500 font-medium mb-1">Enrollment</p>
-                      <p className="text-gray-800 font-semibold">{student.enrollmentNo || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 font-medium mb-1">Gender</p>
-                      <p className="text-gray-800 font-semibold capitalize">{student.gender || "N/A"}</p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-gray-500 font-medium mb-1">Email</p>
-                      <p className="text-gray-800 truncate text-sm">{student.email || "Not provided"}</p>
-                    </div>
-                  </div>
-
-                  {/* Admission Info */}
-                  {student.admissionDate && (
-                    <div className="bg-blue-50 rounded-lg p-3 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-blue-600" />
-                      <div className="text-sm">
-                        <p className="text-gray-600">Admitted</p>
-                        <p className="text-gray-800 font-semibold">
-                          {new Date(student.admissionDate).toLocaleDateString()}
-                        </p>
+                  <div className="flex items-center gap-4 justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800">
+                          {student.firstName} {student.lastName}
+                        </h3>
+                        <p className="text-sm text-gray-600">{student.class?.name || "N/A"}</p>
                       </div>
                     </div>
-                  )}
+                    <button
+                      onClick={() => toggleStudentExpand(student._id)}
+                      className="p-2 hover:bg-blue-200 rounded-full transition-colors"
+                      title={expandedStudents[student._id] ? "Collapse" : "Expand"}
+                    >
+                      <ChevronDown
+                        className={`w-6 h-6 text-gray-700 transition-transform duration-300 ${
+                          expandedStudents[student._id] ? "rotate-180" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Card Footer - Actions */}
-                <div className="border-t bg-gray-50 p-4 flex gap-2">
-                  <button
-                    onClick={() => handleViewStudent(student)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <TrendingUp className="w-4 h-4" />
-                    Details
-                  </button>
-                  <button
-                    onClick={() => handleViewFeedback(student)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Feedback
-                  </button>
+                {/* Collapsible Content */}
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    expandedStudents[student._id] ? "max-h-[1000px]" : "max-h-0"
+                  }`}
+                >
+                  {/* Card Content */}
+                  <div className="p-6 space-y-4 border-t">
+                    {/* Student Info */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-500 font-medium mb-1">Enrollment</p>
+                        <p className="text-gray-800 font-semibold">{student.enrollmentNo || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 font-medium mb-1">Gender</p>
+                        <p className="text-gray-800 font-semibold capitalize">{student.gender || "N/A"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-gray-500 font-medium mb-1">Email</p>
+                        <p className="text-gray-800 truncate text-sm">{student.email || "Not provided"}</p>
+                      </div>
+                    </div>
+
+                    {/* Admission Info */}
+                    {student.admissionDate && (
+                      <div className="bg-blue-50 rounded-lg p-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-blue-600" />
+                        <div className="text-sm">
+                          <p className="text-gray-600">Admitted</p>
+                          <p className="text-gray-800 font-semibold">
+                            {new Date(student.admissionDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notebook Gallery Preview */}
+                    <div className="mt-4">
+                      <StudentNotebookGallery
+                        studentId={student._id}
+                        studentName={`${student.firstName} ${student.lastName}`}
+                        userId={userId}
+                      />
+                    </div>
+
+                    {/* Card Footer - Actions */}
+                    <div className="border-t pt-4 mt-4 flex gap-2">
+                      <button
+                        onClick={() => handleViewStudent(student)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <TrendingUp className="w-4 h-4" />
+                        Details
+                      </button>
+                      <button
+                        onClick={() => handleViewFeedback(student)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Feedback
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}

@@ -3,6 +3,20 @@ import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import crypto from "crypto";
 
+// Helper function to find the next available enrollment number
+async function getNextAvailableEnrollmentNo(schoolId, startingNumber = 1) {
+  let nextNumber = startingNumber;
+  let enrollmentNo = `KIDSTU-${String(nextNumber).padStart(6, '0')}`;
+  
+  // Keep incrementing until we find a number that doesn't exist
+  while (await Student.findOne({ school: schoolId, enrollmentNo })) {
+    nextNumber++;
+    enrollmentNo = `KIDSTU-${String(nextNumber).padStart(6, '0')}`;
+  }
+  
+  return enrollmentNo;
+}
+
 export async function POST(req) {
   try {
     const userId = req.headers.get("x-user-id");
@@ -47,11 +61,13 @@ export async function POST(req) {
 
     await connectDB();
 
-    // Auto-generate enrollment number
-    let generatedEnrollmentNo = enrollmentNo;
+    // Auto-generate or validate enrollment number
+    // Normalize input - treat empty/whitespace as no enrollment number
+    const trimmedEnrollmentNo = enrollmentNo?.trim?.() || null;
+    let generatedEnrollmentNo = null;
     
-    if (!enrollmentNo) {
-      // Find the highest enrollment number for this school
+    if (!trimmedEnrollmentNo) {
+      // No enrollment number provided, find the highest one and get next available
       const lastStudent = await Student.findOne({ school: schoolId, enrollmentNo: { $exists: true, $ne: null } })
         .sort({ enrollmentNo: -1 })
         .select("enrollmentNo");
@@ -66,8 +82,36 @@ export async function POST(req) {
         }
       }
       
-      // Generate new enrollment number with leading zeros
-      generatedEnrollmentNo = `KIDSTU-${String(nextNumber).padStart(6, '0')}`;
+      // Generate new enrollment number, handling any gaps in sequence
+      generatedEnrollmentNo = await getNextAvailableEnrollmentNo(schoolId, nextNumber);
+    } else {
+      // Enrollment number was provided, normalize it to the full format
+      const normalizedEnrollmentNo = trimmedEnrollmentNo.includes('KIDSTU-') 
+        ? trimmedEnrollmentNo 
+        : `KIDSTU-${String(trimmedEnrollmentNo).padStart(6, '0')}`;
+      
+      // Check if the normalized enrollment number already exists
+      const existingStudent = await Student.findOne({ school: schoolId, enrollmentNo: normalizedEnrollmentNo });
+      
+      if (existingStudent) {
+        // If it exists, extract the number and find the next available one
+        const match = normalizedEnrollmentNo.match(/KIDSTU-(\d+)/);
+        let startingNumber = 1;
+        
+        if (match) {
+          startingNumber = parseInt(match[1]) + 1;
+        }
+        
+        console.warn(
+          `Enrollment number ${normalizedEnrollmentNo} already exists for school ${schoolId}. ` +
+          `Auto-assigning next available number.`
+        );
+        
+        generatedEnrollmentNo = await getNextAvailableEnrollmentNo(schoolId, startingNumber);
+      } else {
+        // Enrollment number is available, use the normalized version
+        generatedEnrollmentNo = normalizedEnrollmentNo;
+      }
     }
 
     const newStudent = await Student.create({
@@ -96,8 +140,20 @@ export async function POST(req) {
 
     await newStudent.populate("class", "name level section");
 
+    // Prepare response message
+    const wasEnrollmentAutoAssigned = enrollmentNo && enrollmentNo !== generatedEnrollmentNo;
+    let message = "Student created successfully";
+    if (wasEnrollmentAutoAssigned) {
+      message += `. Enrollment number "${enrollmentNo}" was already taken, auto-assigned "${generatedEnrollmentNo}" instead.`;
+    }
+
     return Response.json(
-      { message: "Student created successfully", student: newStudent },
+      { 
+        message,
+        student: newStudent,
+        enrollmentNoAutoAssigned: wasEnrollmentAutoAssigned,
+        assignedEnrollmentNo: generatedEnrollmentNo
+      },
       { status: 201 }
     );
   } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentModal from "@/app/components/StudentModal";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
@@ -11,6 +11,7 @@ import ParentProfileModal from "@/app/components/ParentProfileModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
 import QRCodeDisplay from "@/app/components/QRCodeDisplay";
 import AccessCard from "@/app/components/AccessCard";
+import NotebookUploadModal from "@/app/components/NotebookUploadModal";
 
 export default function AllStudentsPage() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function AllStudentsPage() {
   const [showAccessCardModal, setShowAccessCardModal] = useState(false);
   const [selectedStudentForAccessCard, setSelectedStudentForAccessCard] = useState(null);
   const [schoolName, setSchoolName] = useState("");
+  const [showNotebookModal, setShowNotebookModal] = useState(false);
+  const [selectedStudentForNotebook, setSelectedStudentForNotebook] = useState(null);
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -312,6 +315,16 @@ export default function AllStudentsPage() {
                               <MessageSquare className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => {
+                                setSelectedStudentForNotebook(student);
+                                setShowNotebookModal(true);
+                              }}
+                              className="text-amber-600 hover:text-amber-800 transition-colors p-1"
+                              title="Upload Notebook Images"
+                            >
+                              <BookOpen className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleOpenParentAssignment(student)}
                               className="text-purple-600 hover:text-purple-800 transition-colors p-1"
                               title="Assign Parent"
@@ -423,6 +436,16 @@ export default function AllStudentsPage() {
                     >
                       <MessageSquare className="w-4 h-4" />
                       Feedback
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedStudentForNotebook(student);
+                        setShowNotebookModal(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-600 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      Notebook
                     </button>
                     <button
                       onClick={() => handleOpenParentAssignment(student)}
@@ -538,6 +561,23 @@ export default function AllStudentsPage() {
           onClose={() => {
             setShowAccessCardModal(false);
             setSelectedStudentForAccessCard(null);
+          }}
+        />
+      )}
+
+      {/* Notebook Upload Modal */}
+      {showNotebookModal && selectedStudentForNotebook && (
+        <NotebookUploadModal
+          studentId={selectedStudentForNotebook._id}
+          studentName={`${selectedStudentForNotebook.firstName} ${selectedStudentForNotebook.lastName}`}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => {
+            setShowNotebookModal(false);
+            setSelectedStudentForNotebook(null);
+          }}
+          onUploadSuccess={() => {
+            // Optionally refresh student data
           }}
         />
       )}
