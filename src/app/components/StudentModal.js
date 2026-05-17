@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Loader } from "lucide-react";
+import { X, Loader, Upload, Image as ImageIcon } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function StudentModal({ studentData, schoolId, userId, classes, onClose, onSave }) {
@@ -15,11 +15,17 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
     phone: "",
     dateOfBirth: "",
     schoolType: "",
+    picture: "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [picturePreview, setPicturePreview] = useState("");
 
   useEffect(() => {
     if (studentData) {
+      const schoolType = studentData.schoolType || studentData.school?.schoolType || "";
+      const picture = studentData.picture || studentData.profilePicture || "";
+      
       setFormData({
         firstName: studentData.firstName,
         lastName: studentData.lastName,
@@ -29,8 +35,14 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
         class: studentData.class?._id || "",
         phone: studentData.phone || "",
         dateOfBirth: studentData.dateOfBirth ? studentData.dateOfBirth.split("T")[0] : "",
-        schoolType: studentData.school?.schoolType || "",
+        schoolType: schoolType,
+        picture: picture,
       });
+      
+      // Set picture preview
+      if (picture) {
+        setPicturePreview(picture);
+      }
     }
   }, [studentData]);
 
@@ -40,6 +52,68 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handlePictureChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const fileData = event.target?.result;
+
+        // Upload to Cloudinary
+        const response = await fetch("/api/cloudinary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileData,
+            folderName: "rayob/students",
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || data.message || "Upload failed");
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          picture: data.url,
+        }));
+        setPicturePreview(data.url);
+        toast.success("Picture uploaded successfully");
+      };
+
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Picture upload error:", error);
+      toast.error(error.message || "Failed to upload picture");
+    } finally {
+      setUploadingPicture(false);
+      // Reset file input
+      e.target.value = "";
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -81,6 +155,7 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
           dateOfBirth: formData.dateOfBirth || undefined,
           class: formData.class,
           schoolType: formData.schoolType,
+          picture: formData.picture || null,
         }),
       });
 
@@ -116,6 +191,56 @@ export default function StudentModal({ studentData, schoolId, userId, classes, o
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Picture Upload Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Student Picture</label>
+            <div className="flex gap-3 items-start">
+              {/* Preview */}
+              <div className="w-20 h-20 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {picturePreview ? (
+                  <img src={picturePreview} alt="Preview" className="w-full h-full object-cover" crossOrigin="anonymous" onError={(e) => { e.target.src = ""; e.target.parentNode.innerHTML = `<div class='w-8 h-8 text-gray-400'></div>`; }} />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-gray-400" />
+                )}
+              </div>
+
+              {/* Upload Input */}
+              <div className="flex-1 min-w-0">
+                <input
+                  type="file"
+                  id="picture-input"
+                  accept="image/*"
+                  onChange={handlePictureChange}
+                  disabled={uploadingPicture}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="picture-input"
+                  className="flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {uploadingPicture ? "Uploading..." : "Choose Image"}
+                  </span>
+                </label>
+                {picturePreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, picture: "" }));
+                      setPicturePreview("");
+                      toast.success("Picture removed");
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 mt-1 block"
+                  >
+                    Remove
+                  </button>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Max 5MB • JPG, PNG, GIF</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">

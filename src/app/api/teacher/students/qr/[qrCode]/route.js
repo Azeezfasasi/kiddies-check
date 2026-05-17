@@ -96,7 +96,7 @@ export async function GET(req, { params }) {
           gender: student.gender,
           class: student.class,
           parent: student.parent,
-          photo: student.photo,
+          picture: student.picture,
         },
       },
       { status: 200 }

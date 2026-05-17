@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
@@ -41,15 +41,18 @@ export default function MyChildrenPage() {
     setActiveSchoolId(schoolId);
     setUserId(userId);
     fetchMyChildren(schoolId, userId);
-  }, [router]);
+  }, []);
 
-  const fetchMyChildren = async (schoolId, userId) => {
+  const fetchMyChildren = useCallback(async (schoolId, userId) => {
     try {
       setLoading(true);
       const response = await fetch(
         `/api/parent/students?schoolId=${schoolId}`,
         {
-          headers: { "x-user-id": userId },
+          headers: { 
+            "x-user-id": userId,
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
@@ -65,7 +68,7 @@ export default function MyChildrenPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleViewStudent = (student) => {
     setSelectedStudent(student);

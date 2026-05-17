@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
+import html2canvas from "html2canvas";
 import { Download, X } from "lucide-react";
 
 export default function AccessCard({ student, schoolName, onClose }) {
   const cardRef = useRef(null);
-  const canvasRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -34,77 +34,23 @@ export default function AccessCard({ student, schoolName, onClose }) {
       const element = cardRef.current;
       if (!element) return;
 
-      // Create a canvas from the element
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+      const canvas = await html2canvas(element, {
+        backgroundColor: "#ffffff",
+        scale: 2, // Higher quality
+        useCORS: true,
+        logging: false,
+      });
 
-      // Set canvas size with high DPI for better quality
-      const scale = 2;
-      canvas.width = element.offsetWidth * scale;
-      canvas.height = element.offsetHeight * scale;
-
-      ctx.scale(scale, scale);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, element.offsetWidth, element.offsetHeight);
-
-      // Draw using SVG method
-      const svg = new XMLSerializer().serializeToString(element);
-      const img = new Image();
-      const blob = new Blob([svg], { type: "image/svg+xml" });
-      const url = URL.createObjectURL(blob);
-
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, element.offsetWidth, element.offsetHeight);
-        URL.revokeObjectURL(url);
-
-        // Convert canvas to image and download
-        canvas.toBlob((blob) => {
-          const link = document.createElement("a");
-          link.href = URL.createObjectURL(blob);
-          link.download = `access-card-${student.name
-            .replace(/\s+/g, "-")
-            .toLowerCase()}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(link.href);
-          setIsDownloading(false);
-        }, "image/png");
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        // Fallback: use print method
-        const printWindow = window.open("", "", "height=600,width=800");
-        printWindow.document.write("<html><head><title>Access Card</title></head><body>");
-        printWindow.document.write(element.outerHTML);
-        printWindow.document.write("</body></html>");
-        printWindow.document.close();
-        setTimeout(() => {
-          printWindow.print();
-          printWindow.close();
-        }, 250);
-        setIsDownloading(false);
-      };
-
-      img.src = url;
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `access-card-${student.firstName}-${student.lastName}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error("Download error:", error);
-      // Fallback: use print method
-      try {
-        const printWindow = window.open("", "", "height=600,width=800");
-        const element = cardRef.current;
-        printWindow.document.write("<html><head><title>Access Card</title></head><body>");
-        printWindow.document.write(element.outerHTML);
-        printWindow.document.write("</body></html>");
-        printWindow.document.close();
-        setTimeout(() => {
-          printWindow.print();
-          printWindow.close();
-        }, 250);
-      } catch (printError) {
-        console.error("Print error:", printError);
-      }
+      alert("Failed to download card. Please try again.");
+    } finally {
       setIsDownloading(false);
     }
   };
@@ -119,8 +65,8 @@ export default function AccessCard({ student, schoolName, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full my-8 h-[950px] overflow-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto z-[999999]">
+      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full my-8 h-[600px] overflow-auto z-[999999]">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-lg flex justify-between items-center">
           <h2 className="text-xl font-bold text-white">{student.firstName} {student.lastName} Access Card</h2>
@@ -145,8 +91,18 @@ export default function AccessCard({ student, schoolName, onClose }) {
             {/* Card Header - Logo Area */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-center relative">
               <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-blue-700 font-bold text-2xl">👤</span>
+                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden border-2 border-white">
+                  {student.picture ? (
+                    <img
+                      src={student.picture}
+                      alt={`${student.firstName} ${student.lastName}`}
+                      className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML += `<span class='text-blue-600 font-bold text-2xl'>👤</span>`; }}
+                    />
+                  ) : (
+                    <span className="text-blue-600 font-bold text-2xl">👤</span>
+                  )}
                 </div>
               </div>
               <p className="text-white text-xs font-semibold tracking-widest">

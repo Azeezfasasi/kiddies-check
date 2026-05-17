@@ -52,7 +52,7 @@ const studentSchema = new mongoose.Schema(
     },
     phone: String,
     medicalInfo: String,
-    photo: String,
+    picture: String,
     schoolType: {
       type: String,
       enum: ['my-childs-school', 'home-school', ''],
