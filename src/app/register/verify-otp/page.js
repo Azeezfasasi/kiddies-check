@@ -54,6 +54,16 @@ function VerifyOTPContent() {
     setSuccess('');
 
     try {
+      // Get children data from localStorage if available
+      const pendingChildren = localStorage.getItem('pendingChildren');
+      const children = pendingChildren ? JSON.parse(pendingChildren) : null;
+
+      console.log('========== OTP Verification (Client) Started ==========');
+      console.log('Email:', email);
+      console.log('OTP:', otp);
+      console.log('pendingChildren from localStorage:', pendingChildren);
+      console.log('Parsed children:', children);
+
       const response = await fetch('/api/auth/verify-registration-otp', {
         method: 'POST',
         headers: {
@@ -62,10 +72,15 @@ function VerifyOTPContent() {
         body: JSON.stringify({
           email,
           otp,
+          children, // Pass children data if available
         }),
       });
 
+      console.log('OTP Verification Response Status:', response.status);
+
       const data = await response.json();
+
+      console.log('OTP Verification Response Data:', data);
 
       if (!response.ok) {
         setError(data.message || 'Failed to verify OTP');
@@ -77,6 +92,9 @@ function VerifyOTPContent() {
       }
 
       setSuccess('OTP verified successfully!');
+      
+      // Clear pending children from localStorage
+      localStorage.removeItem('pendingChildren');
       
       // Redirect to pending approval page after a short delay
       setTimeout(() => {

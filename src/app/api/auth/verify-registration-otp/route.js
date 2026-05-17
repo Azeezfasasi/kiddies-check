@@ -5,13 +5,19 @@
 
 import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
+import ProspectiveStudent from '@/app/server/models/ProspectiveStudent';
 import { sendAdminPendingNotification } from '@/app/server/utils/emailService';
 
 export async function POST(request) {
   try {
     await connectDB();
 
-    const { email, otp } = await request.json();
+    const { email, otp, children } = await request.json();
+
+    console.log('========== OTP Verification Started ==========');
+    console.log(`[OTP] Email: ${email}`);
+    console.log(`[OTP] OTP entered: ${otp ? '✅ provided' : '❌ missing'}`);
+    console.log(`[OTP] Children data: ${children ? '✅ provided - ' + JSON.stringify(children) : '❌ missing'}`);
 
     // Validation
     if (!email || !otp) {
@@ -71,6 +77,72 @@ export async function POST(request) {
     user.approvedAt = null; // Reset approval timestamp
 
     await user.save();
+
+    // Log for debugging
+    console.log(`[OTP Verification] User role: ${user.role}`);
+    console.log(`[OTP Verification] Children received: ${children ? JSON.stringify(children) : 'none'}`);
+    console.log(`[OTP Verification] User schoolId: ${user.schoolId}`);
+    console.log(`[OTP Verification] User schoolType: ${user.schoolType}`);
+
+    // If parent registered with children, create prospective student records
+    if (user.role === 'parent' && children && Array.isArray(children) && children.length > 0) {
+      if (!user.schoolId) {
+        console.warn(`[OTP Verification] Parent ${email} has no schoolId set. Cannot create prospective students.`);
+        console.log(`[OTP Verification] User data:`, {
+          role: user.role,
+          schoolId: user.schoolId,
+          schoolType: user.schoolType,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        });
+      } else {
+        try {
+          for (const child of children) {
+            // Create prospective student record for each child
+            const prospectiveStudent = new ProspectiveStudent({
+              firstName: child.firstName || '',
+              lastName: child.lastName || '',
+              gradeLevel: child.grade || '',
+              className: child.className || '',
+              classId: null, // Will be linked after class selection
+              school: user.schoolId,
+              schoolType: user.schoolType || '',
+              picture: null,
+              phone: null,
+              email: user.email,
+              registeredBy: user._id,
+              parentId: user._id,
+              parentName: `${user.firstName} ${user.lastName}`,
+              parentEmail: user.email,
+              parentPhone: user.phone,
+              status: 'pending',
+              createdAt: new Date(),
+            });
+            
+            console.log(`[OTP Verification] ProspectiveStudent object created for: ${child.firstName} ${child.lastName}`);
+            console.log(`[OTP Verification] Data:`, {
+              firstName: prospectiveStudent.firstName,
+              school: prospectiveStudent.school?.toString(),
+              parentId: prospectiveStudent.parentId?.toString(),
+              status: prospectiveStudent.status,
+            });
+            
+            await prospectiveStudent.save();
+            console.log(`[OTP Verification] ✅ Saved prospective student: ${child.name}`);
+          }
+          console.log(`[OTP Verification] ✅ Created ${children.length} prospective student records for parent: ${email}`);
+        } catch (prospectiveError) {
+          console.error('[OTP Verification] ❌ Error creating prospective students:');
+          console.error('[OTP Verification] Error name:', prospectiveError.name);
+          console.error('[OTP Verification] Error message:', prospectiveError.message);
+          console.error('[OTP Verification] Error details:', prospectiveError);
+          if (prospectiveError.errors) {
+            console.error('[OTP Verification] Validation errors:', prospectiveError.errors);
+          }
+          // Don't fail OTP verification due to prospective student creation issues
+        }
+      }
+    }
 
     // Send admin notification email
     try {

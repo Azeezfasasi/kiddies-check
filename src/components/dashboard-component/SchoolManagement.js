@@ -401,6 +401,28 @@ export default function SchoolManagement() {
     }
   };
 
+  // Handle approval status change
+  const handleApprovalStatusChange = async (schoolId, newStatus) => {
+    try {
+      const response = await axios.patch(
+        `/api/schools/${schoolId}/approval-status`,
+        { approvalStatus: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        fetchSchools();
+      }
+    } catch (err) {
+      console.error("Failed to update approval status:", err);
+      setError(err.response?.data?.error || "Failed to update approval status");
+    }
+  };
+
   // Open edit modal
   const openEditModal = (school) => {
     setSelectedSchool(school);
@@ -640,18 +662,23 @@ export default function SchoolManagement() {
                         </button>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                        <select
+                          value={school.approvalStatus || "pending"}
+                          onChange={(e) =>
+                            handleApprovalStatusChange(school._id, e.target.value)
+                          }
+                          className={`px-3 py-1 rounded-full text-sm font-medium border-0 cursor-pointer transition-colors ${
                             school.approvalStatus === "approved"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-100 text-green-800 hover:bg-green-200"
                               : school.approvalStatus === "rejected"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
+                              ? "bg-red-100 text-red-800 hover:bg-red-200"
+                              : "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
                           }`}
                         >
-                          {school.approvalStatus?.charAt(0).toUpperCase() +
-                            school.approvalStatus?.slice(1)}
-                        </span>
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -732,8 +759,12 @@ export default function SchoolManagement() {
                     >
                       {school.isActive ? "Active" : "Inactive"}
                     </button>
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                    <select
+                      value={school.approvalStatus || "pending"}
+                      onChange={(e) =>
+                        handleApprovalStatusChange(school._id, e.target.value)
+                      }
+                      className={`px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer ${
                         school.approvalStatus === "approved"
                           ? "bg-green-100 text-green-800"
                           : school.approvalStatus === "rejected"
@@ -741,9 +772,10 @@ export default function SchoolManagement() {
                           : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
-                      {school.approvalStatus?.charAt(0).toUpperCase() +
-                        school.approvalStatus?.slice(1)}
-                    </span>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
                   </div>
 
                   <button

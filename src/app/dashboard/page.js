@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
 import QuoteChart from "@/components/dashboard-component/QuoteChart";
 import UserChart from "@/components/dashboard-component/UserChart";
+import PerformanceChart from "@/components/dashboard-component/PerformaceChart";
 
 export default function Dashboard() {
   const { isAuthenticated, loading } = useAuth();
@@ -36,8 +37,9 @@ export default function Dashboard() {
       {user?.role === 'admin' ? (
         <>
         <DashboardStats />
-        <div className="flex flex-col lg:flex-row gap-6 justify-center mt-6">
-          <UserChart />
+        <div className="flex flex-col lg:flex-col gap-6 justify-center mt-6">
+          <PerformanceChart />
+          <UserChart /> 
         </div>
         </>
       ) : user?.role === 'school-leader' ? (

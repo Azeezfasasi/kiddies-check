@@ -4,7 +4,7 @@ import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
 import { NextResponse } from "next/server";
 
-// PATCH /api/schools/:id/status - Toggle school active status
+// PATCH /api/schools/:id/approval-status - Update school approval status
 export async function PATCH(req, { params }) {
   return authenticate(req, async (user) => {
     try {
@@ -28,11 +28,13 @@ export async function PATCH(req, { params }) {
       }
 
       const body = await req.json();
-      const { isActive } = body;
+      const { approvalStatus } = body;
 
-      if (typeof isActive !== "boolean") {
+      // Validate approval status
+      const validStatuses = ["pending", "approved", "rejected"];
+      if (!approvalStatus || !validStatuses.includes(approvalStatus)) {
         return NextResponse.json(
-          { error: "isActive must be a boolean" },
+          { error: "Invalid approval status. Must be one of: pending, approved, rejected" },
           { status: 400 }
         );
       }
@@ -40,7 +42,7 @@ export async function PATCH(req, { params }) {
       const school = await School.findByIdAndUpdate(
         id,
         {
-          isActive,
+          approvalStatus,
           updatedAt: new Date(),
         },
         { new: true }
@@ -56,17 +58,17 @@ export async function PATCH(req, { params }) {
       return NextResponse.json(
         {
           success: true,
-          message: `School is now ${isActive ? "active" : "inactive"}`,
+          message: `School approval status updated to ${approvalStatus}`,
           school,
         },
         { status: 200 }
       );
     } catch (error) {
-      console.error("School status update error:", error);
+      console.error("School approval status update error:", error);
       return NextResponse.json(
         {
           success: false,
-          error: error.message || "Failed to update school status",
+          error: error.message || "Failed to update school approval status",
         },
         { status: 500 }
       );

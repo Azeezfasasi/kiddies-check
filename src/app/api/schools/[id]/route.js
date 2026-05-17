@@ -18,7 +18,7 @@ export async function PUT(req, { params }) {
         );
       }
 
-      const { id } = params;
+      const { id } = await params;
 
       if (!Types.ObjectId.isValid(id)) {
         return NextResponse.json(
@@ -101,7 +101,7 @@ export async function DELETE(req, { params }) {
         );
       }
 
-      const { id } = params;
+      const { id } = await params;
 
       if (!Types.ObjectId.isValid(id)) {
         return NextResponse.json(

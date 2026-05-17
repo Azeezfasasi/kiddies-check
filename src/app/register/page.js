@@ -133,7 +133,7 @@ function RegisterContent() {
     children: [],
   });
 
-  const [newChild, setNewChild] = useState({ name: "", className: "", grade: "" });
+  const [newChild, setNewChild] = useState({ firstName: "", lastName: "", className: "", grade: "" });
   const [availableClasses, setAvailableClasses] = useState([]);
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [availableSchools, setAvailableSchools] = useState([]);
@@ -288,22 +288,24 @@ function RegisterContent() {
   };
 
   const addChild = () => {
-    if (newChild.name.trim() && newChild.className) {
+    if (newChild.firstName.trim() && newChild.lastName.trim() && newChild.className) {
       setFormData((prev) => ({
         ...prev,
         children: [...prev.children, { ...newChild, id: Date.now() }],
       }));
-      setNewChild({ name: "", className: "", grade: "" });
+      setNewChild({ firstName: "", lastName: "", className: "", grade: "" });
       // Clear child errors
       setErrors((prev) => ({
         ...prev,
-        childName: "",
+        childFirstName: "",
+        childLastName: "",
         childClass: "",
       }));
     } else {
       setErrors((prev) => ({
         ...prev,
-        childName: !newChild.name.trim() ? "Child name is required" : "",
+        childFirstName: !newChild.firstName.trim() ? "First name is required" : "",
+        childLastName: !newChild.lastName.trim() ? "Last name is required" : "",
         childClass: !newChild.className ? "Class is required" : "",
       }));
     }
@@ -552,6 +554,14 @@ function RegisterContent() {
       }
 
       // Register user with Cloudinary URL
+      console.log('========== Parent Registration (Client) ==========');
+      console.log('Role:', formData.role);
+      console.log('Email:', formData.email);
+      console.log('SchoolId:', formData.schoolId);
+      console.log('SchoolType:', formData.schoolType);
+      console.log('Children count:', formData.children.length);
+      console.log('Children data:', JSON.stringify(formData.children));
+
       const result = await register(
         formData.firstName,
         formData.lastName,
@@ -965,19 +975,34 @@ function RegisterContent() {
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 space-y-4">
                 <h3 className="font-semibold text-gray-900">Add a Child</h3>
                 
-                <FormField
-                  label="Child's Full Name"
-                  name="childName"
-                  placeholder="e.g., John Doe"
-                  required
-                  value={newChild.name}
-                  onChange={(e) => {
-                    setNewChild({ ...newChild, name: e.target.value });
-                    if (errors.childName) setErrors((prev) => ({ ...prev, childName: "" }));
-                  }}
-                  onKeyDown={handleKeyDown}
-                  errors={errors}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    label="Child's First Name"
+                    name="childFirstName"
+                    placeholder="e.g., John"
+                    required
+                    value={newChild.firstName}
+                    onChange={(e) => {
+                      setNewChild({ ...newChild, firstName: e.target.value });
+                      if (errors.childFirstName) setErrors((prev) => ({ ...prev, childFirstName: "" }));
+                    }}
+                    onKeyDown={handleKeyDown}
+                    errors={errors}
+                  />
+                  <FormField
+                    label="Child's Last Name"
+                    name="childLastName"
+                    placeholder="e.g., Doe"
+                    required
+                    value={newChild.lastName}
+                    onChange={(e) => {
+                      setNewChild({ ...newChild, lastName: e.target.value });
+                      if (errors.childLastName) setErrors((prev) => ({ ...prev, childLastName: "" }));
+                    }}
+                    onKeyDown={handleKeyDown}
+                    errors={errors}
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1039,7 +1064,7 @@ function RegisterContent() {
                       className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
                     >
                       <div>
-                        <p className="font-medium text-gray-900">{child.name}</p>
+                        <p className="font-medium text-gray-900">{child.firstName} {child.lastName}</p>
                         <p className="text-sm text-gray-600">{child.className}</p>
                       </div>
                       <button

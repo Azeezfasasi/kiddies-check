@@ -101,6 +101,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/dashboard/my-children', label: 'My Children', icon: 'dashboard', roles: ['parent'] },
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/prospective-students', label: 'Prospective Students', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader'] },
     { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin', 'learning-specialist'] },
     { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin', 'learning-specialist'] },

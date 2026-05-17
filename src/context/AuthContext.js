@@ -130,6 +130,13 @@ export const AuthProvider = ({ children }) => {
       if (schoolId) {
         registrationData.schoolId = schoolId;
       }
+      if (children && children.length > 0) {
+        registrationData.children = children;
+      }
+
+      console.log('========== AuthContext.register() ==========');
+      console.log('Registration Data (to be sent):', registrationData);
+      console.log('Children included:', children ? `✅ ${children.length} children` : '❌ No children');
 
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -138,26 +145,41 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await response.json();
       
+      console.log('Register API Response:', data);
+
       if (data.success) {
+        // Store children data temporarily for prospective students creation
+        if (children && children.length > 0) {
+          localStorage.setItem("pendingChildren", JSON.stringify(children));
+          console.log('✅ Stored pendingChildren in localStorage:', JSON.stringify(children));
+        } else {
+          console.log('⚠️ No children to store in localStorage');
+        }
+        
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem("token", data.token);
         // Save schoolId if available
         if (data.schoolId) {
           localStorage.setItem("schoolId", data.schoolId);
+          console.log('✅ Stored schoolId:', data.schoolId);
         }
         // Also save userId for API calls
         if (data.user?._id) {
           localStorage.setItem("userId", data.user._id);
+          console.log('✅ Stored userId:', data.user._id);
         }
         // Save user role
         if (data.user?.role) {
           localStorage.setItem("userRole", data.user.role);
+          console.log('✅ Stored userRole:', data.user.role);
         }
         return { success: true };
       }
+      console.log('❌ Registration failed:', data.message);
       return { success: false, message: data.message };
     } catch (error) {
+      console.error('❌ Registration error:', error);
       return { success: false, message: error.message };
     }
   };

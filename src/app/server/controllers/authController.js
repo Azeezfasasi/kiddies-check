@@ -84,7 +84,7 @@ export const register = async (req) => {
     await connectDB();
 
     const body = await req.json();
-    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType, schoolId } = body;
+    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType, schoolId, children } = body;
 
     // Basic validation - required for all users
     if (!firstName || !lastName || !email || !phone || !role || !password) {

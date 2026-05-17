@@ -83,10 +83,14 @@ export async function GET(req, { params }) {
 
     // Determine grade
     let grade = "F";
-    if (avgScore >= 90) grade = "A";
-    else if (avgScore >= 80) grade = "B";
-    else if (avgScore >= 70) grade = "C";
-    else if (avgScore >= 60) grade = "D";
+    if (avgScore >= 75) grade = "A1";
+    else if (avgScore >= 70) grade = "B2";
+    else if (avgScore >= 65) grade = "B3";
+    else if (avgScore >= 60) grade = "C4";
+    else if (avgScore >= 55) grade = "C5";
+    else if (avgScore >= 50) grade = "C6";
+    else if (avgScore >= 45) grade = "D7";
+    else if (avgScore >= 40) grade = "E8";
 
     // Analyze assessment types
     const assessmentTypes = {};
