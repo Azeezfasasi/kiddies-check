@@ -1,4 +1,5 @@
 import Student from "@/app/server/models/Student";
+import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { uploadToCloudinary } from "@/app/server/utils/cloudinaryService";
 import { deleteFromCloudinary } from "@/app/server/utils/cloudinaryService";
