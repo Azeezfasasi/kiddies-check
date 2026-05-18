@@ -3,6 +3,7 @@ import User from "@/app/server/models/User";
 import Assessment from "@/app/server/models/Assessment";
 import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
+import Subject from "@/app/server/models/Subject";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 
