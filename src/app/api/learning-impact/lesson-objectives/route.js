@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import LessonObjectiveRating from "@/app/server/models/LessonObjectiveRating";
+import User from "@/app/server/models/User";
+import Class from "@/app/server/models/Class";
+import Subject from "@/app/server/models/Subject";
 import { checkSchoolAccess } from "@/app/server/utils/learningImpactAccess";
 
 async function checkAccess(userId, schoolId) {

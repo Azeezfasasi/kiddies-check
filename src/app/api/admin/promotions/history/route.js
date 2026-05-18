@@ -6,6 +6,9 @@
 import { connectDB } from "@/app/server/db/connect";
 import PromotionRecord from "@/app/server/models/PromotionRecord";
 import User from "@/app/server/models/User";
+import Student from "@/app/server/models/Student";
+import Class from "@/app/server/models/Class";
+import School from "@/app/server/models/School";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
