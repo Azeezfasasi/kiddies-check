@@ -1,6 +1,8 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Assessment from "@/app/server/models/Assessment";
+import Class from "@/app/server/models/Class";
+import School from "@/app/server/models/School";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 

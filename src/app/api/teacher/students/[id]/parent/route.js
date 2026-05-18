@@ -1,5 +1,6 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
+import Class from "@/app/server/models/Class";
 import { connectDB } from "@/utils/db";
 
 export async function GET(req, { params }) {
