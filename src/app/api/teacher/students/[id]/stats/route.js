@@ -46,7 +46,7 @@ export async function GET(req, { params }) {
       school: schoolId,
     }).populate("subject", "name");
 
-    // Group assessments by subject and calculate average scores
+    // Group assessments by subject and calculate average scores.
     const subjectMap = {};
     assessments.forEach((assessment) => {
       const subjectName = assessment.subject?.name || "Unknown Subject";
