@@ -1,0 +1,26 @@
+# Allow all bots to crawl
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-register
+Disallow: /dashboard
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /available-programmes
+Disallow: /programme-registration
+Disallow: /id-finder
+Disallow: /api/
+Disallow: /projects
+Disallow: /project
+
+# Sitemaps
+Sitemap: https://kiddiescheck.org/sitemap.xml
+
+# Allow specific bots
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
