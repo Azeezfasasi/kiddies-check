@@ -164,6 +164,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       ]
     },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
+    { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin', 'learning-specialist'] },
     {
       href: '/dashboard/home',
       label: 'Homepage Contents',

@@ -1,6 +1,7 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
+import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 
@@ -104,6 +105,43 @@ export async function PUT(req, { params }) {
       { new: true }
     ).populate("class", "name level section");
 
+    // Log activity
+    try {
+      await ActivityLog.create({
+        user: userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userRole: user.role,
+        school: schoolId,
+        schoolName: user.schoolName,
+        action: 'update',
+        entityType: 'student',
+        entityId: student._id.toString(),
+        entityName: `${student.firstName} ${student.lastName}`,
+        description: `Updated student information for ${student.firstName} ${student.lastName}`,
+        changes: {
+          before: {
+            enrollmentNo: student.enrollmentNo,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            email: student.email,
+            dateOfBirth: student.dateOfBirth,
+          },
+          after: {
+            enrollmentNo: updateData.enrollmentNo || student.enrollmentNo,
+            firstName: updateData.firstName || student.firstName,
+            lastName: updateData.lastName || student.lastName,
+            email: updateData.email || student.email,
+            dateOfBirth: updateData.dateOfBirth || student.dateOfBirth,
+          }
+        },
+        status: 'success',
+      });
+    } catch (logError) {
+      console.warn('[Activity Log Error]', logError);
+    }
+
     return Response.json(
       { message: "Student updated successfully", student: updatedStudent },
       { status: 200 }
@@ -149,6 +187,31 @@ export async function DELETE(req, { params }) {
 
     // Soft delete
     await Student.findByIdAndUpdate(id, { isActive: false });
+
+    // Log activity
+    try {
+      await ActivityLog.create({
+        user: userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userRole: user.role,
+        school: schoolId,
+        schoolName: user.schoolName,
+        action: 'delete',
+        entityType: 'student',
+        entityId: student._id.toString(),
+        entityName: `${student.firstName} ${student.lastName}`,
+        description: `Deleted student record for ${student.firstName} ${student.lastName}`,
+        changes: {
+          before: { isActive: true },
+          after: { isActive: false }
+        },
+        status: 'success',
+      });
+    } catch (logError) {
+      console.warn('[Activity Log Error]', logError);
+    }
 
     return Response.json({ message: "Student deleted successfully" }, { status: 200 });
   } catch (error) {

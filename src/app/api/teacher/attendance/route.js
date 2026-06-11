@@ -2,6 +2,7 @@ import Attendance from "@/app/server/models/Attendance";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import School from "@/app/server/models/School";
+import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { sendAttendanceNotificationToParent } from "@/app/server/utils/emailService";
 
@@ -69,6 +70,31 @@ export async function POST(req) {
         console.error(`[Attendance Email Error] Failed to send email to parent:`, emailError);
         // Don't fail the attendance marking if email fails
       }
+    }
+
+    // Log activity
+    try {
+      await ActivityLog.create({
+        user: userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userRole: user.role,
+        school: schoolId,
+        schoolName: user.schoolName,
+        action: 'mark-attendance',
+        entityType: 'attendance',
+        entityId: attendance._id.toString(),
+        entityName: `${student.firstName} ${student.lastName}`,
+        description: `Marked attendance for ${student.firstName} ${student.lastName} as ${status}`,
+        changes: {
+          before: null,
+          after: { status, date: attendanceDate, markedVia }
+        },
+        status: 'success',
+      });
+    } catch (logError) {
+      console.warn('[Activity Log Error]', logError);
     }
 
     return Response.json(

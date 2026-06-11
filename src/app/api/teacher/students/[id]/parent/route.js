@@ -1,6 +1,7 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
+import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 
 export async function GET(req, { params }) {
@@ -107,6 +108,7 @@ export async function PUT(req, { params }) {
       }
 
       // Update student with parent
+      const oldParent = student.parent;
       const updatedStudent = await Student.findByIdAndUpdate(
         id,
         {
@@ -121,12 +123,38 @@ export async function PUT(req, { params }) {
         select: 'firstName lastName email phone avatar'
       });
 
+      // Log activity
+      try {
+        await ActivityLog.create({
+          user: userId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: schoolId,
+          schoolName: user.schoolName,
+          action: 'assign-parent',
+          entityType: 'student',
+          entityId: student._id.toString(),
+          entityName: `${student.firstName} ${student.lastName}`,
+          description: `Assigned parent ${parentUser.firstName} ${parentUser.lastName} to student ${student.firstName} ${student.lastName}`,
+          changes: {
+            before: { parent: oldParent?._id?.toString() || null },
+            after: { parent: parentId }
+          },
+          status: 'success',
+        });
+      } catch (logError) {
+        console.warn('[Activity Log Error]', logError);
+      }
+
       return Response.json(
         { message: "Parent assigned successfully", student: updatedStudent },
         { status: 200 }
       );
     } else {
       // Remove parent assignment
+      const oldParent = student.parent;
       const updatedStudent = await Student.findByIdAndUpdate(
         id,
         {
@@ -137,6 +165,31 @@ export async function PUT(req, { params }) {
         },
         { new: true }
       );
+
+      // Log activity
+      try {
+        await ActivityLog.create({
+          user: userId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: schoolId,
+          schoolName: user.schoolName,
+          action: 'update',
+          entityType: 'student',
+          entityId: student._id.toString(),
+          entityName: `${student.firstName} ${student.lastName}`,
+          description: `Removed parent assignment from student ${student.firstName} ${student.lastName}`,
+          changes: {
+            before: { parent: oldParent?.toString() || null },
+            after: { parent: null }
+          },
+          status: 'success',
+        });
+      } catch (logError) {
+        console.warn('[Activity Log Error]', logError);
+      }
 
       return Response.json(
         { message: "Parent assignment removed", student: updatedStudent },

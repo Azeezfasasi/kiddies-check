@@ -4,6 +4,7 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import School from "../models/School.js";
 import Student from "../models/Student.js";
+import LoginLog from "../models/LoginLog.js";
 import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
@@ -254,6 +255,17 @@ export const login = async (req) => {
     const user = await User.findByEmail(email).select("+password").populate("schoolId");
 
     if (!user) {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          email: email,
+          status: 'failed',
+          failureReason: 'User not found',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
       return NextResponse.json(
         { success: false, message: "Invalid credentials" },
         { status: 401 }
@@ -262,6 +274,23 @@ export const login = async (req) => {
 
     // Check if account is locked
     if (user.isAccountLocked()) {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: user.schoolId?.name,
+          status: 'failed',
+          failureReason: 'Account locked due to multiple failed login attempts',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
       return NextResponse.json(
         {
           success: false,
@@ -273,6 +302,23 @@ export const login = async (req) => {
 
     // Check if account is active
     if (!user.isActive || user.accountStatus !== "active") {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: user.schoolId?.name,
+          status: 'failed',
+          failureReason: 'Account is disabled or suspended',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
       return NextResponse.json(
         {
           success: false,
@@ -287,6 +333,24 @@ export const login = async (req) => {
 
     if (!isPasswordMatch) {
       await user.incLoginAttempts();
+      
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: user.schoolId?.name,
+          status: 'failed',
+          failureReason: 'Invalid password',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
       return NextResponse.json(
         { success: false, message: "Invalid credentials" },
         { status: 401 }
@@ -316,6 +380,22 @@ export const login = async (req) => {
 
     // Return user info with approval status
     const userProfile = user.getPublicProfile();
+
+    // Log successful login
+    try {
+      await LoginLog.create({
+        user: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userRole: user.role,
+        school: user.schoolId?._id || user.schoolId,
+        schoolName: user.schoolId?.name,
+        status: 'success',
+      });
+    } catch (logError) {
+      console.warn('[Login Log Error]', logError);
+    }
 
     return NextResponse.json(
       {
