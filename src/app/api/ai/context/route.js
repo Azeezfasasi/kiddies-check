@@ -80,7 +80,7 @@ export async function GET(req) {
           .sort({ date: -1 })
           .lean();
 
-        console.log(`Assessments for student ${studentId}: ${assessments.length} records found`);
+        // console.log(`Assessments for student ${studentId}: ${assessments.length} records found`);
 
         // Return basic structure even if no assessments
         const avgScore = assessments.length > 0 
@@ -287,17 +287,17 @@ export async function GET(req) {
       contextData.summary = `${allStudents.length} students with performance analytics available`;
     }
 
-    console.log('Context data prepared:', {
-      studentsCount: contextData.students?.length || 0,
-      teachersCount: contextData.teachers?.length || 0,
-      parentCount: contextData.parents?.length || 0,
-      studentNames: contextData.students?.map(s => s.name) || [],
-      studentPerformance: contextData.students?.map(s => ({
-        name: s.name,
-        totalAssessments: s.performance?.totalAssessments || 0,
-        averageScore: s.performance?.averageScore || 0,
-      })) || [],
-    });
+    // console.log('Context data prepared:', {
+    //   studentsCount: contextData.students?.length || 0,
+    //   teachersCount: contextData.teachers?.length || 0,
+    //   parentCount: contextData.parents?.length || 0,
+    //   studentNames: contextData.students?.map(s => s.name) || [],
+    //   studentPerformance: contextData.students?.map(s => ({
+    //     name: s.name,
+    //     totalAssessments: s.performance?.totalAssessments || 0,
+    //     averageScore: s.performance?.averageScore || 0,
+    //   })) || [],
+    // });
 
     return new Response(
       JSON.stringify(contextData),

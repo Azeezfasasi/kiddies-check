@@ -32,8 +32,19 @@ export default function AttendanceScanner({ schoolId, userId, onScanSuccess }) {
         }
       } catch (error) {
         console.error("Camera access error:", error);
+        let errorMessage = "Could not access camera.";
+        
+        // Check for permission denied specifically
+        if (error?.name === "NotAllowedError" || error?.message?.includes("Permission denied")) {
+          errorMessage = "Camera permission denied. Please enable camera access in your browser settings.";
+        } else if (error?.name === "NotFoundError") {
+          errorMessage = "No camera found. Please connect a camera and refresh.";
+        } else if (error?.message?.includes("Permissions-Policy")) {
+          errorMessage = "Camera is blocked by server policy. Please contact administrator.";
+        }
+        
         if (!cancelled) {
-          toast.error("Could not access camera. Please ensure camera permissions are granted.");
+          toast.error(errorMessage);
         }
       } finally {
         if (!cancelled) setLoadingCameras(false);
@@ -102,7 +113,17 @@ export default function AttendanceScanner({ schoolId, userId, onScanSuccess }) {
       setIsScanning(true);
     } catch (error) {
       console.error("Start scanning error:", error);
-      toast.error("Failed to start camera. Please try again.");
+      let errorMessage = "Failed to start camera. Please try again.";
+      
+      if (error?.name === "NotAllowedError" || error?.message?.includes("Permission denied")) {
+        errorMessage = "Camera permission denied. Please check browser settings.";
+      } else if (error?.name === "NotReadableError") {
+        errorMessage = "Camera is already in use by another application.";
+      } else if (error?.message?.includes("Permissions-Policy")) {
+        errorMessage = "Camera access is blocked by policy. Refresh page and try again.";
+      }
+      
+      toast.error(errorMessage);
       scannerInstanceRef.current = null;
     }
   }, [selectedCamera]);
