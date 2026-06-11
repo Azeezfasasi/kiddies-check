@@ -362,74 +362,6 @@ export default function MarkAttendancePage() {
               </div>
             )}
 
-            {/* Scanned Student Actions */}
-            {scannedStudent && (
-              <div className="bg-white rounded-xl shadow-lg border-2 border-blue-200 p-5 animate-in slide-in-from-bottom-2 duration-200">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {scannedStudent.firstName.charAt(0)}
-                      {scannedStudent.lastName.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-800">
-                        {scannedStudent.firstName} {scannedStudent.lastName}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {scannedStudent.enrollmentNo} • {scannedStudent.class?.name || "N/A"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setScannedStudent(null)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-4">Select attendance status:</p>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => markAttendance("present")}
-                    disabled={markingStatus !== null}
-                    className="flex flex-col items-center gap-2 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {markingStatus === "present" ? (
-                      <Loader className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-5 h-5" />
-                    )}
-                    Present
-                  </button>
-                  <button
-                    onClick={() => markAttendance("late")}
-                    disabled={markingStatus !== null}
-                    className="flex flex-col items-center gap-2 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {markingStatus === "late" ? (
-                      <Loader className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Clock className="w-5 h-5" />
-                    )}
-                    Late
-                  </button>
-                  <button
-                    onClick={() => markAttendance("absent")}
-                    disabled={markingStatus !== null}
-                    className="flex flex-col items-center gap-2 py-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold transition-colors disabled:opacity-50"
-                  >
-                    {markingStatus === "absent" ? (
-                      <Loader className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <UserX className="w-5 h-5" />
-                    )}
-                    Absent
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Today's Attendance */}
@@ -496,6 +428,91 @@ export default function MarkAttendancePage() {
           </div>
         </div>
       </div>
+
+      {/* Scanned Student Modal */}
+      {scannedStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in scale-95 duration-200">
+            <div className="flex justify-between items-center mb-4 p-5 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800">Mark Attendance</h2>
+              <button
+                onClick={() => setScannedStudent(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {/* Student Info */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {scannedStudent.firstName.charAt(0)}
+                  {scannedStudent.lastName.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-base">
+                    {scannedStudent.firstName} {scannedStudent.lastName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {scannedStudent.enrollmentNo} • {scannedStudent.class?.name || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-5 font-medium">Select attendance status:</p>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => markAttendance("present")}
+                  disabled={markingStatus !== null}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {markingStatus === "present" ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                  Present
+                </button>
+                <button
+                  onClick={() => markAttendance("late")}
+                  disabled={markingStatus !== null}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {markingStatus === "late" ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Clock className="w-5 h-5" />
+                  )}
+                  Late
+                </button>
+                <button
+                  onClick={() => markAttendance("absent")}
+                  disabled={markingStatus !== null}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {markingStatus === "absent" ? (
+                    <Loader className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <UserX className="w-5 h-5" />
+                  )}
+                  Absent
+                </button>
+              </div>
+
+              <button
+                onClick={() => setScannedStudent(null)}
+                disabled={markingStatus !== null}
+                className="w-full mt-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
