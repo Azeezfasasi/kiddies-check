@@ -751,6 +751,8 @@ export default function AllStudentsPage() {
             gradeLevel: selectedStudentForAccessCard.gradeLevel || selectedStudentForAccessCard.class?.name,
           }}
           schoolName={schoolName}
+          schoolId={activeSchoolId}
+          userId={userId}
           onClose={() => {
             setShowAccessCardModal(false);
             setSelectedStudentForAccessCard(null);
