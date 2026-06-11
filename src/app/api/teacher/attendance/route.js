@@ -1,7 +1,9 @@
 import Attendance from "@/app/server/models/Attendance";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
+import School from "@/app/server/models/School";
 import { connectDB } from "@/utils/db";
+import { sendAttendanceNotificationToParent } from "@/app/server/utils/emailService";
 
 export async function POST(req) {
   try {
@@ -28,7 +30,7 @@ export async function POST(req) {
 
     await connectDB();
 
-    const student = await Student.findOne({ _id: studentId, school: schoolId });
+    const student = await Student.findOne({ _id: studentId, school: schoolId }).populate('parent');
     if (!student) {
       return Response.json({ error: "Student not found" }, { status: 404 });
     }
@@ -46,6 +48,28 @@ export async function POST(req) {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
+
+    // Send notification email to parent if assigned
+    if (student.parent && student.parent.email) {
+      try {
+        const school = await School.findById(schoolId);
+        const schoolName = school?.name || "School";
+        
+        await sendAttendanceNotificationToParent(
+          student.parent.email,
+          student.parent.firstName || "Parent",
+          `${student.firstName} ${student.lastName}`,
+          student.picture || null,
+          status,
+          schoolName,
+          new Date() // Current time of marking
+        );
+        console.log(`[Attendance Email] Sent to parent: ${student.parent.email}`);
+      } catch (emailError) {
+        console.error(`[Attendance Email Error] Failed to send email to parent:`, emailError);
+        // Don't fail the attendance marking if email fails
+      }
+    }
 
     return Response.json(
       { message: "Attendance marked successfully", attendance },

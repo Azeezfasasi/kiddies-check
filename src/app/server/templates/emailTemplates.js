@@ -218,6 +218,84 @@ export const emailTemplates = {
       </body>
     </html>
   `,
+
+  // Parent Attendance Notification Email
+  parentAttendanceNotification: (parentName, studentName, studentPicture, status, schoolName, attendanceTime) => `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .student-box { background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 8px; display: flex; align-items: center; gap: 15px; }
+          .student-photo { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea; }
+          .student-info h3 { margin: 0 0 5px 0; color: #667eea; }
+          .student-info p { margin: 0; color: #666; }
+          .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+          .status-present { background: #d1fae5; color: #065f46; }
+          .status-late { background: #fef3c7; color: #92400e; }
+          .status-absent { background: #fee2e2; color: #991b1b; }
+          .time-info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 15px 0; border-radius: 4px; }
+          .time-info strong { color: #1e40af; }
+          .school-name { text-align: center; color: #667eea; font-weight: bold; margin-top: 20px; padding-top: 15px; border-top: 2px solid #e5e7eb; }
+          .footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+          .icon { font-size: 24px; margin-right: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div style="font-size: 32px; margin-bottom: 10px;">✓</div>
+            <h2>Attendance Marked</h2>
+            <p>Your child is in school</p>
+          </div>
+          <div class="content">
+            <p>Hello ${parentName},</p>
+            <p>We're writing to inform you that your child has been marked present for today.</p>
+            
+            <div class="student-box">
+              ${studentPicture ? `<img src="${studentPicture}" alt="${studentName}" class="student-photo" crossorigin="anonymous">` : '<div style="width: 60px; height: 60px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; border: 3px solid #667eea;">👤</div>'}
+              <div class="student-info">
+                <h3>${studentName}</h3>
+                <p>${schoolName}</p>
+                <span class="status-badge status-${status === 'present' ? 'present' : status === 'late' ? 'late' : 'absent'}">
+                  ${status === 'present' ? '✓ Present' : status === 'late' ? '⏱ Late' : '✗ Absent'}
+                </span>
+              </div>
+            </div>
+
+            <div class="time-info">
+              <strong>📅 Attendance Details:</strong><br>
+              Status: <strong>${status.charAt(0).toUpperCase() + status.slice(1)}</strong><br>
+              Date & Time: <strong>${new Date(attendanceTime).toLocaleString('en-GB', { 
+                year: 'numeric',
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+              })}</strong>
+            </div>
+
+            <p>If you have any questions or concerns about your child's attendance, please contact the school directly.</p>
+
+            <div class="school-name">
+              ${schoolName}
+            </div>
+
+            <hr>
+            <p><small>Best regards,<br><strong>KiddiesCheck Team</strong></small></p>
+          </div>
+          <div class="footer">
+            <p>© 2026 KiddiesCheck. All rights reserved.</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `,
 };
 
 export default emailTemplates;

@@ -151,6 +151,40 @@ export const sendRejectionEmail = async (email, firstName, schoolName, rejection
 };
 
 /**
+ * Send Attendance Notification to Parent
+ */
+export const sendAttendanceNotificationToParent = async (
+  parentEmail,
+  parentName,
+  studentName,
+  studentPicture,
+  status,
+  schoolName,
+  attendanceTime
+) => {
+  try {
+    const result = await sendEmailViaBrevo(
+      parentEmail,
+      parentName,
+      `Attendance Update: ${studentName} is ${status} for today`,
+      emailTemplates.parentAttendanceNotification(
+        parentName,
+        studentName,
+        studentPicture,
+        status,
+        schoolName,
+        attendanceTime
+      )
+    );
+    console.log('Attendance notification sent to parent:', parentEmail);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending attendance notification email:', error);
+    throw error;
+  }
+};
+
+/**
  * Verify email service connection
  */
 export const verifyEmailConnection = async () => {
@@ -173,5 +207,6 @@ export default {
   sendAdminPendingNotification,
   sendApprovalEmail,
   sendRejectionEmail,
+  sendAttendanceNotificationToParent,
   verifyEmailConnection,
 };
