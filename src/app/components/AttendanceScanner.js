@@ -28,7 +28,16 @@ export default function AttendanceScanner({ schoolId, userId, onScanSuccess }) {
         const devices = await Html5Qrcode.getCameras();
         if (!cancelled && devices && devices.length > 0) {
           setCameras(devices);
-          setSelectedCamera(devices[0].id);
+          
+          // Prefer rear/back camera for QR scanning on mobile
+          const backCamera = devices.find(
+            (device) =>
+              device.label?.toLowerCase().includes("back") ||
+              device.label?.toLowerCase().includes("rear") ||
+              device.label?.toLowerCase().includes("environment")
+          );
+          
+          setSelectedCamera(backCamera ? backCamera.id : devices[0].id);
         }
       } catch (error) {
         console.error("Camera access error:", error);
