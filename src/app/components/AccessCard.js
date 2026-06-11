@@ -1,32 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import QRCode from "qrcode";
 import html2canvas from "html2canvas";
 import { Download, X } from "lucide-react";
 
-export default function AccessCard({ student, schoolName, onClose }) {
+export default function AccessCard({ student, schoolName, schoolId, userId, onClose }) {
   const cardRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    // Generate QR code data - contains student ID and school info
-    const qrData = JSON.stringify({
-      studentId: student._id,
-      name: student.name,
-      studentNo: student.studentNo,
-      schoolId: student.schoolId,
-      timestamp: new Date().toISOString(),
-    });
+    // Fetch the proper QR code string from backend (same as QRCodeDisplay)
+    const fetchQRCode = async () => {
+      try {
+        const res = await fetch(
+          `/api/teacher/students/${student._id}/qrcode?schoolId=${schoolId}`,
+          {
+            headers: { "x-user-id": userId },
+          }
+        );
 
-    QRCode.toDataURL(qrData, {
-      errorCorrectionLevel: "H",
-      type: "image/png",
-      width: 200,
-      margin: 0,
-    }).then(setQrCode);
-  }, [student]);
+        if (!res.ok) {
+          console.error("Failed to fetch QR code");
+          return;
+        }
+
+        const data = await res.json();
+        // Use the proper qrCodeString from backend
+        setQrCode(data.qrCodeDataUrl || "");
+      } catch (error) {
+        console.error("QR code fetch error:", error);
+      }
+    };
+
+    fetchQRCode();
+  }, [student._id, schoolId, userId]);
 
   const handleDownload = async () => {
     setIsDownloading(true);
@@ -182,7 +190,7 @@ export default function AccessCard({ student, schoolName, onClose }) {
                     <img
                       src={qrCode}
                       alt="QR Code"
-                      className="w-32 h-32"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 )}
