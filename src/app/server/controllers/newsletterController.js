@@ -1,4 +1,4 @@
-import { Subscriber, Campaign, Template, ActivityLog } from '../models/Newsletter.js';
+import { Subscriber, Campaign, Template, NewsletterActivityLog } from '../models/Newsletter.js';
 import { connectDB } from '@/utils/db.js';
 import {
   sendEmailViaBrevo,
@@ -147,7 +147,7 @@ To unsubscribe: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/ap
     }
 
     // Log activity
-    await ActivityLog.create({
+    await NewsletterActivityLog.create({
       subscriberId: subscriber._id,
       eventType: 'subscribed',
     });
@@ -188,7 +188,7 @@ export const unsubscribeFromNewsletter = async (email) => {
     }
 
     // Log activity
-    await ActivityLog.create({
+    await NewsletterActivityLog.create({
       subscriberId: subscriber._id,
       eventType: 'unsubscribed',
     });
@@ -321,7 +321,7 @@ export const deleteSubscriber = async (email) => {
     }
 
     // Remove associated activity logs
-    await ActivityLog.deleteMany({ subscriberId: subscriber._id });
+    await NewsletterActivityLog.deleteMany({ subscriberId: subscriber._id });
 
     return {
       success: true,
@@ -496,7 +496,7 @@ ${unsubscribeLink}
     for (const subscriber of subscribers) {
       const success = results.successful.some(s => s.email === subscriber.email);
       if (success) {
-        await ActivityLog.create({
+        await NewsletterActivityLog.create({
           subscriberId: subscriber._id,
           campaignId: campaign._id,
           eventType: 'sent',
@@ -642,7 +642,7 @@ export const deleteCampaign = async (campaignId) => {
     }
 
     // Remove associated activity logs
-    await ActivityLog.deleteMany({ campaignId: campaign._id });
+    await NewsletterActivityLog.deleteMany({ campaignId: campaign._id });
 
     return {
       success: true,
@@ -754,7 +754,7 @@ export const getCampaignAnalytics = async (campaignId) => {
     };
 
     // Get activity logs
-    const activityLogs = await ActivityLog.find({ campaignId })
+    const activityLogs = await NewsletterActivityLog.find({ campaignId })
       .populate('subscriberId', 'email firstName lastName');
 
     return {
@@ -980,7 +980,7 @@ export const bulkImportSubscribers = async (subscribersData) => {
 
           await subscriber.save();
 
-          await ActivityLog.create({
+          await NewsletterActivityLog.create({
             subscriberId: subscriber._id,
             eventType: 'subscribed',
           });
@@ -1013,7 +1013,7 @@ export const bulkDeleteSubscribers = async (subscriberIds) => {
     const result = await Subscriber.deleteMany({ _id: { $in: subscriberIds } });
 
     // Remove associated activity logs
-    await ActivityLog.deleteMany({ subscriberId: { $in: subscriberIds } });
+    await NewsletterActivityLog.deleteMany({ subscriberId: { $in: subscriberIds } });
 
     return {
       success: true,

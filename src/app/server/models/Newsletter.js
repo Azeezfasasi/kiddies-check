@@ -213,6 +213,6 @@ const activityLogSchema = new mongoose.Schema({
 const Subscriber = mongoose.model('Subscriber', subscriberSchema);
 const Campaign = mongoose.model('Campaign', campaignSchema);
 const Template = mongoose.model('Template', templateSchema);
-const ActivityLog = mongoose.model('ActivityLog', activityLogSchema);
+const NewsletterActivityLog = mongoose.model('NewsletterActivityLog', activityLogSchema);
 
-export { Subscriber, Campaign, Template, ActivityLog };
+export { Subscriber, Campaign, Template, NewsletterActivityLog };
