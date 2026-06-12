@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <ProtectedRoute allowedRoles={['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent']}>
-      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-16">
         <DashboardHeader onToggleSidebar={toggleSidebar} onToggleMobileMenu={toggleMobileMenu} />
 
         <div className="flex">
