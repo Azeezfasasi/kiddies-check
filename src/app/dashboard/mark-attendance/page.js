@@ -27,6 +27,13 @@ export default function MarkAttendancePage() {
   const [userRole, setUserRole] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState("");
+  const [classesLoading, setClassesLoading] = useState(false);
+
+  const [classStudents, setClassStudents] = useState([]);
+  const [classStudentsLoading, setClassStudentsLoading] = useState(false);
+
   const [scannedStudent, setScannedStudent] = useState(null);
   const [todayAttendance, setTodayAttendance] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -57,14 +64,63 @@ export default function MarkAttendancePage() {
     setUserId(uid);
     setUserRole(role || "");
     setLoading(false);
-    fetchTodayAttendance(schoolId, uid);
-  }, [router, selectedDate]);
+    fetchClasses(schoolId, uid);
+  }, [router]);
 
-  const fetchTodayAttendance = async (schoolId, uid) => {
+  const fetchClasses = async (schoolId, uid) => {
+    try {
+      setClassesLoading(true);
+      const res = await fetch(
+        `/api/teacher/classes?schoolId=${schoolId}`,
+        { headers: { "x-user-id": uid } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        const classList = data.classes || [];
+        setClasses(classList);
+        // Auto-select first class if available
+        if (classList.length > 0) {
+          setSelectedClass(classList[0]._id);
+          fetchTodayAttendance(schoolId, uid, classList[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch classes error:", error);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClass && activeSchoolId && userId) {
+      fetchTodayAttendance(activeSchoolId, userId, selectedClass);
+      fetchClassStudents(activeSchoolId, userId, selectedClass);
+    }
+  }, [selectedDate, selectedClass]);
+
+  const fetchClassStudents = async (schoolId, uid, classId) => {
+    try {
+      setClassStudentsLoading(true);
+      const res = await fetch(
+        `/api/teacher/students?schoolId=${schoolId}&classId=${classId}`,
+        { headers: { "x-user-id": uid } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setClassStudents(data.data || []);
+      }
+    } catch (error) {
+      console.error("Fetch class students error:", error);
+    } finally {
+      setClassStudentsLoading(false);
+    }
+  };
+
+  const fetchTodayAttendance = async (schoolId, uid, classId) => {
     try {
       setAttendanceLoading(true);
       const res = await fetch(
-        `/api/teacher/attendance?schoolId=${schoolId}&date=${selectedDate}`,
+        `/api/teacher/attendance?schoolId=${schoolId}&date=${selectedDate}${classId ? `&classId=${classId}` : ""}`,
         { headers: { "x-user-id": uid } }
       );
       if (res.ok) {
@@ -85,7 +141,7 @@ export default function MarkAttendancePage() {
   };
 
   const markAttendance = async (status) => {
-    if (!scannedStudent || !activeSchoolId || !userId) return;
+    if (!scannedStudent || !activeSchoolId || !userId || !selectedClass) return;
 
     try {
       setMarkingStatus(status);
@@ -98,6 +154,7 @@ export default function MarkAttendancePage() {
         body: JSON.stringify({
           schoolId: activeSchoolId,
           studentId: scannedStudent._id,
+          classId: selectedClass,
           date: selectedDate,
           status,
           markedVia: "qr-scan",
@@ -111,7 +168,7 @@ export default function MarkAttendancePage() {
 
       toast.success(`Marked ${scannedStudent.firstName} ${scannedStudent.lastName} as ${status}`);
       setScannedStudent(null);
-      fetchTodayAttendance(activeSchoolId, userId);
+      fetchTodayAttendance(activeSchoolId, userId, selectedClass);
     } catch (error) {
       console.error("Mark attendance error:", error);
       toast.error(error.message);
@@ -121,32 +178,58 @@ export default function MarkAttendancePage() {
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || !activeSchoolId || !userId) return;
+    if (!searchQuery.trim() || !activeSchoolId || !userId || !selectedClass) return;
 
     try {
       setSearching(true);
+      const url = `/api/teacher/students?schoolId=${activeSchoolId}&classId=${selectedClass}`;
+      console.log("[Attendance Search] Fetching from:", url);
+      console.log("[Attendance Search] User ID:", userId);
+      
       const res = await fetch(
-        `/api/teacher/students?schoolId=${activeSchoolId}`,
+        url,
         { headers: { "x-user-id": userId } }
       );
 
-      if (!res.ok) throw new Error("Failed to fetch students");
+      console.log("[Attendance Search] Response status:", res.status);
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("[Attendance Search] Error response:", errorData);
+        throw new Error(errorData.error || "Failed to fetch students");
+      }
 
       const data = await res.json();
       const students = data.data || [];
+      
+      console.log("[Attendance Search] Total students received:", students.length);
+      console.log("[Attendance Search] Student data sample:", students.slice(0, 3));
+      
       const query = searchQuery.toLowerCase();
 
-      const filtered = students.filter(
-        (s) =>
-          s.firstName.toLowerCase().includes(query) ||
-          s.lastName.toLowerCase().includes(query) ||
+      // Improved search: combine firstName and lastName
+      const filtered = students.filter((s) => {
+        const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+        return (
+          fullName.includes(query) ||
           (s.enrollmentNo && s.enrollmentNo.toLowerCase().includes(query))
-      );
+        );
+      });
+
+      console.log("[Attendance Search] Filtered results:", filtered.length);
+      
+      if (filtered.length === 0 && students.length === 0) {
+        toast.error("No students found in this class. Please create students first.");
+      } else if (filtered.length === 0) {
+        toast.error(`No students match "${searchQuery}". Try a different name or enrollment number.`);
+      } else {
+        toast.success(`Found ${filtered.length} student${filtered.length !== 1 ? 's' : ''}`);
+      }
 
       setSearchResults(filtered);
     } catch (error) {
       console.error("Search error:", error);
-      toast.error("Search failed");
+      toast.error(error.message || "Search failed");
     } finally {
       setSearching(false);
     }
@@ -184,7 +267,7 @@ export default function MarkAttendancePage() {
     late: todayAttendance.filter((a) => a.status === "late").length,
   };
 
-  if (loading) {
+  if (loading || classesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
@@ -274,6 +357,27 @@ export default function MarkAttendancePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* Left Column - Scanner or Search */}
           <div className="space-y-6">
+            {/* Class Selector */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                Select Class
+              </label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                disabled={classesLoading || classes.length === 0}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100"
+              >
+                <option value="">-- Choose a class --</option>
+                {classes.map((cls) => (
+                  <option key={cls._id} value={cls._id}>
+                    {cls.name} {cls.section ? `(${cls.section})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Date Selector */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
@@ -283,10 +387,7 @@ export default function MarkAttendancePage() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  fetchTodayAttendance(activeSchoolId, userId);
-                }}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
@@ -307,58 +408,99 @@ export default function MarkAttendancePage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Search className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-bold text-gray-800">Search Student</h2>
+                  <h2 className="text-lg font-bold text-gray-800">Select Student</h2>
                 </div>
-                <div className="flex gap-2 mb-4">
+                
+                <div className="mb-4">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder="Search by name or enrollment number..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
-                  <button
-                    onClick={handleSearch}
-                    disabled={searching}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    {searching ? <Loader className="w-4 h-4 animate-spin" /> : "Search"}
-                  </button>
                 </div>
 
-                {searchResults.length > 0 && (
-                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {searchResults.map((student) => (
-                      <button
-                        key={student._id}
-                        onClick={() => handleScanSuccess(student)}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-colors text-left"
-                      >
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          {student.firstName.charAt(0)}
-                          {student.lastName.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-800 text-sm">
-                            {student.firstName} {student.lastName}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {student.enrollmentNo} • {student.class?.name || "N/A"}
-                          </p>
-                        </div>
-                        <UserCheck className="w-4 h-4 text-gray-300" />
-                      </button>
-                    ))}
+                {classStudentsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-3">
+                    <Loader className="w-6 h-6 text-blue-600 animate-spin" />
+                    <p className="text-gray-500 text-sm">Loading students...</p>
                   </div>
-                )}
+                ) : classStudents.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No students in this class</p>
+                  </div>
+                ) : (() => {
+                  // Filter students based on search query
+                  const query = searchQuery.toLowerCase();
+                  const filteredStudents = classStudents.filter((s) => {
+                    const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+                    return (
+                      fullName.includes(query) ||
+                      (s.enrollmentNo && s.enrollmentNo.toLowerCase().includes(query))
+                    );
+                  });
 
-                {searchQuery && !searching && searchResults.length === 0 && (
-                  <div className="text-center py-6 text-gray-400">
-                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No students found</p>
-                  </div>
-                )}
+                  // Check which students already have attendance marked today
+                  const markedStudentIds = new Set(todayAttendance.map(a => a.student?._id?.toString()));
+
+                  return (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {filteredStudents.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No students match your search</p>
+                        </div>
+                      ) : (
+                        filteredStudents.map((student) => {
+                          const isMarked = markedStudentIds.has(student._id.toString());
+                          const attendance = todayAttendance.find(a => a.student?._id?.toString() === student._id.toString());
+                          
+                          return (
+                            <button
+                              key={student._id}
+                              onClick={() => handleScanSuccess(student)}
+                              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                                isMarked
+                                  ? "border-gray-200 bg-gray-50 cursor-default opacity-60"
+                                  : "border-gray-100 hover:border-blue-300 hover:bg-blue-50 cursor-pointer"
+                              }`}
+                              disabled={isMarked}
+                            >
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                {student.firstName.charAt(0)}
+                                {student.lastName.charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-800 text-sm">
+                                  {student.firstName} {student.lastName}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {student.enrollmentNo} • {student.class?.name || "N/A"}
+                                </p>
+                              </div>
+                              {isMarked && attendance ? (
+                                <span className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                                  attendance.status === "present"
+                                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                    : attendance.status === "absent"
+                                    ? "bg-red-100 text-red-700 border-red-200"
+                                    : "bg-amber-100 text-amber-700 border-amber-200"
+                                }`}>
+                                  {getStatusIcon(attendance.status)}
+                                  {attendance.status.charAt(0).toUpperCase() + attendance.status.slice(1)}
+                                </span>
+                              ) : (
+                                <UserCheck className="w-4 h-4 text-gray-300" />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

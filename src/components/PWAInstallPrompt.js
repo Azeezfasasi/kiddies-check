@@ -15,6 +15,21 @@ export default function PWAInstallPrompt() {
       return;
     }
 
+    const DISMISSED_KEY = 'pwa-install-prompt-dismissed';
+
+    // Respect prior dismissal so it doesn't keep showing on revisits.
+    try {
+      const dismissed = window.localStorage.getItem(DISMISSED_KEY) === '1';
+      if (dismissed) {
+        setShowPrompt(false);
+        setDeferredPrompt(null);
+        return;
+      }
+    } catch (err) {
+      // If storage is blocked, don't break install prompt behavior.
+      console.warn('PWAInstallPrompt localStorage unavailable:', err);
+    }
+
     // Capture the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -23,7 +38,17 @@ export default function PWAInstallPrompt() {
       console.log('Install prompt ready');
     };
 
+
+
+
+
+
+
+
     // Show prompt if app was installed
+
+
+
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowPrompt(false);
@@ -41,7 +66,14 @@ export default function PWAInstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
+    try {
+      window.localStorage.setItem('pwa-install-prompt-dismissed', '1');
+    } catch (err) {
+      console.warn('PWAInstallPrompt: unable to persist dismissal:', err);
+    }
+
     if (deferredPrompt) {
+
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       console.log(`User response to the install prompt: ${outcome}`);
@@ -56,13 +88,26 @@ export default function PWAInstallPrompt() {
   };
 
   const handleNotNow = () => {
+    try {
+      window.localStorage.setItem('pwa-install-prompt-dismissed', '1');
+    } catch (err) {
+      console.warn('PWAInstallPrompt: unable to persist dismissal:', err);
+    }
     setShowPrompt(false);
     setDeferredPrompt(null);
   };
 
+
   const handleClose = () => {
+    try {
+      window.localStorage.setItem('pwa-install-prompt-dismissed', '1');
+    } catch (err) {
+      console.warn('PWAInstallPrompt: unable to persist dismissal:', err);
+    }
     setShowPrompt(false);
   };
+
+
 
   if (!showPrompt || isInstalled) {
     return null;

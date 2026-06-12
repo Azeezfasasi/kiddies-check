@@ -286,43 +286,123 @@ export default function StudentDetailsModal({ studentId, schoolId, userId, onClo
             </div>
           </div>
 
-          {/* Attendance Chart */}
-          {/* {attendance.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Trend</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={attendance}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#fff",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="present"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={{ fill: "#10b981", r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="absent"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                    dot={{ fill: "#ef4444", r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )} */}
+          {/* Attendance Chart (Individual Student) */}
+          {attendance && attendance.length > 0 && (() => {
+            // Normalize API shape into { month, present, absent, late }
+            const normalized = attendance.map((row) => {
+              // month: common keys
+              const month =
+                row.month ??
+                row.date ??
+                row.day ??
+                row.label ??
+                row._id ??
+                "";
+
+              const presentRaw =
+                row.present ??
+                row.presentCount ??
+                row.presentPercentage ??
+                row.presentPercent ??
+                row.presents ??
+                null;
+
+              const absentRaw =
+                row.absent ??
+                row.absentCount ??
+                row.absentPercentage ??
+                row.absentPercent ??
+                row.absences ??
+                null;
+
+              const lateRaw =
+                row.late ??
+                row.lateCount ??
+                row.latePercentage ??
+                row.latePercent ??
+                null;
+
+              const present = presentRaw ?? 0;
+              const absent = absentRaw ?? 0;
+              const late = lateRaw ?? 0;
+
+              return {
+                ...row,
+                month: typeof month === 'string' || typeof month === 'number' ? month : String(month),
+                present: Number(present) || 0,
+                absent: Number(absent) || 0,
+                late: Number(late) || 0,
+              };
+            });
+
+            return (
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Attendance Overview</h3>
+                <p className="text-xs text-gray-500 mb-3">Overall attendance distribution</p>
+                
+                {(() => {
+                  // Calculate totals for present, absent, and late
+                  const totals = normalized.reduce(
+                    (acc, item) => ({
+                      present: acc.present + item.present,
+                      absent: acc.absent + item.absent,
+                      late: acc.late + (item.late || 0),
+                    }),
+                    { present: 0, absent: 0, late: 0 }
+                  );
+
+                  const attendanceData = [
+                    { 
+                      name: `Present (${totals.present})`, 
+                      value: totals.present, 
+                      fill: "#10b981" 
+                    },
+                    { 
+                      name: `Late (${totals.late})`, 
+                      value: totals.late, 
+                      fill: "#f59e0b" 
+                    },
+                    { 
+                      name: `Absent (${totals.absent})`, 
+                      value: totals.absent, 
+                      fill: "#ef4444" 
+                    },
+                  ].filter(item => item.value > 0); // Only show if there's data
+
+                  return (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={attendanceData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {attendanceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value) => `${value} days`}
+                          contentStyle={{
+                            backgroundColor: "#fff",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
+              </div>
+            );
+          })()}
+
+
 
           {/* Notebook Gallery */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">

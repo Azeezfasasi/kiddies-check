@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LogIn, Activity, AlertCircle, Calendar, User, Clock, ChevronDown, Loader, Search } from "lucide-react";
+import { LogIn, Activity, AlertCircle, Calendar, User, Clock, ChevronDown, Loader, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 const styles = `
@@ -27,6 +27,8 @@ export default function ChangeLogs() {
   const [days, setDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedLog, setExpandedLog] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const fetchLogs = async (filterDays = days) => {
     try {
@@ -56,6 +58,7 @@ export default function ChangeLogs() {
       const data = await res.json();
       if (data.success) {
         setLogs(data.data);
+        setCurrentPage(1);
       }
     } catch (error) {
       console.error("Error fetching logs:", error);
@@ -68,6 +71,10 @@ export default function ChangeLogs() {
   useEffect(() => {
     fetchLogs();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const filterLogs = (logsArray, query) => {
     if (!query.trim()) return logsArray;
@@ -83,6 +90,16 @@ export default function ChangeLogs() {
         log.entityName?.toLowerCase().includes(searchStr)
       );
     });
+  };
+
+  const paginateArray = (array, page, itemsPerPageCount) => {
+    const startIndex = (page - 1) * itemsPerPageCount;
+    const endIndex = startIndex + itemsPerPageCount;
+    return {
+      items: array.slice(startIndex, endIndex),
+      totalPages: Math.ceil(array.length / itemsPerPageCount),
+      totalItems: array.length,
+    };
   };
 
   const formatTime = (date) => {
@@ -132,172 +149,175 @@ export default function ChangeLogs() {
 
   const renderLoginLogs = () => {
     const filtered = filterLogs(logs.loginLogs, searchQuery);
+    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
     
     if (filtered.length === 0) {
-      return (
-        <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-          No login logs found
-        </div>
-      );
+      return { items: [], totalPages: 0, totalItems: 0 };
     }
 
-    return filtered.map((log) => (
-      <div
-        key={log._id}
-        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="mt-0.5 sm:mt-1 p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
-              <LogIn className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+    return {
+      items: paginated.items.map((log) => (
+        <div
+          key={log._id}
+          className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition"
+        >
+          <div className="flex flex-col-reverse md:flex-row items-start justify-between gap-3">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="mt-0.5 sm:mt-1 p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                <LogIn className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                  {log.firstName} {log.lastName}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 truncate">{log.email}</div>
+                <div className="text-xs text-gray-500 mt-0.5 sm:mt-1">
+                  Role: <span className="font-medium">{log.userRole}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5 sm:mt-2 flex-wrap">
+                  <span className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium ${getStatusColor(log.status)}`}>
+                    {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                  </span>
+                  {log.failureReason && (
+                    <span className="text-xs text-red-600 line-clamp-1">{log.failureReason}</span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 text-sm sm:text-base truncate">
-                {log.firstName} {log.lastName}
+            <div className="text-right flex-shrink-0">
+              <div className="flex items-center gap-1 text-gray-500 text-xs sm:text-sm">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="truncate">{formatTime(log.loginTime).split(',').pop()}</span>
               </div>
-              <div className="text-xs sm:text-sm text-gray-600 truncate">{log.email}</div>
-              <div className="text-xs text-gray-500 mt-0.5 sm:mt-1">
-                Role: <span className="font-medium">{log.userRole}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-1.5 sm:mt-2 flex-wrap">
-                <span className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium ${getStatusColor(log.status)}`}>
-                  {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-                </span>
-                {log.failureReason && (
-                  <span className="text-xs text-red-600 line-clamp-1">{log.failureReason}</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="text-right flex-shrink-0">
-            <div className="flex items-center gap-1 text-gray-500 text-xs sm:text-sm">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="truncate">{formatTime(log.loginTime).split(',').pop()}</span>
             </div>
           </div>
         </div>
-      </div>
-    ));
+      )),
+      totalPages: paginated.totalPages,
+      totalItems: paginated.totalItems,
+    };
   };
 
   const renderActivityLogs = () => {
     const filtered = filterLogs(logs.activityLogs, searchQuery);
+    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
     
     if (filtered.length === 0) {
-      return (
-        <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-          No activity logs found
-        </div>
-      );
+      return { items: [], totalPages: 0, totalItems: 0 };
     }
 
-    return filtered.map((log) => (
-      <div
-        key={log._id}
-        className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer"
-        onClick={() => setExpandedLog(expandedLog === log._id ? null : log._id)}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-            <div className="mt-0.5 sm:mt-1 p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
-              <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">{log.description}</div>
-              <div className="text-xs sm:text-sm text-gray-600 mt-0.5 line-clamp-1">
-                {log.firstName} {log.lastName} • {log.entityType}
+    return {
+      items: paginated.items.map((log) => (
+        <div
+          key={log._id}
+          className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer"
+          onClick={() => setExpandedLog(expandedLog === log._id ? null : log._id)}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="mt-0.5 sm:mt-1 p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div className="flex items-center gap-2 mt-1.5 sm:mt-2 flex-wrap">
-                <span className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium ${getStatusColor(log.status)}`}>
-                  {log.action.replace("-", " ").toUpperCase()}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {formatTime(log.timestamp).split(',').pop()}
-                </span>
-              </div>
-
-              {expandedLog === log._id && log.changes && (
-                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
-                  <div className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Changes:</div>
-                  <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 max-h-40 overflow-y-auto font-mono break-words">
-                    <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(log.changes, null, 2)}</pre>
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">{log.description}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-0.5 line-clamp-1">
+                  {log.firstName} {log.lastName} • {log.entityType}
                 </div>
-              )}
+                <div className="flex items-center gap-2 mt-1.5 sm:mt-2 flex-wrap">
+                  <span className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium ${getStatusColor(log.status)}`}>
+                    {log.action.replace("-", " ").toUpperCase()}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {formatTime(log.timestamp).split(',').pop()}
+                  </span>
+                </div>
+
+                {expandedLog === log._id && log.changes && (
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
+                    <div className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Changes:</div>
+                    <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 max-h-40 overflow-y-auto font-mono break-words">
+                      <pre className="whitespace-pre-wrap text-xs">{JSON.stringify(log.changes, null, 2)}</pre>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+            <ChevronDown
+              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition flex-shrink-0 mt-0.5 ${
+                expandedLog === log._id ? "rotate-180" : ""
+              }`}
+            />
           </div>
-          <ChevronDown
-            className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition flex-shrink-0 mt-0.5 ${
-              expandedLog === log._id ? "rotate-180" : ""
-            }`}
-          />
         </div>
-      </div>
-    ));
+      )),
+      totalPages: paginated.totalPages,
+      totalItems: paginated.totalItems,
+    };
   };
 
   const renderIssueLogs = () => {
     const filtered = filterLogs(logs.issueLogs, searchQuery);
+    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
     
     if (filtered.length === 0) {
-      return (
-        <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-          No issue reports found
-        </div>
-      );
+      return { items: [], totalPages: 0, totalItems: 0 };
     }
 
-    return filtered.map((issue) => (
-      <div
-        key={issue._id}
-        className={`rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer ${getSeverityColor(issue.severity)}`}
-        onClick={() => setExpandedLog(expandedLog === issue._id ? null : issue._id)}
-      >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-            <div className="mt-0.5 sm:mt-1 flex-shrink-0">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm sm:text-base line-clamp-2">{issue.title}</div>
-              <div className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2 line-clamp-2">{issue.description}</div>
-              <div className="flex items-center gap-2 flex-wrap text-xs">
-                <div className="truncate">
-                  By: <span className="font-medium">{issue.firstName} {issue.lastName}</span>
-                </div>
-                <span className={`px-2 py-0.5 rounded whitespace-nowrap ${getStatusColor(issue.status)}`}>
-                  {issue.status.replace("-", " ").toUpperCase()}
-                </span>
-                <span className="truncate">
-                  Cat: <span className="font-medium">{issue.category}</span>
-                </span>
+    return {
+      items: paginated.items.map((issue) => (
+        <div
+          key={issue._id}
+          className={`rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer ${getSeverityColor(issue.severity)}`}
+          onClick={() => setExpandedLog(expandedLog === issue._id ? null : issue._id)}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="mt-0.5 sm:mt-1 flex-shrink-0">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-
-              {expandedLog === issue._id && (
-                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-current border-opacity-20">
-                  <div className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">Details:</div>
-                  <div className="text-xs opacity-90 space-y-1">
-                    <p><strong>Priority:</strong> {issue.priority}</p>
-                    <p><strong>Reported:</strong> {formatTime(issue.reportedAt).split(',').pop()}</p>
-                    {issue.resolvedAt && (
-                      <p><strong>Resolved:</strong> {formatTime(issue.resolvedAt).split(',').pop()}</p>
-                    )}
-                    {issue.resolutionNotes && (
-                      <p className="mt-1"><strong>Notes:</strong> <span className="break-words">{issue.resolutionNotes}</span></p>
-                    )}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm sm:text-base line-clamp-2">{issue.title}</div>
+                <div className="text-xs sm:text-sm opacity-90 mb-1 sm:mb-2 line-clamp-2">{issue.description}</div>
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <div className="truncate">
+                    By: <span className="font-medium">{issue.firstName} {issue.lastName}</span>
                   </div>
+                  <span className={`px-2 py-0.5 rounded whitespace-nowrap ${getStatusColor(issue.status)}`}>
+                    {issue.status.replace("-", " ").toUpperCase()}
+                  </span>
+                  <span className="truncate">
+                    Cat: <span className="font-medium">{issue.category}</span>
+                  </span>
                 </div>
-              )}
+
+                {expandedLog === issue._id && (
+                  <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-current border-opacity-20">
+                    <div className="text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">Details:</div>
+                    <div className="text-xs opacity-90 space-y-1">
+                      <p><strong>Priority:</strong> {issue.priority}</p>
+                      <p><strong>Reported:</strong> {formatTime(issue.reportedAt).split(',').pop()}</p>
+                      {issue.resolvedAt && (
+                        <p><strong>Resolved:</strong> {formatTime(issue.resolvedAt).split(',').pop()}</p>
+                      )}
+                      {issue.resolutionNotes && (
+                        <p className="mt-1"><strong>Notes:</strong> <span className="break-words">{issue.resolutionNotes}</span></p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+            <ChevronDown
+              className={`w-4 h-4 sm:w-5 sm:h-5 opacity-50 transition flex-shrink-0 mt-0.5 ${
+                expandedLog === issue._id ? "rotate-180" : ""
+              }`}
+            />
           </div>
-          <ChevronDown
-            className={`w-4 h-4 sm:w-5 sm:h-5 opacity-50 transition flex-shrink-0 mt-0.5 ${
-              expandedLog === issue._id ? "rotate-180" : ""
-            }`}
-          />
         </div>
-      </div>
-    ));
+      )),
+      totalPages: paginated.totalPages,
+      totalItems: paginated.totalItems,
+    };
   };
 
   const tabs = [
@@ -306,6 +326,51 @@ export default function ChangeLogs() {
     { id: "activity", label: "Activities", icon: Activity },
     { id: "issue", label: "Issues", icon: AlertCircle },
   ];
+
+  const PaginationControls = ({ totalPages, totalItems, currentPageNum }) => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
+        <p className="text-xs sm:text-sm text-gray-600">
+          Showing <span className="font-semibold">{(currentPageNum - 1) * itemsPerPage + 1}</span> to <span className="font-semibold">{Math.min(currentPageNum * itemsPerPage, totalItems)}</span> of <span className="font-semibold">{totalItems}</span>
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPageNum - 1))}
+            disabled={currentPageNum === 1}
+            className="p-1.5 sm:p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+            title="Previous page"
+          >
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-lg font-medium transition ${
+                  currentPageNum === page
+                    ? "bg-blue-600 text-white"
+                    : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPageNum + 1))}
+            disabled={currentPageNum === totalPages}
+            className="p-1.5 sm:p-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+            title="Next page"
+          >
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -388,7 +453,7 @@ export default function ChangeLogs() {
                         <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="truncate">Recent Logins ({logs.loginLogs.length})</span>
                       </h3>
-                      <div className="space-y-2">{renderLoginLogs().slice(0, 5)}</div>
+                      <div className="space-y-2">{renderLoginLogs().items.slice(0, 5)}</div>
                     </div>
                   )}
                   {logs.activityLogs.length > 0 && (
@@ -397,7 +462,7 @@ export default function ChangeLogs() {
                         <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="truncate">Recent Activities ({logs.activityLogs.length})</span>
                       </h3>
-                      <div className="space-y-2">{renderActivityLogs().slice(0, 5)}</div>
+                      <div className="space-y-2">{renderActivityLogs().items.slice(0, 5)}</div>
                     </div>
                   )}
                   {logs.issueLogs.length > 0 && (
@@ -406,7 +471,7 @@ export default function ChangeLogs() {
                         <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="truncate">Recent Issues ({logs.issueLogs.length})</span>
                       </h3>
-                      <div className="space-y-2">{renderIssueLogs().slice(0, 5)}</div>
+                      <div className="space-y-2">{renderIssueLogs().items.slice(0, 5)}</div>
                     </div>
                   )}
                   {logs.loginLogs.length === 0 &&
@@ -420,18 +485,57 @@ export default function ChangeLogs() {
               )}
 
               {activeTab === "login" && (
-                <div className="space-y-2">
-                  {renderLoginLogs()}
+                <div>
+                  <div className="space-y-2">
+                    {renderLoginLogs().items.length > 0 ? (
+                      renderLoginLogs().items
+                    ) : (
+                      <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
+                        No login logs found
+                      </div>
+                    )}
+                  </div>
+                  <PaginationControls 
+                    totalPages={renderLoginLogs().totalPages} 
+                    totalItems={renderLoginLogs().totalItems}
+                    currentPageNum={currentPage}
+                  />
                 </div>
               )}
               {activeTab === "activity" && (
-                <div className="space-y-2">
-                  {renderActivityLogs()}
+                <div>
+                  <div className="space-y-2">
+                    {renderActivityLogs().items.length > 0 ? (
+                      renderActivityLogs().items
+                    ) : (
+                      <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
+                        No activity logs found
+                      </div>
+                    )}
+                  </div>
+                  <PaginationControls 
+                    totalPages={renderActivityLogs().totalPages} 
+                    totalItems={renderActivityLogs().totalItems}
+                    currentPageNum={currentPage}
+                  />
                 </div>
               )}
               {activeTab === "issue" && (
-                <div className="space-y-2">
-                  {renderIssueLogs()}
+                <div>
+                  <div className="space-y-2">
+                    {renderIssueLogs().items.length > 0 ? (
+                      renderIssueLogs().items
+                    ) : (
+                      <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
+                        No issue reports found
+                      </div>
+                    )}
+                  </div>
+                  <PaginationControls 
+                    totalPages={renderIssueLogs().totalPages} 
+                    totalItems={renderIssueLogs().totalItems}
+                    currentPageNum={currentPage}
+                  />
                 </div>
               )}
             </>

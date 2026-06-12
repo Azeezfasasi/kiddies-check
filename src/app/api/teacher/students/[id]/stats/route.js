@@ -1,6 +1,7 @@
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Assessment from "@/app/server/models/Assessment";
+import Attendance from "@/app/server/models/Attendance";
 import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
 import Subject from "@/app/server/models/Subject";
@@ -125,7 +126,12 @@ export async function GET(req, { params }) {
       },
     ].filter((grade) => grade.value > 0); // Only show grades that exist in data
 
-    // Generate attendance data based on assessment dates (mock-like but date-based)
+    // Generate attendance data from real attendance records
+    const attendanceRecords = await Attendance.find({
+      student: id,
+      school: schoolId,
+    }).sort({ date: 1 });
+
     const attendanceMap = {};
     const monthNames = [
       "Jan",
@@ -142,14 +148,24 @@ export async function GET(req, { params }) {
       "Dec",
     ];
 
-    assessments.forEach((assessment) => {
-      const date = new Date(assessment.date);
+    attendanceRecords.forEach((record) => {
+      const date = new Date(record.date);
       const monthYear = `${monthNames[date.getMonth()]}-${date.getFullYear()}`;
       if (!attendanceMap[monthYear]) {
-        attendanceMap[monthYear] = { month: monthNames[date.getMonth()], actual: 0, total: 0 };
+        attendanceMap[monthYear] = { 
+          month: monthNames[date.getMonth()], 
+          present: 0, 
+          absent: 0,
+          late: 0
+        };
       }
-      attendanceMap[monthYear].actual++;
-      attendanceMap[monthYear].total++;
+      if (record.status === "present") {
+        attendanceMap[monthYear].present++;
+      } else if (record.status === "absent") {
+        attendanceMap[monthYear].absent++;
+      } else if (record.status === "late") {
+        attendanceMap[monthYear].late++;
+      }
     });
 
     // Convert attendance map to array (show last 5 months or all available)
@@ -157,8 +173,9 @@ export async function GET(req, { params }) {
       .slice(-5)
       .map((item) => ({
         month: item.month,
-        present: item.actual,
-        absent: Math.max(0, 20 - item.total), // Assume ~20 school days per month
+        present: item.present,
+        absent: item.absent,
+        late: item.late,
       }));
 
     return Response.json(
