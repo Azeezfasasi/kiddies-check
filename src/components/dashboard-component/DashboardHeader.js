@@ -72,7 +72,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
             </button>
 
             <Link href="/" className="hidden md:flex items-center gap-3">
-              <Image src="/img/kiddiestrans.png" alt="Kiddies Check Logo" width={160} height={40} className="w-14 md:w-24 block rounded-lg p-1" />
+              <Image src="/kiddieschecklogo.png" alt="Kiddies Check Logo" width={160} height={40} className="w-14 md:w-24 block rounded-lg p-1" />
             </Link>
           </div>
 

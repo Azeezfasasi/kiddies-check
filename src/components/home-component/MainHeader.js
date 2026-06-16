@@ -106,7 +106,7 @@ export default function MainHeader() {
           {/* Logo */}
           <div className="flex items-center gap-3 p-1">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/img/kiddiestrans.png" alt="KiddiesCheck" width={170} height={50} className="w-[120px] md:w-[180px] block rounded-md" />
+              <Image src="/kiddieschecklogo.png" alt="KiddiesCheck" width={170} height={50} className="w-[120px] md:w-[150px] block rounded-md" />
             </Link>
           </div>
 
@@ -323,10 +323,10 @@ export default function MainHeader() {
         <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)}></div>
 
         <div className="absolute right-0 top-0 h-full overflow-y-auto w-80 max-w-full bg-white shadow-2xl">
-          <div className="p-6">
+          <div className="p-3 pt-12">
             <div className="flex items-center justify-between mb-6">
               <Link href="/" className="flex items-center gap-3">
-                <Image src="/img/kiddiestrans.png" alt="KiddiesCheck" width={100} height={50} className="w-[180px] block rounded-md" />
+                <Image src="/kiddieschecklogo.png" alt="KiddiesCheck" width={100} height={50} className="w-[180px] block rounded-md" />
               </Link>
               <button onClick={() => setOpen(false)} className="text-red-600 text-2xl font-semibold">✕</button>
             </div>
