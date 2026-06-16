@@ -67,7 +67,6 @@ export default function ClientsLogoSlider() {
       <h2 className="text-center text-2xl md:text-3xl font-bold mb-8 text-gray-900">
         Our Partners
       </h2>
-      <p className="text-center text-gray-600 mb-8 w-full md:w-1/2 mx-auto">Fieldbase Technical Services Limited | Huawei Technogies Ltd Rich&Ray Communications Ltd. | Cyberspace | CIF Telecommunications Limited. And other numerous prospective partners.</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
