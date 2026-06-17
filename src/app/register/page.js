@@ -388,8 +388,8 @@ function RegisterContent() {
     // Skip role validation for invited users (they already have a role assigned)
     if (step === 2 && !isInvitation) {
       if (!formData.role) newErrors.role = "Role is required";
-      // Validate schoolType for school-leader, teacher, and parent
-      if (["school-leader", "teacher", "parent"].includes(formData.role)) {
+      // Validate schoolType for teacher and parent (not school-leader, they'll provide school details later)
+      if (["teacher", "parent"].includes(formData.role)) {
         if (!formData.schoolType) newErrors.schoolType = "School type is required";
       }
       // Validate schoolId for parent and teacher
