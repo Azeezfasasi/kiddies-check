@@ -83,44 +83,100 @@ export default function TeacherStats() {
 
   const schoolId = typeof window !== "undefined" ? localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId") : null;
 
-  useEffect(() => {
-    if (!schoolId || !token || user?.role !== "teacher") return;
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+      console.log("Fetching teacher stats for schoolId:", schoolId);
 
-        const response = await axios.get(
-          `/api/teacher/stats?schoolId=${schoolId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.data.success) {
-          setStats(response.data.stats);
+      const response = await axios.get(
+        `/api/teacher/stats?schoolId=${schoolId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          validateStatus: () => true, // Don't throw on any status code
         }
-      } catch (err) {
-        console.error("Failed to fetch teacher stats:", err);
-        setError("Failed to load statistics");
-      } finally {
+      );
+
+      console.log("Teacher stats response:", response.status, response.data);
+
+      // Handle 401 Unauthorized without triggering logout
+      if (response.status === 401) {
+        console.warn("TeacherStats: Unauthorized - token may be invalid");
+        setError("Session expired. Please refresh the page.");
         setLoading(false);
+        return;
       }
-    };
+
+      if (response.status !== 200) {
+        setError(response.data?.error || `Server error (${response.status})`);
+        setLoading(false);
+        return;
+      }
+
+      if (response.data?.success) {
+        setStats(response.data.stats);
+      } else {
+        setError(response.data?.error || "Failed to load statistics");
+      }
+    } catch (err) {
+      console.error("Failed to fetch teacher stats:", err);
+      const errorMessage = err.message || "Failed to load statistics";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Debug logging
+    console.log("TeacherStats debug:", {
+      schoolId,
+      hasToken: !!token,
+      userRole: user?.role,
+      userId: user?._id,
+    });
+
+    if (!schoolId) {
+      console.warn("TeacherStats: No schoolId found in localStorage");
+      setError("School information not found. Please refresh the page.");
+      setLoading(false);
+      return;
+    }
+
+    if (!token) {
+      console.warn("TeacherStats: No authentication token available");
+      setError("Authentication failed. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    if (user?.role !== "teacher") {
+      console.warn("TeacherStats: User is not a teacher", user?.role);
+      setLoading(false);
+      return;
+    }
 
     fetchStats();
     const interval = setInterval(fetchStats, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [schoolId, token, user?.role]);
+  }, [schoolId, token, user?.role, user?._id]);
 
   if (error && !stats) {
     return (
-      <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
-        <AlertCircle className="w-5 h-5 shrink-0" />
-        <p>{error}</p>
+      <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between gap-3 text-red-700">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p>{error}</p>
+        </div>
+        <button
+          onClick={fetchStats}
+          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm font-medium"
+        >
+          Retry
+        </button>
       </div>
     );
   }

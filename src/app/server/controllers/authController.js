@@ -4,6 +4,7 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import School from "../models/School.js";
 import Student from "../models/Student.js";
+import SchoolMember from "../models/SchoolMember.js";
 import LoginLog from "../models/LoginLog.js";
 import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
@@ -199,6 +200,31 @@ export const register = async (req) => {
       await schoolRecord.save();
     }
 
+    // Create SchoolMember record for teachers and parents who register with a schoolId
+    if ((role === 'teacher' || role === 'parent') && schoolId) {
+      try {
+        const existingMember = await SchoolMember.findOne({
+          school: schoolId,
+          user: user._id,
+        });
+
+        if (!existingMember) {
+          const schoolMember = new SchoolMember({
+            school: schoolId,
+            user: user._id,
+            role: role,
+            status: 'active', // Auto-activate since they registered themselves
+            permissions: [],
+          });
+          await schoolMember.save();
+          console.log(`Created SchoolMember for ${role}:`, user._id, "in school:", schoolId);
+        }
+      } catch (memberError) {
+        console.error("Error creating SchoolMember:", memberError);
+        // Don't fail registration if SchoolMember creation fails
+      }
+    }
+
     // Generate and save OTP
     const otp = user.generateRegistrationOTP();
     await user.save({ validateBeforeSave: false });
@@ -369,12 +395,65 @@ export const login = async (req) => {
     // Generate token
     const token = generateToken(user._id);
 
+    // Get schoolId based on user role
+    let schoolId = user.schoolId?._id || user.schoolId;
+    
     // For parents, get schoolId from their assigned students
-    let parentSchoolId = user.schoolId?._id || user.schoolId;
-    if (user.role === 'parent' && !parentSchoolId) {
+    if (user.role === 'parent' && !schoolId) {
       const assignedStudent = await Student.findOne({ parent: user._id, isActive: true });
       if (assignedStudent) {
-        parentSchoolId = assignedStudent.school;
+        schoolId = assignedStudent.school;
+      }
+    }
+    
+    // For teachers, first check User.schoolId, then try SchoolMember
+    if (user.role === 'teacher' && !schoolId) {
+      console.log("Fetching teacher school from SchoolMember for user:", user._id);
+      const schoolMember = await SchoolMember.findOne({
+        user: user._id,
+        role: 'teacher',
+        status: 'active'
+      });
+      console.log("SchoolMember result:", schoolMember);
+      if (schoolMember) {
+        schoolId = schoolMember.school;
+        console.log("Teacher schoolId set to:", schoolId);
+      }
+    }
+    
+    // For learning-specialist, get schoolId from SchoolMember
+    if (user.role === 'learning-specialist' && !schoolId) {
+      const schoolMember = await SchoolMember.findOne({
+        user: user._id,
+        role: 'learning-specialist',
+        status: 'active'
+      });
+      if (schoolMember) {
+        schoolId = schoolMember.school;
+      }
+    }
+
+    // If teacher/parent has schoolId but no SchoolMember, create one (for backward compatibility)
+    if ((user.role === 'teacher' || user.role === 'parent') && schoolId) {
+      try {
+        const existingMember = await SchoolMember.findOne({
+          school: schoolId,
+          user: user._id,
+        });
+        if (!existingMember) {
+          const schoolMember = new SchoolMember({
+            school: schoolId,
+            user: user._id,
+            role: user.role,
+            status: 'active',
+            permissions: [],
+          });
+          await schoolMember.save();
+          console.log(`Auto-created SchoolMember for ${user.role} on login:`, user._id);
+        }
+      } catch (memberError) {
+        console.error("Error creating SchoolMember on login:", memberError);
+        // Don't fail login if this fails
       }
     }
 
@@ -402,12 +481,15 @@ export const login = async (req) => {
         success: true,
         message: "Login successful",
         token,
+        userId: user._id,
         user: {
           ...userProfile,
-          schoolId: parentSchoolId,
+          _id: user._id,
+          schoolId: schoolId,
           schoolName: user.schoolId?.name,
+          role: user.role,
         },
-        schoolId: parentSchoolId,
+        schoolId: schoolId,
         approvalStatus: user.approvalStatus,
         canAccessDashboard: user.approvalStatus === 'approved',
       },
