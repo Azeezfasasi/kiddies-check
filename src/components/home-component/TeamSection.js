@@ -6,25 +6,15 @@ import { Loader } from "lucide-react";
 
 const DEFAULT_TEAM = [
   {
-    name: "Engr. Chukwudi U. Afonne",
-    position: "MD/CEO",
+    name: "Oluwatosin Oyelakin",
+    position: "CEO, KiddiesCheck",
     photo: "/images/projectplaceholder.png",
   },
   {
-    name: "Engr. Mary Johnson",
-    position: "Head of Project Management",
+    name: "Azeez Fasasi",
+    position: "Full Stack Developer, KiddiesCheck",
     photo: "/images/projectplaceholder.png",
-  },
-  {
-    name: "Engr. David Okoro",
-    position: "Lead Civil Engineer",
-    photo: "/images/projectplaceholder.png",
-  },
-  {
-    name: "Engr. Sophia Ade",
-    position: "Electrical Engineering Manager",
-    photo: "/images/projectplaceholder.png",
-  },
+  }
 ];
 
 export default function TeamSection() {
