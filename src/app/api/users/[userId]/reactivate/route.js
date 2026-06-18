@@ -3,9 +3,10 @@ import { reactivateUser, permanentlyDeleteUser } from "@/app/server/controllers/
 
 // PUT /api/users/[userId]/reactivate - Re-activate a deleted user
 export async function PUT(req, { params }) {
+  const { userId } = await params;
   return authenticate(req, async () => {
     return isAdmin(req, async () => {
-      return reactivateUser(req, params.userId);
+      return reactivateUser(req, userId);
     });
   });
 }

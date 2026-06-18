@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, AlertCircle, Loader, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import SubjectModal from "@/app/components/SubjectModal";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AllSubjectsPage() {
   const router = useRouter();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSchoolId, setActiveSchoolId] = useState("");
@@ -111,6 +113,7 @@ export default function AllSubjectsPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Subjects Management</h1>
             <p className="text-gray-600 mt-2">Create and manage subjects for your school</p>
           </div>
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <button
             onClick={handleAddSubject}
             className="flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
@@ -118,6 +121,7 @@ export default function AllSubjectsPage() {
             <Plus className="w-5 h-5" />
             Add Subject
           </button>
+          )}
         </div>
 
         {/* Subjects Grid */}
@@ -126,6 +130,7 @@ export default function AllSubjectsPage() {
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-700 mb-2">No subjects yet</h2>
             <p className="text-gray-600 mb-6">Create your first subject to get started</p>
+            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
             <button
               onClick={handleAddSubject}
               className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
@@ -133,6 +138,7 @@ export default function AllSubjectsPage() {
               <Plus className="w-5 h-5" />
               Create Subject
             </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -169,6 +175,8 @@ export default function AllSubjectsPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
+                    {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+                      <>
                     <button
                       onClick={() => handleEditSubject(subject)}
                       className="flex-1 flex items-center justify-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg font-medium transition-colors"
@@ -183,6 +191,8 @@ export default function AllSubjectsPage() {
                       <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
+                    </>
+                    )}
                   </div>
                 </div>
               </div>

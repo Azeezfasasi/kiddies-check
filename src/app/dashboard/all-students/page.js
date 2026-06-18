@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard, BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 import StudentModal from "@/app/components/StudentModal";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 import ParentAssignmentModal from "@/app/components/ParentAssignmentModal";
@@ -15,6 +16,7 @@ import NotebookUploadModal from "@/app/components/NotebookUploadModal";
 
 export default function AllStudentsPage() {
   const router = useRouter();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -227,6 +229,8 @@ export default function AllStudentsPage() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Students Management</h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 md:mt-2">Manage student information across all classes</p>
           </div>
+
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <button
             onClick={handleAddStudent}
             className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg text-xs md:text-base whitespace-nowrap flex-shrink-0"
@@ -235,6 +239,7 @@ export default function AllStudentsPage() {
             <span className="hidden sm:inline">Add Student</span>
             <span className="sm:hidden">Add</span>
           </button>
+          )}
         </div>
 
         {/* Filter by Class */}
@@ -288,6 +293,7 @@ export default function AllStudentsPage() {
             <Users className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-2 sm:mb-3 md:mb-4" />
             <h2 className="text-base sm:text-lg md:text-xl font-semibold text-gray-700 mb-1 sm:mb-2">No students found</h2>
             <p className="text-xs sm:text-sm md:text-base text-gray-600 mb-3 sm:mb-4 md:mb-6">Add your first student to get started</p>
+            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
             <button
               onClick={handleAddStudent}
               className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 md:px-6 py-2 md:py-3 rounded-lg inline-flex items-center gap-2 transition-colors text-xs sm:text-sm md:text-base"
@@ -295,6 +301,7 @@ export default function AllStudentsPage() {
               <Plus className="w-4 h-4" />
               Add Student
             </button>
+            )}
           </div>
         ) : (
           <>
@@ -375,6 +382,7 @@ export default function AllStudentsPage() {
                             >
                               <CreditCard className="w-4 h-4" />
                             </button>
+                            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                             <button
                               onClick={() => {
                                 setSelectedStudentForQR(student);
@@ -385,6 +393,7 @@ export default function AllStudentsPage() {
                             >
                               <QrCode className="w-4 h-4" />
                             </button>
+                            )}
                             <button
                               onClick={() => handleViewStudent(student._id)}
                               className="text-green-600 hover:text-green-800 transition-colors p-1"
@@ -412,6 +421,7 @@ export default function AllStudentsPage() {
                             >
                               <BookOpen className="w-4 h-4" />
                             </button>
+                            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                             <button
                               onClick={() => handleOpenParentAssignment(student)}
                               className="text-purple-600 hover:text-purple-800 transition-colors p-1"
@@ -419,18 +429,23 @@ export default function AllStudentsPage() {
                             >
                               <UserPlus className="w-4 h-4" />
                             </button>
+                            )}
+                            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                             <button
                               onClick={() => handleEditStudent(student)}
                               className="text-blue-600 hover:text-blue-800 transition-colors p-1"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
+                            )}
+                            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                             <button
                               onClick={() => setDeleteConfirm(student._id)}
                               className="text-red-600 hover:text-red-800 transition-colors p-1"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -501,6 +516,7 @@ export default function AllStudentsPage() {
                         <CreditCard className="w-4 h-4" />
                         <span>Card</span>
                       </button>
+                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                       <button
                         onClick={() => {
                           setSelectedStudentForQR(student);
@@ -512,6 +528,7 @@ export default function AllStudentsPage() {
                         <QrCode className="w-4 h-4" />
                         <span>QR</span>
                       </button>
+                      )}
                       <button
                         onClick={() => handleViewStudent(student._id)}
                         className="flex flex-col items-center justify-center gap-1 bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-lg transition-colors text-xs font-medium"
@@ -546,6 +563,7 @@ export default function AllStudentsPage() {
                         <BookOpen className="w-4 h-4" />
                         <span>Notebook</span>
                       </button>
+                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                       <button
                         onClick={() => handleOpenParentAssignment(student)}
                         className="flex flex-col items-center justify-center gap-1 bg-purple-50 hover:bg-purple-100 text-purple-600 py-2 rounded-lg transition-colors text-xs font-medium"
@@ -554,6 +572,8 @@ export default function AllStudentsPage() {
                         <UserPlus className="w-4 h-4" />
                         <span>Parent</span>
                       </button>
+                      )}
+                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                       <button
                         onClick={() => handleEditStudent(student)}
                         className="flex flex-col items-center justify-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg transition-colors text-xs font-medium"
@@ -562,6 +582,8 @@ export default function AllStudentsPage() {
                         <Edit2 className="w-4 h-4" />
                         <span>Edit</span>
                       </button>
+                      )}
+                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                       <button
                         onClick={() => setDeleteConfirm(student._id)}
                         className="flex flex-col items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg transition-colors text-xs font-medium"
@@ -570,6 +592,7 @@ export default function AllStudentsPage() {
                         <Trash2 className="w-4 h-4" />
                         <span>Delete</span>
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>
