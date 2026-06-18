@@ -473,8 +473,13 @@ export default function SchoolManagement() {
           </div>
         )}
 
+        {/* add total school count */}
+        <div className="mb-4 text-sm font-bold uppercase text-blue-800">
+          Total Schools: <span className="font-medium text-gray-900">{schools.length}</span>
+        </div>
+
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-2 p-4 sm:p-6 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Search */}
             <div className="relative">
