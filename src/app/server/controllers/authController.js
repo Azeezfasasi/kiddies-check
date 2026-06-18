@@ -143,7 +143,7 @@ export const register = async (req) => {
           numberOfTeachers: parseInt(numberOfTeachers) || 0,
           numberOfStudents: parseInt(numberOfStudents) || 0,
           logo: schoolLogo,
-          approvalStatus: 'pending',
+          approvalStatus: 'pending', // Requires admin approval before showing in registration
           isActive: true,
         });
         await schoolRecord.save();
@@ -1355,7 +1355,155 @@ export const deleteUser = async (req, userId) => {
   }
 };
 
-// 16. LOGOUT - Clear session/logout
+// 16. GET DELETED USERS - Fetch all deleted users (admin only)
+export const getDeletedUsers = async (req) => {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(req.url);
+    const role = searchParams.get("role");
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const search = searchParams.get("search");
+
+    let filter = { accountStatus: "deleted" }; // Only deleted users
+    if (role) filter.role = role;
+    
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const users = await User.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ updatedAt: -1 });
+
+    const total = await User.countDocuments(filter);
+
+    return NextResponse.json(
+      {
+        success: true,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        users: users.map((u) => u.getPublicProfile()),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get deleted users error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch deleted users",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 17. REACTIVATE USER - Re-activate a deleted user
+export const reactivateUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.accountStatus !== "deleted") {
+      return NextResponse.json(
+        { success: false, message: "User is not deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Re-activate the user
+    user.accountStatus = "active";
+    user.isActive = true;
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User re-activated successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Reactivate user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to re-activate user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 18. PERMANENTLY DELETE USER - Remove user from database completely
+export const permanentlyDeleteUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.accountStatus !== "deleted") {
+      return NextResponse.json(
+        { success: false, message: "Only deleted users can be permanently deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Permanently delete the user from database
+    await User.findByIdAndDelete(userId);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User permanently deleted from database",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Permanently delete user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to permanently delete user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 19. LOGOUT - Clear session/logout
 export const logout = async (req) => {
   try {
     return NextResponse.json(

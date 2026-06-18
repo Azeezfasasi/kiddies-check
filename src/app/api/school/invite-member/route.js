@@ -160,10 +160,11 @@ export async function POST(request) {
     await schoolMember.save();
 
     // Send invitation email
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
     const invitationLink =
       invitationType === 'new-user'
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/register?invitationToken=${invitationToken}&schoolId=${schoolId}&email=${encodeURIComponent(email)}`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
+        ? `${baseUrl}/register?invitationToken=${invitationToken}&schoolId=${schoolId}&email=${encodeURIComponent(email)}`
+        : `${baseUrl}/dashboard`;
 
     const emailSubject = `You've been invited to join ${school.name} on Kiddies Check`;
     const emailContent = generateInvitationEmail(

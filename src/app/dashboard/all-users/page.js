@@ -17,6 +17,7 @@ export default function AllUsersPage() {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [selectedUsers, setSelectedUsers] = useState(new Set()); // Track selected users
   const { token } = useAuth();
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -26,6 +27,9 @@ export default function AllUsersPage() {
   const [deleteModal, setDeleteModal] = useState({ open: false, user: null, loading: false });
   const [statusModal, setStatusModal] = useState({ open: false, user: null, loading: false });
   const [roleModal, setRoleModal] = useState({ open: false, user: null, loading: false, newRole: "" });
+  const [bulkStatusModal, setBulkStatusModal] = useState({ open: false, loading: false });
+  const [bulkRoleModal, setBulkRoleModal] = useState({ open: false, loading: false, newRole: "" });
+  const [bulkDeleteModal, setBulkDeleteModal] = useState({ open: false, loading: false });
   const [message, setMessage] = useState(null);
   
   // Edit form state
@@ -91,6 +95,156 @@ export default function AllUsersPage() {
 
   function handleChangeStatus(user) {
     setStatusModal({ open: true, user, loading: false });
+  }
+
+  // Bulk Action Handlers
+  function toggleSelectUser(userId) {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedUsers.size === users.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(users.map(u => u._id)));
+    }
+  }
+
+  function handleBulkStatusChange() {
+    if (selectedUsers.size === 0) {
+      setMessage({ type: "error", text: "Please select at least one user" });
+      return;
+    }
+    setBulkStatusModal({ open: true, loading: false });
+  }
+
+  function handleBulkRoleChange() {
+    if (selectedUsers.size === 0) {
+      setMessage({ type: "error", text: "Please select at least one user" });
+      return;
+    }
+    setBulkRoleModal({ open: true, loading: false, newRole: "" });
+  }
+
+  function handleBulkDelete() {
+    if (selectedUsers.size === 0) {
+      setMessage({ type: "error", text: "Please select at least one user" });
+      return;
+    }
+    setBulkDeleteModal({ open: true, loading: false });
+  }
+
+  async function submitBulkStatusChange() {
+    setBulkStatusModal(prev => ({ ...prev, loading: true }));
+    try {
+      const userIds = Array.from(selectedUsers);
+      const promises = userIds.map(userId =>
+        fetch(`/api/users/${userId}/status`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const allSuccess = results.every(res => res.ok);
+
+      if (allSuccess) {
+        setMessage({ type: "success", text: `Status updated for ${userIds.length} user(s)` });
+        setBulkStatusModal({ open: false, loading: false });
+        setSelectedUsers(new Set());
+        setTimeout(() => setMessage(null), 3000);
+        await fetchUsers();
+      } else {
+        setMessage({ type: "error", text: "Some status updates failed" });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: `Error: ${err.message}` });
+    } finally {
+      setBulkStatusModal(prev => ({ ...prev, loading: false }));
+    }
+  }
+
+  async function submitBulkRoleChange() {
+    if (!bulkRoleModal.newRole) {
+      setMessage({ type: "error", text: "Please select a role" });
+      return;
+    }
+
+    setBulkRoleModal(prev => ({ ...prev, loading: true }));
+    try {
+      const userIds = Array.from(selectedUsers);
+      const promises = userIds.map(userId =>
+        fetch(`/api/users/${userId}/role`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role: bulkRoleModal.newRole }),
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const allSuccess = results.every(res => res.ok);
+
+      if (allSuccess) {
+        setMessage({ type: "success", text: `Role updated to "${bulkRoleModal.newRole}" for ${userIds.length} user(s)` });
+        setBulkRoleModal({ open: false, loading: false, newRole: "" });
+        setSelectedUsers(new Set());
+        setTimeout(() => setMessage(null), 3000);
+        await fetchUsers();
+      } else {
+        setMessage({ type: "error", text: "Some role updates failed" });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: `Error: ${err.message}` });
+    } finally {
+      setBulkRoleModal(prev => ({ ...prev, loading: false }));
+    }
+  }
+
+  async function submitBulkDelete() {
+    setBulkDeleteModal(prev => ({ ...prev, loading: true }));
+    try {
+      const userIds = Array.from(selectedUsers);
+      const promises = userIds.map(userId =>
+        fetch(`/api/users/${userId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const allSuccess = results.every(res => res.ok);
+
+      if (allSuccess) {
+        setMessage({ type: "success", text: `${userIds.length} user(s) deleted successfully` });
+        setBulkDeleteModal({ open: false, loading: false });
+        setSelectedUsers(new Set());
+        setTimeout(() => setMessage(null), 3000);
+        // Remove deleted users from list
+        setUsers(prevUsers => prevUsers.filter(u => !userIds.includes(u._id)));
+        setTotal(prevTotal => Math.max(0, prevTotal - userIds.length));
+      } else {
+        setMessage({ type: "error", text: "Some deletions failed" });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: `Error: ${err.message}` });
+    } finally {
+      setBulkDeleteModal(prev => ({ ...prev, loading: false }));
+    }
   }
 
   async function submitEditUser() {
@@ -261,6 +415,12 @@ export default function AllUsersPage() {
     <ProtectedRoute allowedRoles={['admin']}>
     <div className="w-[360px] md:w-full md:max-w-7xl p-2 md:p-6 bg-white rounded-xl shadow-lg">
       <h1 className="text-[20px] md:text-2xl font-bold mb-4">All Users</h1>
+
+      {/* add total user count */}
+      <div className="mb-4 font-bold text-blue-600">
+        Total Users: <span className="font-semibold text-gray-700">{total}</span>
+      </div>
+
       <div className="flex flex-wrap gap-4 mb-6">
         <input
           type="text"
@@ -284,10 +444,56 @@ export default function AllUsersPage() {
         </select>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.size > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap items-center justify-between gap-4">
+          <span className="text-sm font-semibold text-blue-900">
+            {selectedUsers.size} user(s) selected
+          </span>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleBulkRoleChange}
+              disabled={selectedUsers.size === 0}
+              className="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
+            >
+              Change Role
+            </button>
+            <button
+              onClick={handleBulkStatusChange}
+              disabled={selectedUsers.size === 0}
+              className="px-3 py-2 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600 disabled:opacity-50"
+            >
+              Change Status
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedUsers.size === 0}
+              className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedUsers(new Set())}
+              className="px-3 py-2 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="min-w-full border border-gray-300 rounded-lg">
           <thead className="bg-gray-100">
             <tr>
+              <th className="px-4 py-2 text-left">
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.size === users.length && users.length > 0}
+                  onChange={toggleSelectAll}
+                  className="cursor-pointer"
+                />
+              </th>
               <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Email</th>
               <th className="px-4 py-2 text-left">Role</th>
@@ -299,6 +505,9 @@ export default function AllUsersPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={idx} className="animate-pulse border-b">
+                  <td className="px-4 py-2">
+                    <div className="h-4 bg-gray-200 rounded w-4"></div>
+                  </td>
                   <td className="px-4 py-2">
                     <div className="h-4 bg-gray-200 rounded w-24"></div>
                   </td>
@@ -317,10 +526,18 @@ export default function AllUsersPage() {
                 </tr>
               ))
             ) : users.length === 0 ? (
-              <tr><td colSpan={5} className="text-center py-6">No users found.</td></tr>
+              <tr><td colSpan={6} className="text-center py-6">No users found.</td></tr>
             ) : (
               users.map(user => (
                 <tr key={user._id} className="border-b border-gray-300 hover:bg-gray-50">
+                  <td className="px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.has(user._id)}
+                      onChange={() => toggleSelectUser(user._id)}
+                      className="cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-2 text-[14px] md:text-base whitespace-nowrap">{user.firstName} {user.lastName}</td>
                   <td className="px-4 py-2 text-[14px] md:text-base">{user.email}</td>
                   <td className="px-4 py-2 capitalize text-[14px] md:text-base whitespace-nowrap">{user.role}</td>
@@ -547,6 +764,99 @@ export default function AllUsersPage() {
               </button>
               <button
                 onClick={() => setRoleModal({ open: false, user: null, loading: false, newRole: "" })}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Change Role Modal */}
+      {bulkRoleModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold mb-4">Change Role for {selectedUsers.size} User(s)</h2>
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Select New Role</label>
+              <select
+                value={bulkRoleModal.newRole}
+                onChange={(e) => setBulkRoleModal({ ...bulkRoleModal, newRole: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">-- Select Role --</option>
+                <option value="admin">Admin</option>
+                <option value="parent">Parent</option>
+                <option value="learning-specialist">Learning Specialist</option>
+                <option value="school-leader">School Leader</option>
+                <option value="teacher">Teacher</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={submitBulkRoleChange}
+                disabled={bulkRoleModal.loading || !bulkRoleModal.newRole}
+                className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {bulkRoleModal.loading ? "Updating..." : "Update Role"}
+              </button>
+              <button
+                onClick={() => setBulkRoleModal({ open: false, loading: false, newRole: "" })}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Change Status Modal */}
+      {bulkStatusModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold mb-4">Change Status for {selectedUsers.size} User(s)</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to toggle the status for all {selectedUsers.size} selected user(s)?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={submitBulkStatusChange}
+                disabled={bulkStatusModal.loading}
+                className="flex-1 bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+              >
+                {bulkStatusModal.loading ? "Updating..." : "Confirm"}
+              </button>
+              <button
+                onClick={() => setBulkStatusModal({ open: false, loading: false })}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Modal */}
+      {bulkDeleteModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold mb-4 text-red-600">Delete {selectedUsers.size} User(s)</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete {selectedUsers.size} user(s)? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={submitBulkDelete}
+                disabled={bulkDeleteModal.loading}
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkDeleteModal.loading ? "Deleting..." : "Delete"}
+              </button>
+              <button
+                onClick={() => setBulkDeleteModal({ open: false, loading: false })}
                 className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
               >
                 Cancel

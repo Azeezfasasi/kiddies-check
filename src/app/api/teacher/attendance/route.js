@@ -20,7 +20,7 @@ export async function POST(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));

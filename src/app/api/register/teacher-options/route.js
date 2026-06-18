@@ -12,17 +12,35 @@ export async function GET(req) {
   try {
     await connectDB();
 
-    // Fetch all active classes and subjects from the database
-    // These will be available for newly registering teachers
-    const classes = await Class.find({ isActive: true })
-      .select("name level section")
-      .distinct("name")
-      .sort({ name: 1 });
+    const { searchParams } = new URL(req.url);
+    const schoolId = searchParams.get("schoolId");
 
-    const subjects = await Subject.find({ isActive: true })
-      .select("name")
-      .distinct("name")
-      .sort({ name: 1 });
+    let classes = [];
+    let subjects = [];
+
+    // If schoolId is provided, fetch school-specific classes and subjects
+    if (schoolId) {
+      classes = await Class.find({ school: schoolId, isActive: true })
+        .select("name level section")
+        .distinct("name")
+        .sort({ name: 1 });
+
+      subjects = await Subject.find({ school: schoolId, isActive: true })
+        .select("name")
+        .distinct("name")
+        .sort({ name: 1 });
+    } else {
+      // If no schoolId, fetch all active classes and subjects from the database
+      classes = await Class.find({ isActive: true })
+        .select("name level section")
+        .distinct("name")
+        .sort({ name: 1 });
+
+      subjects = await Subject.find({ isActive: true })
+        .select("name")
+        .distinct("name")
+        .sort({ name: 1 });
+    }
 
     // If no classes or subjects found in DB, use default options
     const defaultClasses = [
