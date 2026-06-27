@@ -7,6 +7,10 @@ body.hide-site-header .site-main-header {
   display: none !important;
 }
 
+body.hide-message-ticker .message-ticker {
+  display: none !important;
+}
+
 /* Marquee animation for slider ticker messages */
 @keyframes marquee {
   0% {

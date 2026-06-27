@@ -39,7 +39,7 @@ export default function SliderMassage() {
 
   return (
     <div
-      className="relative w-full overflow-hidden z-[60]"
+      className="message-ticker relative w-full overflow-hidden z-[60]"
       style={{
         background: defaultBg,
         color: defaultText,
