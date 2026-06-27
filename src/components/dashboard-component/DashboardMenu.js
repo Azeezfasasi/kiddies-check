@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar } from 'lucide-react';
+import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete  } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
 
 function Icon({ name }) {
@@ -68,6 +68,10 @@ function Icon({ name }) {
     return (
       <Images className="w-5 h-5" />
     )
+    case 'Delete':
+      return (
+        <Delete className="w-5 h-5" />
+      )
     case 'calendar':
       return (
         <Calendar className="w-5 h-5" />
@@ -169,7 +173,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     {
       href: '/dashboard/deleted-data',
       label: 'Deleted Data',
-      icon: 'Users',
+      icon: 'Delete',
       roles: ['admin'],
       children: [
         { href: '/dashboard/deleted-students', label: 'Deleted Students', roles: ['admin'] },
