@@ -110,7 +110,7 @@ export async function DELETE(req, { params }) {
         );
       }
 
-      const school = await School.findByIdAndDelete(id);
+      const school = await School.findById(id);
       if (!school) {
         return NextResponse.json(
           { error: "School not found" },
@@ -118,10 +118,27 @@ export async function DELETE(req, { params }) {
         );
       }
 
+      const hardDelete = req.nextUrl.searchParams.get("hard") === "true";
+      if (hardDelete) {
+        await School.findByIdAndDelete(id);
+        return NextResponse.json(
+          {
+            success: true,
+            message: "School permanently deleted",
+          },
+          { status: 200 }
+        );
+      }
+
+      school.isActive = false;
+      school.updatedAt = new Date();
+      await school.save();
+
       return NextResponse.json(
         {
           success: true,
-          message: "School deleted successfully",
+          message: "School soft deleted successfully",
+          school,
         },
         { status: 200 }
       );

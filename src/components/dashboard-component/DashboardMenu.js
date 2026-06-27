@@ -163,6 +163,18 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] }
       ]
     },
+    {
+      href: '/dashboard/deleted-data',
+      label: 'Deleted Data',
+      icon: 'Users',
+      roles: ['admin'],
+      children: [
+        { href: '/dashboard/deleted-students', label: 'Deleted Students', roles: ['admin'] },
+        { href: '/dashboard/deleted-classes', label: 'Deleted Classes', roles: ['admin'] },
+        { href: '/dashboard/deleted-subjects', label: 'Deleted Subjects', roles: ['admin'] },
+        { href: '/dashboard/deleted-schools', label: 'Deleted Schools', roles: ['admin'] }
+      ]
+    },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
     { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin', 'learning-specialist'] },
     {

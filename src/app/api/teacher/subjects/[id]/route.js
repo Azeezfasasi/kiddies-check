@@ -144,6 +144,7 @@ export async function DELETE(req, { params }) {
     // Verify user access
     const user = await User.findById(userId);
     const hasAccess = user && (
+      ['admin', 'learning-specialist'].includes(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) || 
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     );
@@ -154,6 +155,13 @@ export async function DELETE(req, { params }) {
     const subject = await Subject.findOne({ _id: id, school: schoolId });
     if (!subject) {
       return Response.json({ error: "Subject not found" }, { status: 404 });
+    }
+
+    const hardDelete = req.nextUrl.searchParams.get("hard") === "true";
+
+    if (hardDelete) {
+      await Subject.findByIdAndDelete(id);
+      return Response.json({ message: "Subject permanently deleted" }, { status: 200 });
     }
 
     // Soft delete

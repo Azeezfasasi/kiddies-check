@@ -108,7 +108,13 @@ export async function GET(req) {
 
     await connectDB();
 
-    const query = { school: schoolId, isActive: true };
+    const query = { school: schoolId };
+    const isActiveParam = req.nextUrl.searchParams.get("isActive");
+    if (isActiveParam !== null) {
+      query.isActive = isActiveParam === "true";
+    } else {
+      query.isActive = true;
+    }
 
     const subjects = await Subject.find(query)
       .populate("teacher", "firstName lastName email")

@@ -25,7 +25,12 @@ export async function GET(req, { params }) {
 
     // Verify user access
     const user = await User.findById(userId);
-    const hasAccess = user && (
+    // const hasAccess = user && (
+    //   (user.schoolId && user.schoolId.toString() === schoolId) || 
+    //   (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
+    // );
+    let hasAccess = user && (
+      ['admin', 'learning-specialist'].includes(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) || 
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     );
@@ -174,6 +179,13 @@ export async function DELETE(req, { params }) {
     const classData = await Class.findOne({ _id: id, school: schoolId });
     if (!classData) {
       return Response.json({ error: "Class not found" }, { status: 404 });
+    }
+
+    const hardDelete = req.nextUrl.searchParams.get("hard") === "true";
+
+    if (hardDelete) {
+      await Class.findByIdAndDelete(id);
+      return Response.json({ message: "Class permanently deleted" }, { status: 200 });
     }
 
     // Soft delete
