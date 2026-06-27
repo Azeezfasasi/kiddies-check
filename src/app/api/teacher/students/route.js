@@ -49,8 +49,9 @@ export async function POST(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    // Allow admin + learning-specialist full access to any school
+    // Teachers are allowed only if they match the requested school (handled by hasAccess below)
+    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -181,8 +182,9 @@ export async function GET(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    // Allow admin + learning-specialist full access to any school.
+    // Teachers are allowed only if they match the requested school (handled below by hasAccess).
+    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));

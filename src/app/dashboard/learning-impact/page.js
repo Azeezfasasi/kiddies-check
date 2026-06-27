@@ -11,6 +11,7 @@ import LessonObjectiveForm from "./components/LessonObjectiveForm";
 import AcademicObjectiveForm from "./components/AcademicObjectiveForm";
 import PupilEffortForm from "./components/PupilEffortForm";
 import TeacherRatingForm from "./components/TeacherRatingForm";
+import { useAuth } from "@/context/AuthContext";
 
 const TABS = [
   { id: "templates", label: "Lesson Templates", icon: BookOpen },
@@ -56,6 +57,7 @@ function StarRating({ rating }) {
 
 export default function LearningImpactPage() {
   const router = useRouter();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
   const [activeTab, setActiveTab] = useState("templates");
   const [loading, setLoading] = useState(true);
   const [schoolId, setSchoolId] = useState("");
@@ -341,6 +343,8 @@ export default function LearningImpactPage() {
 
           <div className="p-4 md:p-6">
             {!showForm && (
+              <div>
+              {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
               <button
                 onClick={() => { setEditingItem(null); setShowForm(true); }}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mb-4 transition-colors"
@@ -348,6 +352,8 @@ export default function LearningImpactPage() {
                 <Plus className="w-4 h-4" />
                 Add New {activeTab === "templates" ? "Template" : activeTab === "pupil-efforts" ? "Effort Record" : "Rating"}
               </button>
+              )}
+              </div>
             )}
 
             {showForm && activeTab === "templates" && (

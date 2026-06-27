@@ -172,46 +172,6 @@ function RegisterContent() {
     fetchInvitationEmail();
   }, [isInvitation, invitedEmail, invitationToken, schoolId]);
 
-  // Fetch teacher classes and subjects from backend
-  useEffect(() => {
-    const fetchTeacherOptions = async () => {
-      setLoadingTeacherOptions(true);
-      setTeacherOptionsError(null);
-      try {
-        const response = await fetch('/api/register/teacher-options');
-        if (!response.ok) {
-          throw new Error('Failed to fetch teacher options');
-        }
-        const data = await response.json();
-        
-        if (data.success && data.data) {
-          setAvailableClasses(data.data.classes || []);
-          setAvailableSubjects(data.data.subjects || []);
-        } else {
-          throw new Error(data.error || 'Invalid response format');
-        }
-      } catch (err) {
-        console.error('Failed to fetch teacher options:', err);
-        setTeacherOptionsError(err.message);
-        // Set default fallback options in case of error
-        setAvailableClasses([
-          "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-          "JSS 1", "JSS 2", "JSS 3",
-          "SS 1", "SS 2", "SS 3"
-        ]);
-        setAvailableSubjects([
-          "Mathematics", "English Language", "Science", "Social Studies", "Civic Education",
-          "Physical Education", "Fine Arts", "Computer Studies", "Yoruba", "French",
-          "History", "Geography", "Chemistry", "Physics", "Biology", "Literature in English"
-        ]);
-      } finally {
-        setLoadingTeacherOptions(false);
-      }
-    };
-
-    fetchTeacherOptions();
-  }, []);
-
   // Fetch schools for parent and teacher selection
   useEffect(() => {
     const fetchSchools = async () => {
@@ -248,6 +208,65 @@ function RegisterContent() {
 
     fetchSchools();
   }, [formData.role, formData.schoolType]);
+
+  // Fetch school-specific classes and subjects when teacher selects a school
+  useEffect(() => {
+    const fetchSchoolTeacherOptions = async () => {
+      if (formData.role !== 'teacher' || !formData.schoolId) {
+        // If not a teacher or no school selected, fetch all options
+        setLoadingTeacherOptions(true);
+        try {
+          const response = await fetch('/api/register/teacher-options');
+          if (!response.ok) {
+            throw new Error('Failed to fetch teacher options');
+          }
+          const data = await response.json();
+          
+          if (data.success && data.data) {
+            setAvailableClasses(data.data.classes || []);
+            setAvailableSubjects(data.data.subjects || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch teacher options:', err);
+          setAvailableClasses([
+            "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+            "JSS 1", "JSS 2", "JSS 3",
+            "SS 1", "SS 2", "SS 3"
+          ]);
+          setAvailableSubjects([
+            "Mathematics", "English Language", "Science", "Social Studies", "Civic Education",
+            "Physical Education", "Fine Arts", "Computer Studies", "Yoruba", "French",
+            "History", "Geography", "Chemistry", "Physics", "Biology", "Literature in English"
+          ]);
+        } finally {
+          setLoadingTeacherOptions(false);
+        }
+        return;
+      }
+
+      // Fetch school-specific classes and subjects
+      setLoadingTeacherOptions(true);
+      try {
+        const response = await fetch(`/api/register/teacher-options?schoolId=${formData.schoolId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch school classes and subjects');
+        }
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setAvailableClasses(data.data.classes || []);
+          setAvailableSubjects(data.data.subjects || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch school teacher options:', err);
+        // Keep existing options if fetch fails
+      } finally {
+        setLoadingTeacherOptions(false);
+      }
+    };
+
+    fetchSchoolTeacherOptions();
+  }, [formData.schoolId, formData.role]);
 
   // Calculate total steps based on user type and role
   // For invited users: 2 steps (personal info + password)
@@ -388,8 +407,8 @@ function RegisterContent() {
     // Skip role validation for invited users (they already have a role assigned)
     if (step === 2 && !isInvitation) {
       if (!formData.role) newErrors.role = "Role is required";
-      // Validate schoolType for school-leader, teacher, and parent
-      if (["school-leader", "teacher", "parent"].includes(formData.role)) {
+      // Validate schoolType for teacher and parent (not school-leader, they'll provide school details later)
+      if (["teacher", "parent"].includes(formData.role)) {
         if (!formData.schoolType) newErrors.schoolType = "School type is required";
       }
       // Validate schoolId for parent and teacher

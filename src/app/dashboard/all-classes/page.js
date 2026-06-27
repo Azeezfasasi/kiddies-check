@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, AlertCircle, Loader } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 import ClassModal from "@/app/components/ClassModal";
 import ClassStudentsList from "@/app/components/ClassStudentsList";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 
 export default function AllClassesPage() {
   const router = useRouter();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSchoolId, setActiveSchoolId] = useState("");
@@ -121,13 +123,15 @@ export default function AllClassesPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Classes Management</h1>
             <p className="text-gray-600 mt-2">Manage and organize your school classes</p>
           </div>
-          <button
-            onClick={handleAddClass}
-            className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            Add Class
-          </button>
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+            <button
+              onClick={handleAddClass}
+              className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Add Class
+            </button>
+          )}
         </div>
 
         {/* Classes Grid */}
@@ -136,13 +140,15 @@ export default function AllClassesPage() {
             <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-700 mb-2">No classes yet</h2>
             <p className="text-gray-600 mb-6">Create your first class to get started</p>
-            <button
-              onClick={handleAddClass}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Create Class
-            </button>
+            {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+              <button
+                onClick={handleAddClass}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Create Class
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -198,6 +204,7 @@ export default function AllClassesPage() {
                       <Edit2 className="w-4 h-4" />
                       Edit
                     </button>
+                    {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                     <button
                       onClick={() => setDeleteConfirm(classData._id)}
                       className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg font-medium transition-colors"
@@ -205,6 +212,7 @@ export default function AllClassesPage() {
                       <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
+                    )}
                   </div>
 
                   {/* Students List */}

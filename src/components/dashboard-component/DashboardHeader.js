@@ -96,7 +96,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
             )}
 
             {/* Notification Modal */}
-            {user?.role === (['admin', 'learning-specialist']) && (
+            {user?.role === (['admin']) && (
               <NotificationModal 
                 isOpen={notificationOpen}
                 onClose={() => setNotificationOpen(false)}
@@ -107,7 +107,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
             <SchoolSwitcher 
               currentSchoolId={activeSchoolId}
-              isAdmin={user && ['admin', 'learning-specialist'].includes(user.role)}
+              isAdmin={user && ['admin'].includes(user.role)}
               onSchoolSwitch={(newSchoolId) => setActiveSchoolId(newSchoolId)}
             />
 

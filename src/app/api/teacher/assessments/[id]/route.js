@@ -2,6 +2,7 @@ import Assessment from "@/app/server/models/Assessment";
 import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
 
 function getGradeLevel(score) {
   if (score >= 75) return "A1";
@@ -201,7 +202,7 @@ export async function DELETE(req, { params }) {
   try {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
-    const { id } = params;
+    const { id } = await params;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });

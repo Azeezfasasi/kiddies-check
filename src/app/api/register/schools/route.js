@@ -16,9 +16,13 @@ export async function GET(req) {
       approvalStatus: "approved",
     };
 
-    // Filter by school type if provided
+    // Filter by school type if provided and not "all"
+    // Include schools without schoolType to handle legacy data
     if (schoolType && schoolType !== "all") {
-      query.schoolType = schoolType;
+      query.$or = [
+        { schoolType: schoolType },
+        { schoolType: { $exists: false } },  // Include schools without schoolType
+      ];
     }
 
     // Fetch schools with minimal required fields

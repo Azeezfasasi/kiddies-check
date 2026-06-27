@@ -91,7 +91,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/blog',
       label: 'Blog',
       icon: 'blog',
-      roles: ['admin', 'learning-specialist'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/add-blog', label: 'Add Blog', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: ['admin', 'learning-specialist'] }
@@ -99,12 +99,12 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     },
     { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/my-children', label: 'My Children', icon: 'dashboard', roles: ['parent'] },
-    { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin', 'learning-specialist'] },
-    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin'] },
+    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin'] },
     { href: '/dashboard/prospective-students', label: 'Prospective Students', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader'] },
-    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin', 'learning-specialist'] },
-    { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin', 'learning-specialist'] },
-    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin'] },
+    { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin'] },
+    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin'] },
     {
       href: '/dashboard/schools',
       label: 'School Manager',
@@ -120,7 +120,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/teachers',
       label: 'Learning Specialist',
       icon: 'teacher',
-      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher', 'school-leader'],
+      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
       children: [
         { href: '/dashboard/all-classes', label: 'Classes', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
         { href: '/dashboard/all-students', label: 'All Students', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
@@ -130,11 +130,13 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
       ]
     },
+    // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', icon: 'graduation', roles: ['admin', 'learning-specialist', 'school-leader' ] },
+    
     {
       href: '/dashboard/all-newsletter',
       label: 'Newsletter Management',
       icon: 'Newsletter',
-      roles: ['admin', 'learning-specialist'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/send-newsletter', label: 'Send Newsletter', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/all-newsletters', label: 'All Newsletters', roles: ['admin', 'learning-specialist'] },
@@ -145,7 +147,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/gallery',
       label: 'Gallery Management',
       icon: 'Gallery',
-      roles: ['admin', 'learning-specialist'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/add-gallery', label: 'Add Gallery', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/all-gallery', label: 'All Gallery', roles: ['admin', 'learning-specialist'] },
@@ -160,7 +162,8 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       children: [
         { href: '/dashboard/all-users', label: 'All Users', roles: ['admin'] },
         { href: '/dashboard/add-user', label: 'Add User', roles: ['admin'] },
-        { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] }
+        { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] },
+        { href: '/dashboard/deleted-users', label: 'Deleted Users', roles: ['admin'] }
       ]
     },
     {
@@ -176,12 +179,12 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       ]
     },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
-    { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin', 'learning-specialist'] },
+    { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin'] },
     {
       href: '/dashboard/home',
       label: 'Homepage Contents',
       icon: 'house',
-      roles: ['admin', 'learning-specialist'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: ['admin', 'learning-specialist'] },
@@ -197,7 +200,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/about-page',
       label: 'About Page Contents',
       icon: 'about',
-      roles: ['admin', 'learning-specialist'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/company-overview', label: 'Company Overview', roles: ['admin', 'learning-specialist'] },
         { href: '/dashboard/history-milestones', label: 'History & Milestones', roles: ['admin', 'learning-specialist'] },

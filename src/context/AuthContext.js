@@ -68,16 +68,24 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await response.json();
       
+      console.log("Login response data:", data);
+      console.log("Login schoolId received:", data.schoolId);
+      
       if (data.success) {
         setToken(data.token);
         setUser(data.user);
         localStorage.setItem("token", data.token);
         // Save schoolId if available
         if (data.schoolId) {
+          console.log("Saving schoolId to localStorage:", data.schoolId);
           localStorage.setItem("schoolId", data.schoolId);
+        } else {
+          console.warn("No schoolId in login response");
         }
-        // Also save userId for API calls
-        if (data.user?._id) {
+        // Also save userId for API calls (backend returns userId explicitly)
+        if (data.userId) {
+          localStorage.setItem("userId", data.userId);
+        } else if (data.user?._id) {
           localStorage.setItem("userId", data.user._id);
         }
         // Save user role
