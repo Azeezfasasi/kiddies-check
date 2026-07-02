@@ -147,6 +147,7 @@ export default function ChangeLogs() {
     }
   };
 
+  // Login Log Item
   const renderLoginLogs = () => {
     const filtered = filterLogs(logs.loginLogs, searchQuery);
     const paginated = paginateArray(filtered, currentPage, itemsPerPage);
@@ -186,7 +187,9 @@ export default function ChangeLogs() {
             </div>
             <div className="text-right flex-shrink-0">
               <div className="flex items-center gap-1 text-gray-500 text-xs sm:text-sm">
+                {/* <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> */}
                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="truncate">{formatTime(log.loginTime).split(',')[0]}</span>
                 <span className="truncate">{formatTime(log.loginTime).split(',').pop()}</span>
               </div>
             </div>
@@ -198,6 +201,7 @@ export default function ChangeLogs() {
     };
   };
 
+  // Activity Log Item
   const renderActivityLogs = () => {
     const filtered = filterLogs(logs.activityLogs, searchQuery);
     const paginated = paginateArray(filtered, currentPage, itemsPerPage);
@@ -220,14 +224,15 @@ export default function ChangeLogs() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2">{log.description}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-0.5 line-clamp-1">
-                  {log.firstName} {log.lastName} • {log.entityType}
+                <div className="text-xs sm:text-sm text-gray-600 mt-0.5 nline-clamp-1">
+                  Performed By {log.firstName} {log.lastName} • {log.entityType}
                 </div>
                 <div className="flex items-center gap-2 mt-1.5 sm:mt-2 flex-wrap">
                   <span className={`text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium ${getStatusColor(log.status)}`}>
                     {log.action.replace("-", " ").toUpperCase()}
                   </span>
                   <span className="text-xs text-gray-500">
+                    <span className="truncate">{formatTime(log.timestamp).split(',')[0]}</span>
                     {formatTime(log.timestamp).split(',').pop()}
                   </span>
                 </div>
@@ -255,6 +260,7 @@ export default function ChangeLogs() {
     };
   };
 
+  // Issue Log Item
   const renderIssueLogs = () => {
     const filtered = filterLogs(logs.issueLogs, searchQuery);
     const paginated = paginateArray(filtered, currentPage, itemsPerPage);
@@ -375,7 +381,7 @@ export default function ChangeLogs() {
   return (
     <>
       <style>{styles}</style>
-      <div className="space-y-4 px-2 sm:px-0">
+      <div className="space-y-4 px-0 md:px-2">
       {/* Header */}
       <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">System Logs</h2>
