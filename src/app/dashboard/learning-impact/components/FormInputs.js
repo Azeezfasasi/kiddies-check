@@ -92,7 +92,7 @@ export function RatingSelect({ label, value, onChange }) {
 
 export function FormButtons({ onCancel, isEdit }) {
   return (
-    <div className="flex gap-3 pt-2">
+    <div className="flex gap-3 pt-2 flex-wrap">
       <button
         type="submit"
         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
@@ -107,5 +107,17 @@ export function FormButtons({ onCancel, isEdit }) {
         Cancel
       </button>
     </div>
+  );
+}
+
+export function AccordionSection({ title, children, open = false }) {
+  return (
+    <details open={open} className="group rounded-2xl border border-gray-200 bg-slate-50">
+      <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-slate-100">
+        <span>{title}</span>
+        <span className="text-gray-500">▾</span>
+      </summary>
+      <div className="px-4 py-4">{children}</div>
+    </details>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { FormButtons } from "./FormInputs";
+import { FormButtons, AccordionSection } from "./FormInputs";
 
 export default function TemplateForm({ onSubmit, onCancel, editingItem }) {
   const [formData, setFormData] = useState({
@@ -75,7 +75,7 @@ export default function TemplateForm({ onSubmit, onCancel, editingItem }) {
               placeholder="Criterion name"
               value={criterion.name}
               onChange={(e) => updateCriterion(index, "name", e.target.value)}
-              className="flex-1 px-3 py-2 border rounded-lg"
+              className="flex-1 px-0 md:px-3 py-2 border rounded-lg"
               required
             />
             <input
@@ -83,7 +83,7 @@ export default function TemplateForm({ onSubmit, onCancel, editingItem }) {
               placeholder="Max"
               value={criterion.maxScore}
               onChange={(e) => updateCriterion(index, "maxScore", e.target.value)}
-              className="w-20 px-3 py-2 border rounded-lg"
+              className="w-20 px-0 md:px-3 py-2 border rounded-lg"
               min="1"
               max="10"
             />

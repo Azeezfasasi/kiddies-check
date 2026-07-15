@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { SelectField, NumberField, DateField, RatingSelect, FormButtons } from "./FormInputs";
+import { SelectField, NumberField, DateField, RatingSelect, FormButtons, AccordionSection } from "./FormInputs";
 
 export default function LessonObjectiveForm({ onSubmit, onCancel, editingItem, teachers, classes, subjects }) {
   const [formData, setFormData] = useState({
@@ -53,7 +53,7 @@ export default function LessonObjectiveForm({ onSubmit, onCancel, editingItem, t
         <label className="block text-sm font-medium text-gray-700 mb-2">Objectives</label>
         {formData.objectives.map((obj, index) => (
           <div key={index} className="bg-gray-50 p-3 rounded-lg mb-2 space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row gap-2">
               <input
                 type="text"
                 placeholder="Objective"

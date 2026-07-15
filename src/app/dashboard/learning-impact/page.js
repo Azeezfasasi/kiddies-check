@@ -296,7 +296,7 @@ export default function LearningImpactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-0 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
@@ -304,18 +304,18 @@ export default function LearningImpactPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Learning Impact Data</h1>
             <p className="text-gray-600 mt-1">Track and evaluate teaching effectiveness and pupil progress</p>
           </div>
-          <button
+          {/* <button
             onClick={() => setShowAIChat(!showAIChat)}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <MessageSquare className="w-5 h-5" />
             {showAIChat ? "Close AI Assistant" : "AI Improvement Assistant"}
-          </button>
+          </button> */}
         </div>
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <SummaryCard icon={<Target className="w-5 h-5" />} label="Lesson Objectives" value={summary.lessonObjectives?.averageRating?.toFixed(1) || "0.0"} subtext={`${summary.lessonObjectives?.totalRatings || 0} ratings`} color="blue" />
             <SummaryCard icon={<GraduationCap className="w-5 h-5" />} label="Academic Objective" value={summary.academicObjectives?.averageProgress?.toFixed(1) || "0.0"} subtext={`${summary.academicObjectives?.totalRatings || 0} ratings`} color="green" />
             <SummaryCard icon={<UserCheck className="w-5 h-5" />} label="Pupil Effort" value={summary.pupilEfforts?.averageEffort?.toFixed(1) || "0.0"} subtext={`${summary.pupilEfforts?.totalSubmissions || 0} submissions`} color="amber" />
@@ -325,14 +325,14 @@ export default function LearningImpactPage() {
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow mb-6">
-          <div className="flex overflow-x-auto border-b">
+          <div className="flex flex-wrap gap-2 overflow-x-auto border-b px-2 py-1 sm:px-0">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => { setActiveTab(tab.id); setShowForm(false); setEditingItem(null); }}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-800"}`}
+                  className={`flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap rounded-md transition-colors ${activeTab === tab.id ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-600 hover:text-gray-800"}`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -347,7 +347,7 @@ export default function LearningImpactPage() {
               {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
               <button
                 onClick={() => { setEditingItem(null); setShowForm(true); }}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mb-4 transition-colors"
+                className="flex w-full sm:w-auto items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mb-4 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add New {activeTab === "templates" ? "Template" : activeTab === "pupil-efforts" ? "Effort Record" : "Rating"}
@@ -393,7 +393,7 @@ export default function LearningImpactPage() {
 
       {/* AI Chat Sidebar */}
       {showAIChat && (
-        <div className="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl z-50 flex flex-col">
+        <div className="fixed inset-x-0 bottom-0 top-auto md:inset-y-0 md:right-0 md:w-96 bg-white shadow-2xl z-50 flex flex-col max-h-[85vh]">
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-semibold text-gray-800">AI Improvement Assistant</h3>
             <button onClick={() => setShowAIChat(false)} className="text-gray-500 hover:text-gray-700">

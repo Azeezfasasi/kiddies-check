@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SelectField, NumberField, DateField, RatingSelect, FormButtons } from "./FormInputs";
+import { SelectField, NumberField, DateField, RatingSelect, FormButtons, AccordionSection } from "./FormInputs";
 
 const TEACHER_DIMENSIONS = [
   { key: "lesson_planning", label: "Lesson Planning" },
@@ -66,7 +66,7 @@ export default function TeacherRatingForm({ onSubmit, onCancel, editingItem, tea
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Rating Dimensions</label>
         {formData.dimensions.map((dim, index) => (
-          <div key={index} className="flex gap-2 mb-2 items-center bg-gray-50 p-2 rounded-lg">
+          <div key={index} className="flex flex-col md:flex-row gap-2 mb-2 items-center bg-gray-50 p-2 rounded-lg">
             <span className="flex-1 text-sm font-medium">{TEACHER_DIMENSIONS.find((d) => d.key === dim.dimension)?.label || dim.dimension}</span>
             <select value={dim.score} onChange={(e) => updateDimension(index, "score", e.target.value)} className="w-20 px-3 py-2 border rounded-lg">
               {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}

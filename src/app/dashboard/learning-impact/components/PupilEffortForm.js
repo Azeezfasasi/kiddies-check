@@ -53,7 +53,7 @@ export default function PupilEffortForm({ onSubmit, onCancel, editingItem, stude
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Effort Categories</label>
         {formData.efforts.map((effort, index) => (
-          <div key={index} className="flex gap-2 mb-2 items-center bg-gray-50 p-2 rounded-lg">
+          <div key={index} className="flex flex-col md:flex-row gap-2 mb-2 items-start md:items-center bg-gray-50 p-2 rounded-lg">
             <span className="flex-1 text-sm font-medium">{EFFORT_CATEGORIES.find((c) => c.key === effort.category)?.label || effort.category}</span>
             <select value={effort.rating} onChange={(e) => updateEffort(index, "rating", e.target.value)} className="w-20 px-3 py-2 border rounded-lg">
               {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
