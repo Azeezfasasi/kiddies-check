@@ -1,5 +1,7 @@
 "use client";
 
+import { CircleChevronDown } from "lucide-react";
+
 export function SelectField({ label, value, onChange, options, required }) {
   const optionsArray = Array.isArray(options) ? options : [];
   
@@ -115,7 +117,7 @@ export function AccordionSection({ title, children, open = false }) {
     <details open={open} className="group rounded-2xl border border-gray-200 bg-slate-50">
       <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-slate-100">
         <span>{title}</span>
-        <span className="text-gray-500">▾</span>
+        <span className="text-blue-600 transition-transform duration-200 ease-in-out group-open:rotate-180"><CircleChevronDown className="w-4 h-4" /></span>
       </summary>
       <div className="px-4 py-4">{children}</div>
     </details>

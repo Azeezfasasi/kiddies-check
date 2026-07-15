@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { SelectField, NumberField, DateField, RatingSelect, FormButtons } from "./FormInputs";
+import { SelectField, NumberField, DateField, RatingSelect, FormButtons, AccordionSection } from "./FormInputs";
 
 const EFFORT_CATEGORIES = [
   { key: "participation", label: "Participation" },
@@ -40,45 +40,53 @@ export default function PupilEffortForm({ onSubmit, onCancel, editingItem, stude
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SelectField label="Student" value={formData.studentId} onChange={(v) => setFormData({ ...formData, studentId: v })} options={students} required />
-        <SelectField label="Class" value={formData.classId} onChange={(v) => setFormData({ ...formData, classId: v })} options={classes} required />
-        <SelectField label="Subject (Optional)" value={formData.subjectId} onChange={(v) => setFormData({ ...formData, subjectId: v })} options={subjects} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <NumberField label="Week" value={formData.week} onChange={(v) => setFormData({ ...formData, week: v })} min={1} max={52} />
-        <NumberField label="Year" value={formData.year} onChange={(v) => setFormData({ ...formData, year: v })} />
-        <DateField label="Date" value={formData.date} onChange={(v) => setFormData({ ...formData, date: v })} required />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Effort Categories</label>
-        {formData.efforts.map((effort, index) => (
-          <div key={index} className="flex flex-col md:flex-row gap-2 mb-2 items-start md:items-center bg-gray-50 p-2 rounded-lg">
-            <span className="flex-1 text-sm font-medium">{EFFORT_CATEGORIES.find((c) => c.key === effort.category)?.label || effort.category}</span>
-            <select value={effort.rating} onChange={(e) => updateEffort(index, "rating", e.target.value)} className="w-20 px-3 py-2 border rounded-lg">
-              {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <input type="text" placeholder="Comment" value={effort.comment} onChange={(e) => updateEffort(index, "comment", e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" />
+      <AccordionSection title="Student & schedule" open>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SelectField label="Student" value={formData.studentId} onChange={(v) => setFormData({ ...formData, studentId: v })} options={students} required />
+          <SelectField label="Class" value={formData.classId} onChange={(v) => setFormData({ ...formData, classId: v })} options={classes} required />
+          <SelectField label="Subject (Optional)" value={formData.subjectId} onChange={(v) => setFormData({ ...formData, subjectId: v })} options={subjects} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <NumberField label="Week" value={formData.week} onChange={(v) => setFormData({ ...formData, week: v })} min={1} max={52} />
+          <NumberField label="Year" value={formData.year} onChange={(v) => setFormData({ ...formData, year: v })} />
+          <DateField label="Date" value={formData.date} onChange={(v) => setFormData({ ...formData, date: v })} required />
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title="Effort categories" open>
+        <div>
+          {formData.efforts.map((effort, index) => (
+            <div key={index} className="flex flex-col gap-2 mb-2 rounded-lg border border-gray-200 bg-gray-50 p-3 md:flex-row md:items-center">
+              <span className="flex-1 text-sm font-medium">{EFFORT_CATEGORIES.find((c) => c.key === effort.category)?.label || effort.category}</span>
+              <select value={effort.rating} onChange={(e) => updateEffort(index, "rating", e.target.value)} className="w-full md:w-20 px-3 py-2 border rounded-lg">
+                {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <input type="text" placeholder="Comment" value={effort.comment} onChange={(e) => updateEffort(index, "comment", e.target.value)} className="flex-1 px-3 py-2 border rounded-lg text-sm" />
+            </div>
+          ))}
+        </div>
+      </AccordionSection>
+
+      <AccordionSection title="Summary & feedback" open>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <RatingSelect label="Overall Effort" value={formData.overallEffort} onChange={(v) => setFormData({ ...formData, overallEffort: v })} />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Overall Comment</label>
+            <input type="text" value={formData.overallComment} onChange={(e) => setFormData({ ...formData, overallComment: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
           </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RatingSelect label="Overall Effort" value={formData.overallEffort} onChange={(v) => setFormData({ ...formData, overallEffort: v })} />
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Overall Comment</label>
-          <input type="text" value={formData.overallComment} onChange={(e) => setFormData({ ...formData, overallComment: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Strengths (comma separated)</label>
-          <input type="text" value={formData.strengths} onChange={(e) => setFormData({ ...formData, strengths: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="e.g. teamwork, creativity" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Strengths (comma separated)</label>
+            <input type="text" value={formData.strengths} onChange={(e) => setFormData({ ...formData, strengths: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="e.g. teamwork, creativity" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Improvement Areas (comma separated)</label>
+            <input type="text" value={formData.improvementAreas} onChange={(e) => setFormData({ ...formData, improvementAreas: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="e.g. focus, time management" />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Improvement Areas (comma separated)</label>
-          <input type="text" value={formData.improvementAreas} onChange={(e) => setFormData({ ...formData, improvementAreas: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="e.g. focus, time management" />
-        </div>
-      </div>
+      </AccordionSection>
+
       <FormButtons onCancel={onCancel} isEdit={!!editingItem} />
     </form>
   );
