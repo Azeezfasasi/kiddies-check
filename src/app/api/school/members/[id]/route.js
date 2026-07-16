@@ -18,7 +18,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const validRoles = ['school-leader', 'teacher', 'parent', 'staff'];
+    const validRoles = ['school-leader', 'learning-specialist', 'teacher', 'parent', 'staff'];
     const validStatuses = ['invited', 'active', 'inactive', 'removed'];
 
     // Build update object

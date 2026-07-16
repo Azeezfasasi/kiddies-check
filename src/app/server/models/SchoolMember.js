@@ -19,7 +19,7 @@ const schoolMemberSchema = new mongoose.Schema(
     // Role within the school
     role: {
       type: String,
-      enum: ['school-leader', 'teacher', 'parent', 'staff'],
+      enum: ['school-leader', 'learning-specialist', 'teacher', 'parent', 'staff'],
       required: [true, 'Role is required'],
     },
 
