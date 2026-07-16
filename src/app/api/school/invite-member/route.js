@@ -82,7 +82,7 @@ export async function POST(request) {
     }
 
     // Validate role
-    const validRoles = ['school-leader', 'teacher', 'parent', 'staff'];
+    const validRoles = ['school-leader', 'learning-specialist', 'teacher', 'parent', 'staff'];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { success: false, error: 'Invalid role' },
