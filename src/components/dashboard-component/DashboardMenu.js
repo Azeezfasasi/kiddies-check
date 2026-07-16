@@ -113,7 +113,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/schools',
       label: 'School Manager',
       icon: 'graduation',
-      roles: ['admin', 'school-leader'],
+      roles: ['admin', 'school-leader', 'learning-specialist'],
       children: [
         { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader'] },
         { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader'] },
@@ -134,7 +134,6 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
       ]
     },
-    // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', icon: 'graduation', roles: ['admin', 'learning-specialist', 'school-leader' ] },
     
     {
       href: '/dashboard/all-newsletter',

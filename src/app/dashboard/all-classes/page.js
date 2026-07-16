@@ -197,21 +197,23 @@ export default function AllClassesPage() {
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditClass(classData)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      Edit
-                    </button>
                     {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
-                    <button
-                      onClick={() => setDeleteConfirm(classData._id)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg font-medium transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
+                      <button
+                        onClick={() => handleEditClass(classData)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        Edit
+                      </button>
+                    )}
+                    {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+                      <button
+                        onClick={() => setDeleteConfirm(classData._id)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
                     )}
                   </div>
 

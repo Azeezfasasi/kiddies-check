@@ -9,6 +9,7 @@ const MEMBER_ROLES = [
   { value: 'school-leader', label: 'School Leader', color: 'bg-purple-100 text-purple-800' },
   { value: 'teacher', label: 'Teacher', color: 'bg-blue-100 text-blue-800' },
   { value: 'parent', label: 'Parent', color: 'bg-green-100 text-green-800' },
+  { value: 'learning-specialist', label: 'Learning Specialist', color: 'bg-yellow-100 text-yellow-800' },
   // { value: 'staff', label: 'Staff', color: 'bg-gray-100 text-gray-800' },
 ];
 
@@ -277,7 +278,7 @@ export default function InviteMemberPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'school-leader']}>
+    <ProtectedRoute allowedRoles={['admin', 'school-leader', 'learning-specialist']}>
       <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
           {/* Header */}
