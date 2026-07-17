@@ -181,6 +181,18 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/deleted-schools', label: 'Deleted Schools', roles: ['admin'] }
       ]
     },
+    {
+      href: '/dashboard/report-card-templates',
+      label: 'Report Card Templates',
+      icon: 'Delete',
+      roles: ['admin'],
+      children: [
+        { href: '/dashboard/nursery-report-card', label: 'Nursery', roles: ['admin'] },
+        { href: '/dashboard/primary-report-card', label: 'Primary', roles: ['admin'] },
+        { href: '/dashboard/junior-secondary-report-card', label: 'Junior Secondary', roles: ['admin'] },
+        { href: '/dashboard/senior-secondary-report-card', label: 'Senior Secondary', roles: ['admin'] }
+      ]
+    },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
     { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin'] },
     {
