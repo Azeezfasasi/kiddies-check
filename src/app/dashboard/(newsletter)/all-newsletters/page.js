@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Filter, Search, BarChart3, Archive } from 'lucide-react';
 import Link from 'next/link';
-import NewsletterCard from '../components/NewsletterCard';
-import Modal from '../components/Modal';
-import { useToast } from '../components/Toast';
+import NewsletterCard from '../../components/NewsletterCard';
+import Modal from '../../components/Modal';
+import { useToast } from '../../components/Toast';
 import { campaignAPI } from '@/utils/newsletter-api';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 

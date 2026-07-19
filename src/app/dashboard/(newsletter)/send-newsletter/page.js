@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { Send, Clock, Users, Sparkles } from 'lucide-react';
-import Modal from '../components/Modal';
-import { useToast } from '../components/Toast';
+import Modal from '../../components/Modal';
+import { useToast } from '../../components/Toast';
 import { campaignAPI } from '@/utils/newsletter-api';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 

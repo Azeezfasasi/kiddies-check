@@ -1,6 +1,6 @@
 import React from 'react'
 import PageTitle from '@/components/home-component/PageTitle'
-import AddBlogPage from '@/app/dashboard/add-blog/page'
+import AddBlogPage from '@/app/dashboard/(blog)/add-blog/page'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 
 export default function CreateBlogPage() {

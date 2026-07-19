@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { useAuth } from '../../../context/AuthContext'
+import { useAuth } from '@/context/AuthContext'
 import { Trash2, Eye, Reply, Search, Filter, ChevronLeft, ChevronRight, X, CheckCircle } from 'lucide-react'
 import { Commet } from "react-loading-indicators";
 

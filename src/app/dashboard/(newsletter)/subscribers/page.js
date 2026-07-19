@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Users, Plus, Upload, Download, Search, Filter } from 'lucide-react';
-import SubscriberRow from '../components/SubscriberRow';
-import Modal from '../components/Modal';
-import { useToast } from '../components/Toast';
+import SubscriberRow from '../../components/SubscriberRow';
+import Modal from '../../components/Modal';
+import { useToast } from '../../components/Toast';
 import { subscriberAPI, newsletterHelpers } from '@/utils/newsletter-api';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 

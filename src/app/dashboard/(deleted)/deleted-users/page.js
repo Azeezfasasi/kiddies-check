@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
