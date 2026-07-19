@@ -114,7 +114,7 @@ function FilledField({ label, value }) {
   );
 }
 
-export default function NurseryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "" }) {
+export default function NurseryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", schoolName = "", schoolLogo = "" }) {
   const childInfo = {
     name: data.childName || studentName || "",
     className: data.className || className || "",
@@ -128,6 +128,26 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
 
   return (
     <div className="mx-auto my-4 max-w-[850px] border border-gray-300 bg-white p-8 font-sans text-[13px] text-blue-900 shadow-lg print:my-0 print:p-4 print:shadow-none">
+      <div className="mb-4 flex items-center justify-between border-b border-blue-900/20 pb-3">
+        <div className="flex items-center gap-3">
+          {schoolLogo ? (
+            <img src={schoolLogo} alt="School logo" className="h-12 w-12 rounded-full border border-blue-900/20 object-cover" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-blue-900/20 bg-blue-50 text-sm font-semibold uppercase text-blue-900">
+              {schoolName ? schoolName.slice(0, 2) : "SC"}
+            </div>
+          )}
+          <div>
+            <div className="text-sm font-black uppercase tracking-wide text-blue-950">{schoolName || "School Name"}</div>
+            <div className="text-[10px] uppercase tracking-wide text-blue-800">Report Card</div>
+          </div>
+        </div>
+        <div className="text-right text-[10px] text-blue-800">
+          <div className="font-semibold uppercase">{childInfo.term || "Term"}</div>
+          <div>{childInfo.academicYear || "Academic Year"}</div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm font-semibold">
         <FilledField label="Name of Child" value={childInfo.name} />
         <div />

@@ -133,6 +133,9 @@ export default function ReportCardsPage() {
     }
   };
 
+  const schoolName = user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
+  const schoolLogo = user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
+
   const ActionButtons = ({ card }) => (
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => startEdit(card)} className="flex-1 min-w-[72px] rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 sm:flex-none">
@@ -223,6 +226,8 @@ export default function ReportCardsPage() {
                 teacher={downloadCard.nurseryData?.teacher || ""}
                 term={downloadCard.term}
                 academicYear={downloadCard.academicYear}
+                schoolName={schoolName}
+                schoolLogo={schoolLogo}
               />
             ) : (
               <PrimaryReportCard
@@ -232,6 +237,8 @@ export default function ReportCardsPage() {
                 teacher={downloadCard.primaryData?.teacher || ""}
                 term={downloadCard.term}
                 academicYear={downloadCard.academicYear}
+                schoolName={schoolName}
+                schoolLogo={schoolLogo}
               />
             )}
           </div>

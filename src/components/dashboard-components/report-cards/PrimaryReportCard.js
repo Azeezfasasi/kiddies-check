@@ -60,7 +60,7 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export default function PrimaryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", date = "" }) {
+export default function PrimaryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", date = "", schoolName = "", schoolLogo = "" }) {
   const childInfo = {
     name: data.childName || studentName || "",
     className: data.className || className || "",
@@ -101,6 +101,26 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
 
   return (
     <div className="mx-auto my-4 max-w-[850px] border border-gray-300 bg-white p-6 font-serif text-xs text-black shadow-lg print:my-0 print:p-4 print:shadow-none">
+      <div className="mb-4 flex items-center justify-between border-b border-gray-300 pb-3">
+        <div className="flex items-center gap-3">
+          {schoolLogo ? (
+            <img src={schoolLogo} alt="School logo" className="h-12 w-12 rounded-full border border-gray-300 object-cover" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-300 bg-gray-100 text-sm font-semibold uppercase text-gray-700">
+              {schoolName ? schoolName.slice(0, 2) : "SC"}
+            </div>
+          )}
+          <div>
+            <div className="text-sm font-black uppercase tracking-wide text-gray-900">{schoolName || "School Name"}</div>
+            <div className="text-[10px] uppercase tracking-wide text-gray-600">Report Card</div>
+          </div>
+        </div>
+        <div className="text-right text-[10px] text-gray-600">
+          <div className="font-semibold uppercase">{childInfo.term || "Term"}</div>
+          <div>{childInfo.year || "Academic Year"}</div>
+        </div>
+      </div>
+
       <div className="space-y-0.5 text-center font-bold uppercase tracking-wide">
         <h1 className="text-base">{childInfo.term}</h1>
         <h2>1. Attendance</h2>

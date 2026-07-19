@@ -288,6 +288,9 @@ export default function CreateReportCardPage() {
     }
   };
 
+  const schoolName = user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
+  const schoolLogo = user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
+
   if (loading) {
     return <div className="p-4 text-gray-600 sm:p-6">Loading school data...</div>;
   }
@@ -479,6 +482,8 @@ export default function CreateReportCardPage() {
                     teacher={formData.teacher}
                     term={formData.term}
                     academicYear={formData.academicYear}
+                    schoolName={schoolName}
+                    schoolLogo={schoolLogo}
                   />
                 ) : (
                   <PrimaryReportCard
@@ -488,6 +493,8 @@ export default function CreateReportCardPage() {
                     teacher={formData.teacher}
                     term={formData.term}
                     academicYear={formData.academicYear}
+                    schoolName={schoolName}
+                    schoolLogo={schoolLogo}
                   />
                 )}
               </div>
