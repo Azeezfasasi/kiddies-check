@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete  } from 'lucide-react';
+import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText  } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
 
 function Icon({ name }) {
@@ -75,6 +75,10 @@ function Icon({ name }) {
     case 'calendar':
       return (
         <Calendar className="w-5 h-5" />
+      )
+    case 'Report Cards':
+      return (
+        <BookOpenText className="w-5 h-5" />
       )
     default:
       return null
@@ -182,15 +186,13 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       ]
     },
     {
-      href: '/dashboard/report-card-templates',
-      label: 'Report Card Templates',
-      icon: 'Delete',
-      roles: ['admin'],
+      href: '/dashboard/report-cards',
+      label: 'Report Cards',
+      icon: 'Report Cards',
+      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
       children: [
-        { href: '/dashboard/nursery-report-card', label: 'Nursery', roles: ['admin'] },
-        { href: '/dashboard/primary-report-card', label: 'Primary', roles: ['admin'] },
-        { href: '/dashboard/junior-secondary-report-card', label: 'Junior Secondary', roles: ['admin'] },
-        { href: '/dashboard/senior-secondary-report-card', label: 'Senior Secondary', roles: ['admin'] }
+        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
       ]
     },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
