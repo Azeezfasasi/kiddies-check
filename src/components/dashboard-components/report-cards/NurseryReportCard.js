@@ -114,13 +114,15 @@ function FilledField({ label, value }) {
   );
 }
 
-export default function NurseryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", schoolName = "", schoolLogo = "" }) {
+export default function NurseryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", schoolName = "", logo = "", schoolLogo = "" }) {
   const childInfo = {
     name: data.childName || studentName || "",
     className: data.className || className || "",
     teacher: data.teacher || teacher || "",
     term: data.term || term || "",
     academicYear: data.academicYear || academicYear || "",
+    schoolName: data.schoolName || schoolName || "",
+    schoolLogo: data.schoolLogo || schoolLogo || "",
   };
 
   const reportData = data.ratingData?.length ? data.ratingData : defaultReportData;

@@ -92,6 +92,7 @@ export default function CreateReportCardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [school, setSchool] = useState(null);
   const previewRef = useRef(null);
 
   useEffect(() => {
@@ -105,12 +106,19 @@ export default function CreateReportCardPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const classesRes = await fetch(`/api/teacher/classes?schoolId=${schoolId}`, {
-          headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
-        });
+        const [classesRes, schoolRes] = await Promise.all([
+          fetch(`/api/teacher/classes?schoolId=${schoolId}`, {
+            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          }),
+          fetch(`/api/schools?id=${schoolId}`, {
+            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          }),
+        ]);
         const classesData = await classesRes.json();
+        const schoolData = await schoolRes.json();
 
         if (classesData?.classes) setClasses(classesData.classes);
+        if (schoolData?.data) setSchool(schoolData.data);
       } catch (error) {
         console.error(error);
       } finally {
@@ -288,8 +296,8 @@ export default function CreateReportCardPage() {
     }
   };
 
-  const schoolName = user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
-  const schoolLogo = user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
+  const schoolName = school?.name || user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
+  const schoolLogo = school?.logo || user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
 
   if (loading) {
     return <div className="p-4 text-gray-600 sm:p-6">Loading school data...</div>;

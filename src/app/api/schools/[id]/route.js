@@ -4,6 +4,37 @@ import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
 import { NextResponse } from "next/server";
 
+// GET /api/schools/:id - Get a single school
+export async function GET(req, { params }) {
+  return authenticate(req, async (user) => {
+    try {
+      await connectDB();
+
+      const { id } = await params;
+
+      if (!Types.ObjectId.isValid(id)) {
+        return NextResponse.json({ success: false, error: "Invalid school ID" }, { status: 400 });
+      }
+
+      const school = await School.findById(id)
+        .select(
+          "name email phone location model schoolType logo website description numberOfStudents numberOfTeachers approvalStatus isActive createdAt principal"
+        )
+        .populate({ path: "principal", select: "schoolLogo firstName lastName" })
+        .lean();
+
+      if (!school) {
+        return NextResponse.json({ success: false, error: "School not found" }, { status: 404 });
+      }
+
+      return NextResponse.json({ success: true, school }, { status: 200 });
+    } catch (error) {
+      console.error("School fetch error:", error);
+      return NextResponse.json({ success: false, error: error.message || "Failed to fetch school" }, { status: 500 });
+    }
+  });
+}
+
 // PUT /api/schools/:id - Update a school
 export async function PUT(req, { params }) {
   return authenticate(req, async (user) => {

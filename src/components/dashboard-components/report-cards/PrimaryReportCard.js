@@ -60,7 +60,7 @@ function toNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export default function PrimaryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", date = "", schoolName = "", schoolLogo = "" }) {
+export default function PrimaryReportCard({ data = {}, studentName = "", className = "", teacher = "", term = "", academicYear = "", date = "", schoolName = "", logo = "", schoolLogo = "" }) {
   const childInfo = {
     name: data.childName || studentName || "",
     className: data.className || className || "",
@@ -68,6 +68,8 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
     year: data.academicYear || academicYear || "",
     date: data.date || date || new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     term: data.term || term || "",
+    schoolName: data.schoolName || schoolName || "",
+    schoolLogo: data.schoolLogo || schoolLogo || "",
   };
 
   const attendanceRows = Array.isArray(data.attendance) && data.attendance.length ? data.attendance : defaultAttendanceData;

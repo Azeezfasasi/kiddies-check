@@ -21,6 +21,7 @@ export default function ReportCardsPage() {
   const [editForm, setEditForm] = useState({ term: "", academicYear: "", notes: "" });
   const [deletingId, setDeletingId] = useState("");
   const [downloadCard, setDownloadCard] = useState(null);
+  const [school, setSchool] = useState(null);
 
   useEffect(() => {
     const storedSchoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -33,7 +34,10 @@ export default function ReportCardsPage() {
     setLoading(true);
     try {
       const response = await fetch(`/api/report-cards?schoolId=${schoolId}&studentName=${studentName}&className=${className}&cardType=${cardType}`, {
-        headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+        headers: {
+          "x-user-id": user?._id || localStorage.getItem("userId") || "",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
       });
       const data = await response.json();
       if (data.success) {
@@ -49,13 +53,37 @@ export default function ReportCardsPage() {
     loadReports();
   }, [schoolId, studentName, className, cardType, token, user]);
 
+  useEffect(() => {
+    if (!schoolId || !token) return;
+
+    const loadSchool = async () => {
+      try {
+        const res = await fetch(`/api/schools/${schoolId}`, {
+          headers: {
+            "x-user-id": user?._id || localStorage.getItem("userId") || "",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        });
+        const data = await res.json();
+        if (data && data.success && data.school) setSchool(data.school);
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    loadSchool();
+  }, [schoolId, token, user]);
+
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this report card?")) return;
     setDeletingId(id);
     try {
       const response = await fetch(`/api/report-cards/${id}`, {
         method: "DELETE",
-        headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+        headers: {
+          "x-user-id": user?._id || localStorage.getItem("userId") || "",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || "Unable to delete report card");
@@ -80,6 +108,7 @@ export default function ReportCardsPage() {
         headers: {
           "Content-Type": "application/json",
           "x-user-id": user?._id || localStorage.getItem("userId") || "",
+          Authorization: token ? `Bearer ${token}` : "",
         },
         body: JSON.stringify({
           term: editForm.term,
@@ -133,8 +162,8 @@ export default function ReportCardsPage() {
     }
   };
 
-  const schoolName = user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
-  const schoolLogo = user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
+  const schoolName = school?.name || user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
+  const schoolLogo = school?.logo || user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
 
   const ActionButtons = ({ card }) => (
     <div className="flex flex-wrap gap-2">
