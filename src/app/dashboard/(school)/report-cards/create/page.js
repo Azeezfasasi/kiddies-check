@@ -289,21 +289,19 @@ export default function CreateReportCardPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-gray-600">Loading school data...</div>;
+    return <div className="p-4 text-gray-600 sm:p-6">Loading school data...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="mx-auto max-w-6xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Create Report Card</h1>
-            <p className="text-sm text-gray-600">Create a school-scoped report card for an enrolled student.</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 p-0 sm:p-6 overflow-x-hidden">
+      <div className="mx-auto max-w-6xl rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Create Report Card</h1>
+          <p className="text-sm text-gray-600">Create a school-scoped report card for an enrolled student.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Class</label>
               <select
@@ -334,7 +332,7 @@ export default function CreateReportCardPage() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="sm:col-span-2 md:col-span-1">
               <label className="mb-2 block text-sm font-medium text-gray-700">Card Type</label>
               <select value={cardType} onChange={(e) => setCardType(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2">
                 <option value="nursery">Nursery</option>
@@ -343,14 +341,14 @@ export default function CreateReportCardPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Teacher / Observer</label>
               <input value={formData.teacher || ""} onChange={(e) => handleChange("teacher", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Term</label>
               <input value={formData.term || ""} onChange={(e) => handleChange("term", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
@@ -363,13 +361,13 @@ export default function CreateReportCardPage() {
 
           {cardType === "nursery" ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Ratings</h2>
                 <div className="space-y-2">
                   {formData.ratingData?.map((item, index) => (
-                    <div key={`${item.label}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3">
+                    <div key={`${item.label}-${index}`} className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <span className="text-sm text-gray-700">{item.label}</span>
-                      <select value={item.rating || 0} onChange={(e) => handleNurseryRatingChange(index, Number(e.target.value))} className="rounded-lg border border-gray-300 px-3 py-2">
+                      <select value={item.rating || 0} onChange={(e) => handleNurseryRatingChange(index, Number(e.target.value))} className="w-full rounded-lg border border-gray-300 px-3 py-2 sm:w-auto">
                         <option value={0}>Excellent</option>
                         <option value={1}>Good</option>
                         <option value={2}>Fair</option>
@@ -380,7 +378,7 @@ export default function CreateReportCardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">General Comments</h2>
                 {formData.generalComments?.map((comment, index) => (
                   <textarea key={index} value={comment} onChange={(e) => {
@@ -393,12 +391,11 @@ export default function CreateReportCardPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Attendance</h2>
                 {formData.attendance?.map((row, index) => (
-                  <div key={row.label} className="mb-2 grid gap-3 md:grid-cols-4">
-                    {/* <span className="text-sm text-gray-700">{row.label}</span> */}
-                    <input value={row.label} onChange={(e) => { const next = [...formData.attendance]; next[index].label = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" />
+                  <div key={row.label} className="mb-3 grid gap-2 rounded-lg border border-gray-100 p-2 sm:mb-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">
+                    <input value={row.label} onChange={(e) => { const next = [...formData.attendance]; next[index].label = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2 md:col-span-1" />
                     <input value={row.school} onChange={(e) => { const next = [...formData.attendance]; next[index].school = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="School" />
                     <input value={row.sports} onChange={(e) => { const next = [...formData.attendance]; next[index].sports = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Sports" />
                     <input value={row.activities} onChange={(e) => { const next = [...formData.attendance]; next[index].activities = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Activities" />
@@ -406,21 +403,21 @@ export default function CreateReportCardPage() {
                 ))}
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Conduct</h2>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                   <input value={formData.conduct?.greenNumber || ""} onChange={(e) => handleChange("conduct.greenNumber", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Green number" />
                   <input value={formData.conduct?.redNumber || ""} onChange={(e) => handleChange("conduct.redNumber", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Red number" />
                   <input value={formData.conduct?.greenDeed || ""} onChange={(e) => handleChange("conduct.greenDeed", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Green deed" />
                   <input value={formData.conduct?.redDeed || ""} onChange={(e) => handleChange("conduct.redDeed", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Red deed" />
-                  <textarea value={formData.conduct?.comments || ""} onChange={(e) => handleChange("conduct.comments", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 md:col-span-2" rows={2} placeholder="Comments" />
-                  <textarea value={formData.conduct?.remarks || ""} onChange={(e) => handleChange("conduct.remarks", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 md:col-span-2" rows={2} placeholder="Remarks" />
+                  <textarea value={formData.conduct?.comments || ""} onChange={(e) => handleChange("conduct.comments", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2" rows={2} placeholder="Comments" />
+                  <textarea value={formData.conduct?.remarks || ""} onChange={(e) => handleChange("conduct.remarks", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2" rows={2} placeholder="Remarks" />
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Physical Development</h2>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                   <input value={formData.physical?.heightStart || ""} onChange={(e) => handleChange("physical.heightStart", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Height start" />
                   <input value={formData.physical?.heightEnd || ""} onChange={(e) => handleChange("physical.heightEnd", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Height end" />
                   <input value={formData.physical?.weightStart || ""} onChange={(e) => handleChange("physical.weightStart", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Weight start" />
@@ -432,12 +429,12 @@ export default function CreateReportCardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Subject Performance</h2>
                 <div className="space-y-2">
                   {formData.subjects?.map((subject, index) => (
-                    <div key={`${subject.subject}-${index}`} className="grid gap-3 md:grid-cols-4">
-                      <input value={subject.subject} onChange={(e) => handlePrimarySubjectChange(index, "subject", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" />
+                    <div key={`${subject.subject}-${index}`} className="grid gap-2 rounded-lg border border-gray-100 p-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">
+                      <input value={subject.subject} onChange={(e) => handlePrimarySubjectChange(index, "subject", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2 md:col-span-1" />
                       <input value={subject.continuousAssess} onChange={(e) => handlePrimarySubjectChange(index, "continuousAssess", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="CA" />
                       <input value={subject.testScore} onChange={(e) => handlePrimarySubjectChange(index, "testScore", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Test" />
                       <input value={subject.total} onChange={(e) => handlePrimarySubjectChange(index, "total", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Total" />
@@ -446,9 +443,9 @@ export default function CreateReportCardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Sports and Clubs</h2>
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <input value={formData.sports?.level || ""} onChange={(e) => handleChange("sports.level", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="Sports level" />
                     <textarea value={formData.sports?.comments || ""} onChange={(e) => handleChange("sports.comments", e.target.value)} className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} placeholder="Sports comments" />
@@ -467,46 +464,39 @@ export default function CreateReportCardPage() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-800">Printable preview</h2>
-                <p className="text-sm text-gray-600">The preview below is ready for saving. You can click on the Create Report Card button below.</p>
+          <div className="hidden lg:block rounded-xl border border-gray-200 bg-gray-50 p-3 sm:rounded-2xl sm:p-4">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Printable preview</h2>
+              <p className="text-sm text-gray-600">The preview below is ready for saving. You can click on the Create Report Card button below.</p>
+            </div>
+            <div ref={previewRef} className="-mx-3 overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 sm:mx-0">
+              <div className="min-w-[850px]">
+                {cardType === "nursery" ? (
+                  <NurseryReportCard
+                    data={formData}
+                    studentName={selectedStudent ? `${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() : ""}
+                    className={selectedClass?.name || formData.className || ""}
+                    teacher={formData.teacher}
+                    term={formData.term}
+                    academicYear={formData.academicYear}
+                  />
+                ) : (
+                  <PrimaryReportCard
+                    data={formData}
+                    studentName={selectedStudent ? `${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() : ""}
+                    className={selectedClass?.name || formData.className || ""}
+                    teacher={formData.teacher}
+                    term={formData.term}
+                    academicYear={formData.academicYear}
+                  />
+                )}
               </div>
-              {/* <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={handleDownloadPdf} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                  Download as PDF
-                </button>
-                <button type="button" onClick={() => window.print()} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                  Print preview
-                </button>
-              </div> */}
             </div>
-            <div ref={previewRef} className="overflow-x-auto rounded-xl border border-gray-200 bg-white p-2">
-              {cardType === "nursery" ? (
-                <NurseryReportCard
-                  data={formData}
-                  studentName={selectedStudent ? `${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() : ""}
-                  className={selectedClass?.name || formData.className || ""}
-                  teacher={formData.teacher}
-                  term={formData.term}
-                  academicYear={formData.academicYear}
-                />
-              ) : (
-                <PrimaryReportCard
-                  data={formData}
-                  studentName={selectedStudent ? `${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() : ""}
-                  className={selectedClass?.name || formData.className || ""}
-                  teacher={formData.teacher}
-                  term={formData.term}
-                  academicYear={formData.academicYear}
-                />
-              )}
-            </div>
+            <p className="mt-2 text-xs text-gray-400 sm:hidden">Scroll sideways to see the full preview.</p>
           </div>
 
-          <div className="flex justify-end">
-            <button type="submit" disabled={saving} className="rounded-lg bg-blue-600 px-5 py-2.5 text-white hover:bg-blue-700 disabled:opacity-60">
+          <div className="flex justify-center sm:justify-end">
+            <button type="submit" disabled={saving} className="w-full rounded-lg bg-blue-600 px-5 py-2.5 text-white hover:bg-blue-700 disabled:opacity-60 sm:w-auto">
               {saving ? "Saving..." : "Create report card"}
             </button>
           </div>
