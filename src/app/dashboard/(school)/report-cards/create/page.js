@@ -8,6 +8,7 @@ import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import NurseryReportCard from "@/components/dashboard-components/report-cards/NurseryReportCard";
 import PrimaryReportCard from "@/components/dashboard-components/report-cards/PrimaryReportCard";
+import { Commet } from "react-loading-indicators";
 
 const nurseryTemplate = {
   childName: "",
@@ -300,7 +301,11 @@ export default function CreateReportCardPage() {
   const schoolLogo = school?.logo || user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
 
   if (loading) {
-    return <div className="p-4 text-gray-600 sm:p-6">Loading school data...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen py-12">
+        <p className="text-gray-600"><Commet color="#155dfc" size="medium" text="Loading" textColor="#155dfc" /></p>
+      </div>
+    );
   }
 
   return (

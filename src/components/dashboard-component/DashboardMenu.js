@@ -135,7 +135,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/all-subjects', label: 'Subjects', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
         { href: '/dashboard/student-assessments', label: 'Student Learning Data', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
         { href: '/dashboard/mark-attendance', label: 'Mark Attendance', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
+        // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
       ]
     },
     
@@ -186,7 +186,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       ]
     },
     {
-      href: '/dashboard/report-cards',
+      href: '/dashboard/teacher-report-cards',
       label: 'Report Cards',
       icon: 'Report Cards',
       roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],

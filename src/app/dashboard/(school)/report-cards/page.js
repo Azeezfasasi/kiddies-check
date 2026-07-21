@@ -8,6 +8,7 @@ import { jsPDF } from "jspdf";
 import NurseryReportCard from "@/components/dashboard-components/report-cards/NurseryReportCard";
 import PrimaryReportCard from "@/components/dashboard-components/report-cards/PrimaryReportCard";
 import Link from "next/link";
+import { Commet } from "react-loading-indicators";
 
 export default function ReportCardsPage() {
   const { user, token } = useAuth();
@@ -165,6 +166,8 @@ export default function ReportCardsPage() {
   const schoolName = school?.name || user?.schoolName || user?.school || localStorage.getItem("schoolName") || "School Name";
   const schoolLogo = school?.logo || user?.schoolLogo || localStorage.getItem("schoolLogo") || "";
 
+  // add if not 
+
   const ActionButtons = ({ card }) => (
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => startEdit(card)} className="flex-1 min-w-[72px] rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 sm:flex-none">
@@ -274,7 +277,10 @@ export default function ReportCardsPage() {
         )}
 
         {loading ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600">Loading report cards...</div>
+          // <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600">Loading report cards...</div>
+          <div className="flex justify-center items-center py-12">
+            <p className="text-gray-600"><Commet color="#155dfc" size="medium" text="Loading" textColor="#155dfc" /></p>
+          </div>
         ) : reportCards.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600">No report cards found for this school.</div>
         ) : (
