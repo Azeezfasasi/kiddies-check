@@ -105,7 +105,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: ['admin', 'learning-specialist'] }
       ]
     },
-    { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
+    // { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/my-children', label: 'My Children', icon: 'dashboard', roles: ['parent'] },
     { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin'] },
     { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin'] },
