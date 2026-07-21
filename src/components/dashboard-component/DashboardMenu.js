@@ -191,8 +191,8 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'Report Cards',
       roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
       children: [
-        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
-        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin'] },
+        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin'] },
       ]
     },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
