@@ -189,7 +189,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/teacher-report-cards',
       label: 'Report Cards',
       icon: 'Report Cards',
-      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
+      roles: ['admin'],
       children: [
         { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin'] },
         { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin'] },
