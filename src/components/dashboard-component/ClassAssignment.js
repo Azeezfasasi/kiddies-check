@@ -192,9 +192,9 @@ export default function ClassAssignment() {
       ) : (
         <>
           {/* Table for medium+ screens */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
             <table className="w-full table-auto border-collapse">
-              <thead>
+              <thead className="bg-blue-100 border-b">
                 <tr className="text-left">
                   <th className="p-2">Class</th>
                   <th className="p-2">Current Teacher</th>
