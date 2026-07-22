@@ -92,7 +92,9 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+export default isDevelopment ? nextConfig : withPWA({
   dest: 'public',
   register: '/register-sw.js',
   skipWaiting: true,

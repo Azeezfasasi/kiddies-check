@@ -1,12 +1,16 @@
 "use client"
 import '../../app/../globals.css'
 import React, { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import DashboardHeader from "@/components/dashboard-component/DashboardHeader"
 import DashboardMenu from "@/components/dashboard-component/DashboardMenu"
-import FloatingAIChat from "@/components/FloatingAIChat"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { useAuth } from "@/context/AuthContext"
-import SliderMassage from "@/components/home-component/SliderMassage"
+
+const FloatingAIChat = dynamic(() => import("@/components/FloatingAIChat"), {
+  ssr: false,
+  loading: () => null,
+})
 
 // This is a client layout so we can manage sidebar collapse state.
 export default function DashboardLayout({ children }) {

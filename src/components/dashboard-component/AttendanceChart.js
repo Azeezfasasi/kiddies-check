@@ -28,6 +28,7 @@ export default function AttendanceChart({
     attendanceRate: 0,
     previousAttendanceRate: 0,
   });
+  const [classBreakdown, setClassBreakdown] = useState([]);
 
   useEffect(() => {
     const sid = schoolId || localStorage.getItem("schoolId");
@@ -90,7 +91,36 @@ export default function AttendanceChart({
           },
         ].filter(item => item.value > 0);
 
+        const breakdownByClass = records.reduce((acc, record) => {
+          const className = record.student?.class?.name || record.className || "Unassigned";
+          const key = className;
+          if (!acc[key]) {
+            acc[key] = {
+              className: key,
+              present: 0,
+              late: 0,
+              absent: 0,
+              total: 0,
+            };
+          }
+
+          acc[key].total += 1;
+          if (record.status === "present") acc[key].present += 1;
+          else if (record.status === "late") acc[key].late += 1;
+          else if (record.status === "absent") acc[key].absent += 1;
+
+          return acc;
+        }, {});
+
+        const classBreakdownData = Object.values(breakdownByClass)
+          .map((item) => ({
+            ...item,
+            attendanceRate: item.total > 0 ? Math.round(((item.present + item.late) / item.total) * 100) : 0,
+          }))
+          .sort((a, b) => b.total - a.total);
+
         setAttendanceData(chartData);
+        setClassBreakdown(classBreakdownData);
         setStats({
           totalRecords: total,
           presentCount: present,
@@ -356,6 +386,36 @@ export default function AttendanceChart({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Class Breakdown */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold text-gray-800">Attendance Breakdown by Class</p>
+          <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">Grouped by class</span>
+        </div>
+
+        {classBreakdown.length > 0 ? (
+          <div className="space-y-3">
+            {classBreakdown.map((item, index) => (
+              <div key={`${item.className}-${index}`} className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">{item.className}</p>
+                    <p className="text-xs text-gray-500">{item.total} records • {item.attendanceRate}% attendance</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Present {item.present}</span>
+                    <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Late {item.late}</span>
+                    <span className="rounded-full bg-red-50 px-2 py-1 text-red-700">Absent {item.absent}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No class-level data available for the selected date range.</p>
+        )}
       </div>
 
       {/* Legend Reference */}

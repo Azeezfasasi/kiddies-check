@@ -24,42 +24,47 @@ export default function FloatingAIChat({
   // Load token from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Clear old cache since data structure changed
-      sessionStorage.removeItem('ai_context_cache');
-      sessionStorage.removeItem('ai_context_cache_time');
-      
       const storedToken = localStorage.getItem('token');
       setToken(storedToken);
     }
   }, []);
 
-  // Fetch context data when token is available
+  // Load AI context only when the chat is opened, so dashboard pages stay light
   useEffect(() => {
-    if (!token) {
-      setContextLoading(false);
+    if (!isOpen || !token) {
+      if (!token) {
+        setContextLoading(false);
+      }
       return;
+    }
+
+    const cachedContext = sessionStorage.getItem('ai_context_cache');
+    const cachedTime = sessionStorage.getItem('ai_context_cache_time');
+
+    if (cachedContext && cachedTime) {
+      try {
+        setContextData(JSON.parse(cachedContext));
+        setContextLoading(false);
+        return;
+      } catch (error) {
+        console.error('Failed to parse cached AI context:', error);
+      }
     }
 
     const fetchContext = async () => {
       try {
+        setContextLoading(true);
         const headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         };
 
-        // Add cache busting to ensure fresh data
         const response = await fetch(`/api/ai/context?t=${Date.now()}`, {
           headers,
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log('AI context loaded:', {
-            studentsCount: data.students?.length,
-            teachersCount: data.teachers?.length,
-            parentsCount: data.parents?.length,
-          });
-          // Cache the context
           sessionStorage.setItem('ai_context_cache', JSON.stringify(data));
           sessionStorage.setItem('ai_context_cache_time', Date.now().toString());
           setContextData(data);
@@ -70,7 +75,6 @@ export default function FloatingAIChat({
           const errorData = await response.json().catch(() => ({}));
           console.error('Error response:', errorData);
           
-          // If 401, token might be invalid - clear it
           if (response.status === 401) {
             console.warn('Token appears invalid, clearing from localStorage');
             localStorage.removeItem('token');
@@ -85,7 +89,7 @@ export default function FloatingAIChat({
     };
 
     fetchContext();
-  }, [token]);
+  }, [isOpen, token]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

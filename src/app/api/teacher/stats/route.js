@@ -50,13 +50,81 @@ export async function GET(req) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
       }
 
-      // Get all classes taught by this teacher
+      // Get all classes taught by this teacher (field name is `classTeacher` in the model)
       const classes = await Class.find({
-        teacher: user._id,
+        classTeacher: user._id,
         school: schoolObjectId,
       }).lean();
 
-      const classIds = classes.map((c) => c._id);
+      // Debug logging to help diagnose empty results in development
+      if (process.env.NODE_ENV !== "production") {
+        try {
+          const classIds = classes.map((c) => c._id);
+          console.debug("TeacherStats debug:", {
+            userId: user._id?.toString(),
+            role: user.role,
+            classesFound: classes.length,
+            classIds: classIds,
+          });
+        } catch (e) {
+          console.debug("TeacherStats debug failed to stringify classes", e.message);
+        }
+      }
+
+      // Fallbacks: if no classes found via `classTeacher`, try legacy `teacher` field
+      // and then try subjects taught by the teacher (subjects -> classes mapping).
+      let effectiveClasses = classes;
+      let fallbackUsed = null;
+
+      if (classes.length === 0) {
+        // Try legacy `teacher` field
+        const legacyClasses = await Class.find({
+          $or: [{ teacher: user._id }, { teacher: user._id?.toString() }],
+          school: schoolObjectId,
+        }).lean();
+
+        if (legacyClasses.length > 0) {
+          effectiveClasses = legacyClasses;
+          fallbackUsed = "legacy_teacher_field";
+        }
+      }
+
+      if (effectiveClasses.length === 0) {
+        // Try subjects taught by this teacher, then collect classes referenced by those subjects
+        const subjects = await Subject.find({ school: schoolObjectId, teacher: user._id }).lean();
+        const classIdsFromSubjects = subjects.flatMap((s) => s.classes || []);
+        if (classIdsFromSubjects.length > 0) {
+          const classesFromSubjects = await Class.find({ _id: { $in: classIdsFromSubjects }, school: schoolObjectId }).lean();
+          if (classesFromSubjects.length > 0) {
+            effectiveClasses = classesFromSubjects;
+            fallbackUsed = "subjects_to_classes";
+          }
+        }
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("TeacherStats fallback:", { fallbackUsed, effectiveCount: effectiveClasses.length });
+      }
+
+      // If we still have no classes for this teacher, dump a small sample of classes
+      // in the school so we can inspect their `classTeacher` values in the server log.
+      if (effectiveClasses.length === 0 && process.env.NODE_ENV !== "production") {
+        try {
+          const sampleClasses = await Class.find({ school: schoolObjectId })
+            .limit(10)
+            .select("name classTeacher")
+            .lean();
+          console.debug(
+            "TeacherStats sample classes:",
+            sampleClasses.map((c) => ({ id: c._id?.toString(), name: c.name, classTeacher: c.classTeacher }))
+          );
+        } catch (e) {
+          console.debug("TeacherStats sample classes failed:", e.message);
+        }
+      }
+
+      // Replace classes and classIds for the rest of the computation
+      const classIds = effectiveClasses.map((c) => c._id);
 
       // Fetch stats in parallel
       const [studentsInClasses, subjectsTeaching, assessmentsCreated] =
@@ -73,7 +141,7 @@ export async function GET(req) {
 
       const stats = {
         totalStudents: studentsInClasses,
-        classesTeaching: classes.length,
+        classesTeaching: effectiveClasses.length,
         subjectsTeaching: subjectsTeaching,
         assessmentsCreated: assessmentsCreated,
         assessmentRate: parseFloat(assessmentRate),

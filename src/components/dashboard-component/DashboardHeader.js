@@ -78,7 +78,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
           <div className="flex items-center gap-4">
             {/* Notification Button */}
-            {user?.role === (['admin', 'learning-specialist']) && (
+            {['admin', 'learning-specialist'].includes(user?.role) && (
             <button 
               aria-label="Notifications"
               onClick={() => setNotificationOpen(true)}
@@ -96,7 +96,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
             )}
 
             {/* Notification Modal */}
-            {user?.role === (['admin']) && (
+            {user?.role === 'admin' && (
               <NotificationModal 
                 isOpen={notificationOpen}
                 onClose={() => setNotificationOpen(false)}

@@ -1,16 +1,45 @@
 "use client";
 import React from "react";
-import DashboardStats from "@/components/dashboard-component/DashboardStats";
-import SchoolLeaderStats from "@/components/dashboard-component/SchoolLeaderStats";
-import TeacherStats from "@/components/dashboard-component/TeacherStats";
-import DashboardWelcome from "@/components/dashboard-component/DashboardWelcome";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
-import QuoteChart from "@/components/dashboard-component/QuoteChart";
-import UserChart from "@/components/dashboard-component/UserChart";
-import PerformanceChart from "@/components/dashboard-component/PerformaceChart";
-import AttendanceChart from "@/components/dashboard-component/AttendanceChart";
+import SchoolBaseAttendanceChat from "@/components/dashboard-component/SchoolBaseAttendanceChat";
+
+const DashboardWelcome = dynamic(() => import("@/components/dashboard-component/DashboardWelcome"), {
+  ssr: false,
+  loading: () => <div className="h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const DashboardStats = dynamic(() => import("@/components/dashboard-component/DashboardStats"), {
+  ssr: false,
+  loading: () => <div className="mt-6 h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const SchoolLeaderStats = dynamic(() => import("@/components/dashboard-component/SchoolLeaderStats"), {
+  ssr: false,
+  loading: () => <div className="mt-6 h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const TeacherStats = dynamic(() => import("@/components/dashboard-component/TeacherStats"), {
+  ssr: false,
+  loading: () => <div className="mt-6 h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const PerformanceChart = dynamic(() => import("@/components/dashboard-component/PerformaceChart"), {
+  ssr: false,
+  loading: () => <div className="h-80 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const AttendanceChart = dynamic(() => import("@/components/dashboard-component/AttendanceChart"), {
+  ssr: false,
+  loading: () => <div className="h-80 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
+const UserChart = dynamic(() => import("@/components/dashboard-component/UserChart"), {
+  ssr: false,
+  loading: () => <div className="h-80 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
 
 export default function Dashboard() {
   const { isAuthenticated, loading } = useAuth();
@@ -45,9 +74,20 @@ export default function Dashboard() {
         </div>
         </>
       ) : user?.role === 'school-leader' ? (
-        <SchoolLeaderStats />
+        <>
+          <SchoolLeaderStats />
+          <SchoolBaseAttendanceChat />
+        </>
       ) : user?.role === 'teacher' ? (
-        <TeacherStats />
+        <>
+          <TeacherStats />
+          <SchoolBaseAttendanceChat />
+        </>
+      ) : user?.role === 'learning-specialist' ? (
+        <>
+          <SchoolLeaderStats />
+          <SchoolBaseAttendanceChat />
+        </>
       ) : null}
     </>
   );

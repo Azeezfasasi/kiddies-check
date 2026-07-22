@@ -4,7 +4,12 @@ import { useEffect } from 'react';
 
 export default function PWARegister() {
   useEffect(() => {
-    // Check if service workers are supported
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+
+    if (isDevelopment) {
+      return;
+    }
+
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker
@@ -18,24 +23,12 @@ export default function PWARegister() {
       });
     }
 
-    // Listen for app updates
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('Service Worker updated');
-        // Optional: Show notification to user about update
       });
     }
 
-    // Handle app being installed
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
-      console.log('beforeinstallprompt event fired');
-      // Show install button if desired
-    });
-
-    // Listen for online/offline events
     window.addEventListener('online', () => {
       console.log('App is online');
       window.location.reload();

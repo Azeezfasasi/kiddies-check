@@ -1,5 +1,6 @@
 import Attendance from "@/app/server/models/Attendance";
 import Student from "@/app/server/models/Student";
+import Class from "@/app/server/models/Class";
 import User from "@/app/server/models/User";
 import School from "@/app/server/models/School";
 import ActivityLog from "@/app/server/models/ActivityLog";
@@ -157,7 +158,11 @@ export async function GET(req) {
     }
 
     let attendanceQuery = Attendance.find(query)
-      .populate("student", "firstName lastName enrollmentNo qrCode")
+      .populate({
+        path: "student",
+        select: "firstName lastName enrollmentNo qrCode class",
+        populate: { path: "class", select: "name" },
+      })
       .populate("markedBy", "firstName lastName role")
       .sort({ date: -1, createdAt: -1 });
 

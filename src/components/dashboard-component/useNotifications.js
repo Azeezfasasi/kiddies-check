@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 
 const useNotifications = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,9 @@ const useNotifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        if (!token) {
+        if (!token || !['admin', 'learning-specialist'].includes(user?.role)) {
+          setNotifications([]);
+          setUnreadCount(0);
           setLoading(false);
           return;
         }
@@ -79,10 +81,10 @@ const useNotifications = () => {
 
     fetchNotifications();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Refresh less aggressively to avoid unnecessary network traffic
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, user?.role]);
 
   return {
     notifications,

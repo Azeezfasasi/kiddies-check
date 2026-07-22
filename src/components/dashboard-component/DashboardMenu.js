@@ -122,6 +122,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader'] },
         { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader'] },
         { href: '/dashboard/school-parents', label: 'Parent List', roles: ['admin', 'school-leader'] },
+        { href: '/dashboard/assign-class', label: 'Class Assignment', roles: ['admin', 'school-leader', 'learning-specialist'] },
       ]
     },
     {

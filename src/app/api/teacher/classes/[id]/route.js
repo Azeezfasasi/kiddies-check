@@ -2,6 +2,7 @@ import Class from "@/app/server/models/Class";
 import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
+import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 
@@ -58,7 +59,8 @@ export async function PUT(req, { params }) {
     const userId = req.headers.get("x-user-id");
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = await params;
-    const { name, level, section, classTeacher, numberOfStudents, description, isActive, subjects } = await req.json();
+    const body = await req.json();
+    const { name, level, section, classTeacher, numberOfStudents, description, isActive, subjects } = body;
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -104,21 +106,59 @@ export async function PUT(req, { params }) {
       }
     }
 
+    // Allow explicit unassignment: if request includes `classTeacher` (even null or empty), apply it.
+    const updatePayload = {
+      name: name || classData.name,
+      level: level || classData.level,
+      section: section || classData.section,
+      numberOfStudents: numberOfStudents !== undefined ? numberOfStudents : classData.numberOfStudents,
+      description: description || classData.description,
+      subjects: subjects !== undefined ? subjects : classData.subjects,
+      isActive: isActive !== undefined ? isActive : classData.isActive,
+    };
+
+    if (Object.prototype.hasOwnProperty.call(body, 'classTeacher')) {
+      // If client sent an explicit classTeacher (could be empty string), set accordingly
+      updatePayload.classTeacher = classTeacher && classTeacher !== "" ? classTeacher : null;
+    } else {
+      updatePayload.classTeacher = classData.classTeacher;
+    }
+
     const updatedClass = await Class.findByIdAndUpdate(
       id,
-      {
-        name: name || classData.name,
-        level: level || classData.level,
-        section: section || classData.section,
-        classTeacher: classTeacher || classData.classTeacher,
-        numberOfStudents: numberOfStudents !== undefined ? numberOfStudents : classData.numberOfStudents,
-        description: description || classData.description,
-        subjects: subjects !== undefined ? subjects : classData.subjects,
-        isActive: isActive !== undefined ? isActive : classData.isActive,
-      },
+      updatePayload,
       { new: true }
     ).populate("classTeacher", "firstName lastName email")
       .populate("subjects", "name code");
+
+    // Audit log: record assignment changes when classTeacher differs
+    try {
+      const prevTeacherId = classData.classTeacher ? classData.classTeacher.toString() : null;
+      const newTeacher = updatedClass.classTeacher ? (updatedClass.classTeacher._id ? updatedClass.classTeacher : null) : null;
+      const newTeacherId = newTeacher ? newTeacher._id.toString() : null;
+
+      if (prevTeacherId !== newTeacherId) {
+        await ActivityLog.create({
+          user: userId,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: schoolId,
+          action: "update",
+          entityType: "class",
+          entityId: id,
+          entityName: updatedClass.name,
+          description: `Class teacher changed from ${prevTeacherId || 'Unassigned'} to ${newTeacherId || 'Unassigned'}`,
+          changes: {
+            before: { classTeacher: prevTeacherId },
+            after: { classTeacher: newTeacherId },
+          },
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to create ActivityLog for class assignment:", e.message);
+    }
 
     return Response.json(
       { message: "Class updated successfully", class: updatedClass },
