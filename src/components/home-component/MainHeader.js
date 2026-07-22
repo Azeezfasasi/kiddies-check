@@ -106,7 +106,7 @@ export default function MainHeader() {
           {/* Logo */}
           <div className="flex items-center gap-3 p-1">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/kiddieschecklogo.png" alt="KiddiesCheck" width={170} height={50} className="w-[120px] md:w-[150px] block rounded-md" />
+              <Image src="/kiddieschecklogo.png" alt="KiddiesCheck" width={170} height={50} priority className="w-[120px] md:w-[150px] block rounded-md" />
             </Link>
           </div>
 

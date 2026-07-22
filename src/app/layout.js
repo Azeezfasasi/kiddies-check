@@ -58,8 +58,13 @@ export const metadata = {
   alternates: {
     canonical: baseUrl,
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
-  themeColor: '#1f2937',
+}
+
+export function generateViewport() {
+  return {
+    viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover',
+    themeColor: '#1f2937',
+  };
 }
 
 export default function RootLayout({ children }) {
@@ -70,7 +75,7 @@ export default function RootLayout({ children }) {
         <link rel="canonical" href={baseUrl} />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="KiddiesCheck" />
-        <meta name="theme-color" content="#1f2937" />
+        
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/png" href="/kid.png" />
