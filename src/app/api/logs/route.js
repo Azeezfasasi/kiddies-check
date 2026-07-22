@@ -29,9 +29,9 @@ export async function GET(req) {
       );
     }
 
-    // Verify user is admin or school-leader
+    // Verify user is admin, school-leader, or learning-specialist
     const user = await User.findById(userId);
-    if (!user || !["admin", "school-leader"].includes(user.role)) {
+    if (!user || !["admin", "school-leader", "learning-specialist"].includes(user.role)) {
       return NextResponse.json(
         { success: false, error: "Insufficient permissions" },
         { status: 403 }

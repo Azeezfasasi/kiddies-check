@@ -138,6 +138,31 @@ export async function PUT(req, { params }) {
       const newTeacherId = newTeacher ? newTeacher._id.toString() : null;
 
       if (prevTeacherId !== newTeacherId) {
+        // Try to resolve user names for better audit descriptions
+        let prevLabel = prevTeacherId || null;
+        let newLabel = newTeacherId || null;
+        try {
+          if (prevTeacherId) {
+            const prevUser = await User.findById(prevTeacherId).select("firstName lastName email");
+            if (prevUser) prevLabel = `${prevUser.firstName || ''} ${prevUser.lastName || ''}`.trim() || prevUser.email || prevTeacherId;
+          }
+        } catch (e) {
+          // ignore resolution errors
+        }
+        try {
+          if (newTeacherId) {
+            // updatedClass.classTeacher is populated where possible
+            if (updatedClass.classTeacher && (updatedClass.classTeacher.firstName || updatedClass.classTeacher.lastName)) {
+              newLabel = `${updatedClass.classTeacher.firstName || ''} ${updatedClass.classTeacher.lastName || ''}`.trim() || updatedClass.classTeacher.email || newTeacherId;
+            } else {
+              const newUser = await User.findById(newTeacherId).select("firstName lastName email");
+              if (newUser) newLabel = `${newUser.firstName || ''} ${newUser.lastName || ''}`.trim() || newUser.email || newTeacherId;
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+
         await ActivityLog.create({
           user: userId,
           email: user.email,
@@ -149,10 +174,10 @@ export async function PUT(req, { params }) {
           entityType: "class",
           entityId: id,
           entityName: updatedClass.name,
-          description: `Class teacher changed from ${prevTeacherId || 'Unassigned'} to ${newTeacherId || 'Unassigned'}`,
+          description: `Class teacher changed from ${prevLabel || 'Unassigned'} to ${newLabel || 'Unassigned'}`,
           changes: {
-            before: { classTeacher: prevTeacherId },
-            after: { classTeacher: newTeacherId },
+            before: { classTeacher: prevTeacherId, classTeacherName: prevLabel || null },
+            after: { classTeacher: newTeacherId, classTeacherName: newLabel || null },
           },
         });
       }

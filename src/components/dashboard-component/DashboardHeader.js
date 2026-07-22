@@ -56,7 +56,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
             <button
               aria-label="Open menu"
               onClick={onToggleMobileMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 md:hidden"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 lg:hidden"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -66,13 +66,13 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
             <button
               aria-label="Toggle sidebar"
               onClick={onToggleSidebar}
-              className="hidden md:inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900"
+              className="hidden lg:inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900"
             >
               <ArrowRightLeft className="w-6 h-6" />
             </button>
 
-            <Link href="/" className="hidden md:flex items-center gap-3">
-              <Image src="/kiddieschecklogo.png" alt="Kiddies Check Logo" width={160} height={40} className="w-14 md:w-24 block rounded-lg p-1" />
+            <Link href="/" className="hidden lg:flex items-center gap-3">
+              <Image src="/kiddieschecklogo.png" alt="Kiddies Check Logo" width={160} height={40} className="w-14 lg:w-24 block rounded-lg p-1" />
             </Link>
           </div>
 
@@ -113,13 +113,13 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
             <div className="relative" ref={dropdownRef}>
               <button
-                className="flex items-center gap-1 md:gap-3 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                className="flex items-center gap-1 lg:gap-3 p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-900"
                 onClick={() => setDropdownOpen((open) => !open)}
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
               >
                 <div className="rounded-[50%] overflow-hidden">
-                  <Image src={avatar} alt="User avatar" width={62} height={62} className="object-cover h-7 md:h-10 w-7 md:w-10" />
+                  <Image src={avatar} alt="User avatar" width={62} height={62} className="object-cover h-7 lg:h-10 w-7 lg:w-10" />
                 </div>
                 <div className='hidden sm:flex flex-col items-start'>
                   <span className="hidden sm:block text-sm text-gray-700">{fullName || 'User'}</span>

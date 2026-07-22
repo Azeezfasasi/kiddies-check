@@ -12,6 +12,9 @@ export default function ClassAssignment() {
   const [saving, setSaving] = useState({});
   const [error, setError] = useState(null);
   const [pending, setPending] = useState({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [lastChanges, setLastChanges] = useState([]); // stack of {classId, className, before, after}
+  const [activityLogs, setActivityLogs] = useState([]);
 
   useEffect(() => {
     const sid = typeof window !== "undefined" && (localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId"));
@@ -56,6 +59,9 @@ export default function ClassAssignment() {
     // single-save convenience (also used by bulk save)
     setSaving((s) => ({ ...s, [classId]: true }));
     setError(null);
+    // capture previous value for undo
+    const clsBefore = classes.find(c => c._id === classId);
+    const prevTeacherId = clsBefore?.classTeacher?._id || null;
     try {
       const res = await fetch(`/api/teacher/classes/${classId}?schoolId=${schoolId}`, {
         method: "PUT",
@@ -76,6 +82,9 @@ export default function ClassAssignment() {
         delete copy[classId];
         return copy;
       });
+      // push to lastChanges for undo
+      const newTeacherId = json.class?.classTeacher?._id || null;
+      setLastChanges((s) => [{ classId, className: json.class.name, before: prevTeacherId, after: newTeacherId }, ...s].slice(0, 20));
       toast.success(`Saved assignment for ${json.class.name}`);
       return { success: true, class: json.class };
     } catch (err) {
@@ -88,24 +97,23 @@ export default function ClassAssignment() {
     }
   };
 
-  const handleSaveAll = async () => {
-    const entries = Object.entries(pending).filter(([, v]) => v !== null && v !== "" );
-    if (entries.length === 0) {
-      // also allow unassignments
-      const unassignEntries = Object.entries(pending).filter(([, v]) => v === null || v === "");
-      if (unassignEntries.length === 0) {
-        toast('No changes to save');
-        return;
-      }
-    }
-
-    // Prepare list of changed classes (including unassignments)
+  // open confirmation modal before saving
+  const handleSaveAll = () => {
     const changed = Object.entries(pending);
     if (changed.length === 0) {
       toast('No changes to save');
       return;
     }
+    setShowConfirm(true);
+  };
 
+  const doSaveAll = async () => {
+    setShowConfirm(false);
+    const changed = Object.entries(pending);
+    if (changed.length === 0) {
+      toast('No changes to save');
+      return;
+    }
     toast.loading('Saving changes...');
     const results = await Promise.all(
       changed.map(async ([classId, teacherId]) => {
@@ -119,7 +127,56 @@ export default function ClassAssignment() {
     } else {
       toast.error(`${failed.length} assignment(s) failed`);
     }
+    // refresh activity logs
+    fetchActivityLogs();
   };
+
+  const handleUndo = async () => {
+    if (lastChanges.length === 0) {
+      toast('Nothing to undo');
+      return;
+    }
+    const last = lastChanges[0];
+    // revert: set classTeacher back to before
+    const res = await handleAssign(last.classId, last.before);
+    if (res && res.success) {
+      setLastChanges((s) => s.slice(1));
+      toast.success(`Reverted ${last.className}`);
+      fetchActivityLogs();
+    }
+  };
+
+  const fetchActivityLogs = async () => {
+    if (!schoolId || !token) return;
+    try {
+      const res = await fetch(`/api/logs?type=activity&schoolId=${schoolId}&limit=10&days=14`, {
+        headers: { "x-user-id": user._id, Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        // filter class-related activity logs
+        const rawLogs = (json.data.activityLogs || []).filter(l => l.entityType === 'class');
+        // build quick staff map to replace ids with names in older logs
+        const staffMap = (staff || []).reduce((acc, s) => { acc[s._id] = s; return acc; }, {});
+        const idRegex = /\b[0-9a-fA-F]{24}\b/g;
+        const logs = rawLogs.map((l) => {
+          if (l.description && staff && staff.length > 0) {
+            const replaced = l.description.replace(idRegex, (m) => {
+              const s = staffMap[m];
+              return s ? `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email || m : m;
+            });
+            return { ...l, description: replaced };
+          }
+          return l;
+        });
+        setActivityLogs(logs);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => { fetchActivityLogs(); }, [schoolId, token, user?._id]);
 
   return (
     <section className="p-0 md:p-6">
@@ -180,6 +237,25 @@ export default function ClassAssignment() {
             </table>
           </div>
 
+          {/* Activity logs panel (md+) */}
+          <div className="hidden md:block md:ml-6 md:w-80 mt-6">
+            <h3 className="text-lg font-semibold mb-2">Recent Assignment Logs</h3>
+            <div className="space-y-2 max-h-40 md:max-h-96 overflow-auto">
+              {activityLogs.length === 0 && <div className="text-sm text-gray-500">No recent assignment logs.</div>}
+              {activityLogs.map((log) => (
+                <div key={log._id} className="p-3 bg-white rounded border shadow-sm">
+                  <div className="text-sm text-gray-700 font-medium">{log.entityName}</div>
+                  <div className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleString()}</div>
+                  <div className="text-sm mt-1">{log.description}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button className="px-3 py-2 bg-yellow-500 text-white rounded" onClick={handleUndo} disabled={lastChanges.length===0}>Undo Last</button>
+              <button className="px-3 py-2 bg-gray-200 rounded" onClick={fetchActivityLogs}>Refresh</button>
+            </div>
+          </div>
+
           {/* Card layout for small screens */}
           <div className="md:hidden space-y-3">
             {classes.map((cls) => (
@@ -234,6 +310,53 @@ export default function ClassAssignment() {
               Reset Changes
             </button>
           </div>
+
+           {/* Activity logs panel for small screens */}
+          <div className="md:hidden mt-12">
+            <h3 className="text-lg font-semibold mb-2">Recent Assignment Logs</h3>
+            <div className="space-y-2 max-h-96 overflow-auto">
+              {activityLogs.length === 0 && <div className="text-sm text-gray-500">No recent assignment logs.</div>}
+              {activityLogs.map((log) => (
+                <div key={log._id} className="p-3 bg-white rounded border shadow-sm">
+                  <div className="text-sm text-gray-700 font-medium">{log.entityName}</div>
+                  <div className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleString()}</div>
+                  <div className="text-sm mt-1">{log.description}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button className="px-3 py-2 bg-yellow-500 text-white rounded" onClick={handleUndo} disabled={lastChanges.length===0}>Undo Last</button>
+              <button className="px-3 py-2 bg-gray-200 rounded" onClick={fetchActivityLogs}>Refresh</button>
+            </div>
+          </div>
+
+
+          {/* Confirmation Modal */}
+          {showConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+              <div className="bg-white rounded p-6 w-11/12 max-w-lg">
+                <h3 className="text-lg font-semibold mb-3">Confirm Save All</h3>
+                <p className="text-sm text-gray-600 mb-3">You are about to save the following changes:</p>
+                <div className="max-h-56 overflow-auto mb-4">
+                  <ul className="space-y-2">
+                    {Object.entries(pending).map(([cid, tid]) => {
+                      const cls = classes.find(c => c._id === cid);
+                      const staffMember = staff.find(s => s._id === tid) || null;
+                      return (
+                        <li key={cid} className="text-sm">
+                          <span className="font-medium">{cls?.name || cid}</span>: {staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : 'Unassigned'}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button className="px-3 py-1 rounded bg-gray-200" onClick={() => setShowConfirm(false)}>Cancel</button>
+                  <button className="px-3 py-1 rounded bg-indigo-600 text-white" onClick={doSaveAll}>Confirm Save</button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </section>
