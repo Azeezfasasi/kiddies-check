@@ -104,11 +104,10 @@ const defaultComments = [
 
 function FilledField({ label, value }) {
   return (
-    <div className="flex items-end">
+    <div className="flex items-center gap-6">
       <span className="whitespace-nowrap">{label}:</span>
-      <div className="relative ml-2 w-full">
-        <div className="border-b border-blue-900 h-5" />
-        <span className="absolute bottom-0.5 left-1 text-sm font-normal text-blue-900">{value}</span>
+      <div className="flex-1 border-b border-blue-900 pb-2 pt-1 text-sm font-normal text-blue-900 min-h-[1.85rem]">
+        <span className="inline-block leading-tight">{value || "\u00A0"}</span>
       </div>
     </div>
   );
@@ -150,6 +149,7 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
         </div>
       </div>
 
+      {/* Student Info section */}
       <div className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm font-semibold">
         <FilledField label="Name of Child" value={childInfo.name} />
         <div />
@@ -157,6 +157,7 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
         <FilledField label="Teacher / Observer" value={childInfo.teacher} />
       </div>
 
+      {/* Instruction section */}
       <div className="mt-6 mb-2 flex items-end justify-between">
         <div className="flex items-center gap-1 font-semibold text-blue-900">
           Instruction: Please tick (
@@ -166,6 +167,7 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
         <div className="pr-2 text-2xl font-black uppercase tracking-wider text-blue-950">Ratings</div>
       </div>
 
+      {/* Report table */}
       <div className="overflow-hidden border-2 border-blue-900">
         <div className="grid grid-cols-12 border-b-2 border-blue-900 bg-blue-900 text-white">
           <div className="col-span-8 p-2 text-xs font-semibold uppercase tracking-wide">Assessment Area</div>
@@ -214,7 +216,7 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 mb-4">
         <div className="mb-3 flex items-center justify-between text-sm font-semibold">
           <h3 className="text-base font-black uppercase tracking-wide text-blue-950">General comments</h3>
           <div className="text-xs text-blue-800">
@@ -223,7 +225,7 @@ export default function NurseryReportCard({ data = {}, studentName = "", classNa
           </div>
         </div>
         {generalComments.map((line, i) => (
-          <div key={`${line}-${i}`} className="mt-6 border-b-2 border-blue-900 pb-0.5 text-sm font-normal">
+          <div key={`${line}-${i}`} className="mt-6 border-b-2 border-blue-900 pb-2 text-sm font-normal">
             {line}
           </div>
         ))}
