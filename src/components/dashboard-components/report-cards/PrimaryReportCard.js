@@ -94,6 +94,13 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
   };
 
   const subjectPerformance = Array.isArray(data.subjects) && data.subjects.length ? data.subjects : defaultSubjectPerformance;
+  const subjectsCount = subjectPerformance.length || 1;
+
+  const averagePercent = (key) => {
+    const sum = subjectPerformance.reduce((s, item) => s + toNumber(item[key]), 0);
+    const avg = subjectsCount ? sum / subjectsCount : 0;
+    return Number.isFinite(avg) ? `${Math.round(avg * 100) / 100}%` : "0%";
+  };
   const sportsData = {
     level: data.sports?.level ?? defaultSportsData.level,
     comments: data.sports?.comments ?? defaultSportsData.comments,
@@ -275,7 +282,7 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
                   {subject.continuousAssess}
                 </td>
               ))}
-              <td className="text-center font-bold">{subjectPerformance.reduce((sum, item) => sum + toNumber(item.continuousAssess), 0)}</td>
+              <td className="text-center font-bold">{averagePercent("continuousAssess")}</td>
             </tr>
             <tr className="h-7 border-b border-black text-left">
               <td className="border-r-2 border-black px-2 font-bold italic text-[11px]">Sum. Test Scores (If any)</td>
@@ -285,7 +292,7 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
                   {subject.testScore}
                 </td>
               ))}
-              <td className="text-center font-bold">{subjectPerformance.reduce((sum, item) => sum + toNumber(item.testScore), 0)}</td>
+              <td className="text-center font-bold">{averagePercent("testScore")}</td>
             </tr>
             <tr className="h-7 bg-gray-50/50 text-left">
               <td className="border-r-2 border-black px-2 font-bold">Total (Weighted Average)</td>
@@ -295,7 +302,7 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
                   {subject.total}
                 </td>
               ))}
-              <td className="text-center font-bold">{subjectPerformance.reduce((sum, item) => sum + toNumber(item.total), 0)}</td>
+              <td className="text-center font-bold">{averagePercent("total")}</td>
             </tr>
           </tbody>
         </table>

@@ -451,8 +451,8 @@ export default function CreateReportCardPage() {
                   {formData.subjects?.map((subject, index) => (
                     <div key={`${subject.subject}-${index}`} className="grid gap-2 rounded-lg border border-gray-100 p-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">
                       <input value={subject.subject} onChange={(e) => handlePrimarySubjectChange(index, "subject", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2 md:col-span-1" />
-                      <input value={subject.continuousAssess} onChange={(e) => handlePrimarySubjectChange(index, "continuousAssess", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="CA" />
-                      <input value={subject.testScore} onChange={(e) => handlePrimarySubjectChange(index, "testScore", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Test" />
+                      <input value={subject.continuousAssess} onChange={(e) => handlePrimarySubjectChange(index, "continuousAssess", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="CA/Test" />
+                      <input value={subject.testScore} onChange={(e) => handlePrimarySubjectChange(index, "testScore", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Exam" />
                       <input value={subject.total} onChange={(e) => handlePrimarySubjectChange(index, "total", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Total" />
                     </div>
                   ))}
