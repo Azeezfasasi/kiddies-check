@@ -105,10 +105,13 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
 
       if (response.ok) {
         const data = await response.json();
+        const switchedSchool = data.data?.school || {};
         localStorage.setItem('schoolId', schoolId);
-        setCurrentSchool(data.data.school);
+        localStorage.setItem('schoolName', switchedSchool.name || '');
+        localStorage.setItem('schoolLogo', switchedSchool.logo || switchedSchool.schoolLogo || '');
+        setCurrentSchool(switchedSchool);
         setIsOpen(false);
-        toast.success(`Switched to ${data.data.school.name}`);
+        toast.success(`Switched to ${switchedSchool.name || 'the selected school'}`);
         onSchoolSwitch?.(schoolId);
         
         // Reload page to update all data

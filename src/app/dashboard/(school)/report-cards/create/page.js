@@ -109,17 +109,27 @@ export default function CreateReportCardPage() {
       try {
         const [classesRes, schoolRes] = await Promise.all([
           fetch(`/api/teacher/classes?schoolId=${schoolId}`, {
-            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+            headers: {
+              "x-user-id": user?._id || localStorage.getItem("userId") || "",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
           }),
-          fetch(`/api/schools?id=${schoolId}`, {
-            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          fetch(`/api/schools/${schoolId}`, {
+            headers: {
+              "x-user-id": user?._id || localStorage.getItem("userId") || "",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
           }),
         ]);
         const classesData = await classesRes.json();
         const schoolData = await schoolRes.json();
 
         if (classesData?.classes) setClasses(classesData.classes);
-        if (schoolData?.data) setSchool(schoolData.data);
+        if (schoolData?.success && schoolData.school) {
+          setSchool(schoolData.school);
+        } else if (schoolData?.data) {
+          setSchool(schoolData.data);
+        }
       } catch (error) {
         console.error(error);
       } finally {

@@ -70,6 +70,8 @@ export async function POST(request) {
             name: school.name,
             email: school.email,
             location: school.location,
+            logo: school.logo || school.schoolLogo || '',
+            schoolLogo: school.logo || school.schoolLogo || '',
           },
         },
       },
