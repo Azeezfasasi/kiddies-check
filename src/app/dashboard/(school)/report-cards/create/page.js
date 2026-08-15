@@ -86,6 +86,7 @@ export default function CreateReportCardPage() {
   const [schoolId, setSchoolId] = useState("");
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [schoolSubjects, setSchoolSubjects] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [cardType, setCardType] = useState("nursery");
@@ -93,6 +94,7 @@ export default function CreateReportCardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [studentsLoading, setStudentsLoading] = useState(false);
+  const [syncingAssessments, setSyncingAssessments] = useState(false);
   const [school, setSchool] = useState(null);
   const previewRef = useRef(null);
 
@@ -146,54 +148,128 @@ export default function CreateReportCardPage() {
     if (!selectedClassId) {
       setStudents([]);
       setSelectedStudentId("");
+      setSchoolSubjects([]);
       return;
     }
 
-    const loadStudents = async () => {
+    const loadStudentsAndSubjects = async () => {
       setStudentsLoading(true);
       try {
-        const studentsRes = await fetch(`/api/teacher/students?schoolId=${schoolId}&classId=${selectedClassId}`, {
-          headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
-        });
+        const [studentsRes, subjectsRes] = await Promise.all([
+          fetch(`/api/teacher/students?schoolId=${schoolId}&classId=${selectedClassId}`, {
+            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          }),
+          fetch(`/api/teacher/subjects?schoolId=${schoolId}&classId=${selectedClassId}`, {
+            headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          }),
+        ]);
         const studentsData = await studentsRes.json();
+        const subjectsData = await subjectsRes.json();
 
-        if (studentsData?.data) {
-          setStudents(studentsData.data);
-        } else {
-          setStudents([]);
-        }
+        setStudents(studentsData?.data || []);
+        setSchoolSubjects(subjectsData?.subjects || []);
         setSelectedStudentId("");
       } catch (error) {
         console.error(error);
         setStudents([]);
+        setSchoolSubjects([]);
       } finally {
         setStudentsLoading(false);
       }
     };
 
-    loadStudents();
+    loadStudentsAndSubjects();
   }, [schoolId, selectedClassId, token, user]);
 
   useEffect(() => {
     if (cardType === "nursery") {
       setFormData((prev) => ({ ...nurseryTemplate, ...prev, ratingData: prev.ratingData?.length ? prev.ratingData : defaultNurseryQuestions.map((q) => ({ ...q, rating: 0 })), generalComments: prev.generalComments?.length ? prev.generalComments : ["", "", ""] }));
     } else {
-      setFormData((prev) => ({
-        ...primaryTemplate,
-        ...prev,
-        attendance: prev.attendance?.length ? prev.attendance : [
-          { label: "No. of Times School Opened/Activities Held", school: "", sports: "", activities: "" },
-          { label: "No. of Times Present", school: "", sports: "", activities: "" },
-          { label: "No. of Times Punctual", school: "", sports: "", activities: "" },
-        ],
-        subjects: prev.subjects?.length ? prev.subjects : defaultPrimarySubjects.map((subject) => ({ subject, continuousAssess: "", testScore: "", total: "" })),
-        clubs: prev.clubs?.length ? prev.clubs : [{ organization: "", office: "", contribution: "" }, { organization: "", office: "", contribution: "" }],
-      }));
+      const subjectRows = schoolSubjects.length
+        ? schoolSubjects.map((s) => ({ subjectId: s._id, subject: s.name, continuousAssess: "", testScore: "", total: "" }))
+        : defaultPrimarySubjects.map((subject) => ({ subject, continuousAssess: "", testScore: "", total: "" }));
+      const schoolSubjectIds = schoolSubjects.map((s) => s._id).sort().join(",");
+
+      setFormData((prev) => {
+        const prevSubjectIds = (prev.subjects || []).map((s) => s.subjectId).filter(Boolean).sort().join(",");
+        const subjectsChanged = !prev.subjects?.length || (schoolSubjects.length > 0 && prevSubjectIds !== schoolSubjectIds);
+
+        return {
+          ...primaryTemplate,
+          ...prev,
+          attendance: prev.attendance?.length ? prev.attendance : [
+            { label: "No. of Times School Opened/Activities Held", school: "", sports: "", activities: "" },
+            { label: "No. of Times Present", school: "", sports: "", activities: "" },
+            { label: "No. of Times Punctual", school: "", sports: "", activities: "" },
+          ],
+          subjects: subjectsChanged ? subjectRows : prev.subjects,
+          clubs: prev.clubs?.length ? prev.clubs : [{ organization: "", office: "", contribution: "" }, { organization: "", office: "", contribution: "" }],
+        };
+      });
     }
-  }, [cardType]);
+    // Rebuild subject rows whenever the class's subject list changes, not on every formData edit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardType, schoolSubjects]);
 
   const selectedStudent = useMemo(() => students.find((student) => student._id === selectedStudentId) || null, [selectedStudentId, students]);
   const selectedClass = useMemo(() => classes.find((classItem) => classItem._id === selectedClassId) || null, [selectedClassId, classes]);
+
+  // Pre-fill CA / Exam / Total from recorded assessments once student, class, term and
+  // year are all selected. Only fills blank fields — never overwrites a teacher's edits.
+  useEffect(() => {
+    if (cardType === "nursery") return;
+    if (!schoolId || !selectedStudentId || !selectedClassId || !formData.term || !formData.academicYear) return;
+
+    const controller = new AbortController();
+
+    const syncFromAssessments = async () => {
+      setSyncingAssessments(true);
+      try {
+        const params = new URLSearchParams({
+          schoolId,
+          studentId: selectedStudentId,
+          term: formData.term,
+          academicYear: formData.academicYear,
+        });
+        const res = await fetch(`/api/report-cards/assessment-summary?${params.toString()}`, {
+          headers: { "x-user-id": user?._id || localStorage.getItem("userId") || "" },
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (!data?.success || !Array.isArray(data.subjects) || !data.subjects.length) return;
+
+        const bySubjectId = new Map(data.subjects.map((s) => [s.subjectId, s]));
+        let filledCount = 0;
+
+        setFormData((prev) => ({
+          ...prev,
+          subjects: (prev.subjects || []).map((row) => {
+            const summary = row.subjectId ? bySubjectId.get(row.subjectId) : null;
+            if (!summary) return row;
+
+            const next = { ...row };
+            if (!next.continuousAssess && summary.continuousAssess !== null) next.continuousAssess = String(summary.continuousAssess);
+            if (!next.testScore && summary.testScore !== null) next.testScore = String(summary.testScore);
+            if (!next.total && summary.total !== null) next.total = String(summary.total);
+            if (next.continuousAssess !== row.continuousAssess || next.testScore !== row.testScore || next.total !== row.total) filledCount += 1;
+            return next;
+          }),
+        }));
+
+        if (filledCount > 0) {
+          toast.success(`Synced ${filledCount} subject${filledCount === 1 ? "" : "s"} from recorded assessments`);
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") console.error(error);
+      } finally {
+        setSyncingAssessments(false);
+      }
+    };
+
+    syncFromAssessments();
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardType, schoolId, selectedStudentId, selectedClassId, formData.term, formData.academicYear]);
 
   const handleDownloadPdf = async () => {
     if (!previewRef.current) {
@@ -231,7 +307,7 @@ export default function CreateReportCardPage() {
 
       const studentName = selectedStudent ? `${selectedStudent.firstName || ""} ${selectedStudent.lastName || ""}`.trim() : "student";
       const safeName = studentName.replace(/[^a-zA-Z0-9-_ ]/g, "").trim() || "student";
-      pdf.save(`${cardType === "nursery" ? "nursery" : "primary"}-report-card-${safeName}.pdf`);
+      pdf.save(`${cardType}-report-card-${safeName}.pdf`);
       toast.success("PDF download started");
     } catch (error) {
       console.error(error);
@@ -284,6 +360,7 @@ export default function CreateReportCardPage() {
         academicYear: formData.academicYear,
         nurseryData: cardType === "nursery" ? formData : null,
         primaryData: cardType === "primary" ? formData : null,
+        secondaryData: cardType === "secondary" ? formData : null,
         status: "published",
       };
 
@@ -363,6 +440,7 @@ export default function CreateReportCardPage() {
               <select value={cardType} onChange={(e) => setCardType(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2">
                 <option value="nursery">Nursery</option>
                 <option value="primary">Primary</option>
+                <option value="secondary">Secondary</option>
               </select>
             </div>
           </div>
@@ -456,7 +534,13 @@ export default function CreateReportCardPage() {
               </div>
 
               <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
-                <h2 className="mb-3 text-lg font-semibold text-gray-800">Subject Performance</h2>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold text-gray-800">Subject Performance</h2>
+                  {syncingAssessments && (
+                    <span className="text-xs font-medium text-blue-600">Syncing from assessments…</span>
+                  )}
+                </div>
+                <p className="mb-3 -mt-2 text-xs text-gray-500">CA and Exam columns are pre-filled from this student&apos;s recorded assessments for the selected term — feel free to override any value.</p>
                 <div className="space-y-2">
                   {formData.subjects?.map((subject, index) => (
                     <div key={`${subject.subject}-${index}`} className="grid gap-2 rounded-lg border border-gray-100 p-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">

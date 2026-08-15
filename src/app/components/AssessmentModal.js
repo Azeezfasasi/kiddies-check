@@ -284,6 +284,7 @@ export default function AssessmentModal({
               <option value="assignment">Assignment</option>
               <option value="classwork">Classwork</option>
               <option value="test">Test</option>
+              <option value="exam">Exam</option>
               <option value="project">Project</option>
               <option value="participation">Participation</option>
             </select>

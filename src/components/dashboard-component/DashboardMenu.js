@@ -190,10 +190,20 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/teacher-report-cards',
       label: 'Report Cards',
       icon: 'Report Cards',
-      roles: ['admin'],
+      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
       children: [
-        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin'] },
-        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin'] },
+        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+      ]
+    },
+    {
+      href: '/dashboard/cbt-exams',
+      label: 'CBT Exams',
+      icon: 'Report Cards',
+      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
+      children: [
+        { href: '/dashboard/exams/create', label: 'Create Exam', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/exams', label: 'All Exams', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
       ]
     },
     { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },

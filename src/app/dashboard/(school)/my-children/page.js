@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown } from "lucide-react";
+import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown, FileText, GraduationCap } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
 import StudentNotebookGallery from "@/app/components/StudentNotebookGallery";
+import StudentReportCardsPanel from "@/app/components/StudentReportCardsPanel";
+import StudentExamResultsPanel from "@/app/components/StudentExamResultsPanel";
 
 export default function MyChildrenPage() {
   const router = useRouter();
@@ -17,6 +19,8 @@ export default function MyChildrenPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showReportCards, setShowReportCards] = useState(false);
+  const [showExamResults, setShowExamResults] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
   const [feedbackLoadingFeedback, setLoadingFeedback] = useState(false);
   const [expandedStudents, setExpandedStudents] = useState({});
@@ -73,6 +77,16 @@ export default function MyChildrenPage() {
   const handleViewStudent = (student) => {
     setSelectedStudent(student);
     setShowDetailsModal(true);
+  };
+
+  const handleViewReportCards = (student) => {
+    setSelectedStudent(student);
+    setShowReportCards(true);
+  };
+
+  const handleViewExamResults = (student) => {
+    setSelectedStudent(student);
+    setShowExamResults(true);
   };
 
   const toggleStudentExpand = (studentId) => {
@@ -230,6 +244,20 @@ export default function MyChildrenPage() {
                         <MessageSquare className="w-4 h-4" />
                         Feedback
                       </button>
+                      <button
+                        onClick={() => handleViewReportCards(student)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Report Cards
+                      </button>
+                      <button
+                        onClick={() => handleViewExamResults(student)}
+                        className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <GraduationCap className="w-4 h-4" />
+                        Exam Results
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -259,6 +287,30 @@ export default function MyChildrenPage() {
           initialFeedback={feedbackData}
           feedbackLoading={feedbackLoadingFeedback}
           onClose={() => setShowFeedback(false)}
+        />
+      )}
+
+      {/* Report Cards Panel Modal */}
+      {showReportCards && selectedStudent && (
+        <StudentReportCardsPanel
+          studentId={selectedStudent._id}
+          studentName={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
+          schoolId={activeSchoolId}
+          userId={userId}
+          schoolName={localStorage.getItem("schoolName") || ""}
+          schoolLogo={localStorage.getItem("schoolLogo") || ""}
+          onClose={() => setShowReportCards(false)}
+        />
+      )}
+
+      {/* Exam Results Panel Modal */}
+      {showExamResults && selectedStudent && (
+        <StudentExamResultsPanel
+          studentId={selectedStudent._id}
+          studentName={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
+          schoolId={activeSchoolId}
+          userId={userId}
+          onClose={() => setShowExamResults(false)}
         />
       )}
     </div>

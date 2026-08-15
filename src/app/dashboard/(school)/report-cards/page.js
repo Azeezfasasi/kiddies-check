@@ -117,6 +117,7 @@ export default function ReportCardsPage() {
           notes: editForm.notes,
           nurseryData: card.cardType === "nursery" ? card.nurseryData : undefined,
           primaryData: card.cardType === "primary" ? card.primaryData : undefined,
+          secondaryData: card.cardType === "secondary" ? card.secondaryData : undefined,
         }),
       });
       const data = await response.json();
@@ -245,6 +246,7 @@ export default function ReportCardsPage() {
             <option value="">All report card types</option>
             <option value="nursery">Nursery</option>
             <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
           </select>
         </div>
 
@@ -263,10 +265,10 @@ export default function ReportCardsPage() {
               />
             ) : (
               <PrimaryReportCard
-                data={downloadCard.primaryData || {}}
+                data={(downloadCard.cardType === "secondary" ? downloadCard.secondaryData : downloadCard.primaryData) || {}}
                 studentName={downloadCard.student ? `${downloadCard.student.firstName || ""} ${downloadCard.student.lastName || ""}`.trim() : ""}
                 className={downloadCard.class ? downloadCard.class.name : ""}
-                teacher={downloadCard.primaryData?.teacher || ""}
+                teacher={(downloadCard.cardType === "secondary" ? downloadCard.secondaryData : downloadCard.primaryData)?.teacher || ""}
                 term={downloadCard.term}
                 academicYear={downloadCard.academicYear}
                 schoolName={schoolName}

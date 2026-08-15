@@ -28,7 +28,7 @@ const reportCardSchema = new mongoose.Schema(
     },
     cardType: {
       type: String,
-      enum: ["nursery", "primary"],
+      enum: ["nursery", "primary", "secondary"],
       required: [true, "Card type is required"],
       index: true,
     },
@@ -53,6 +53,10 @@ const reportCardSchema = new mongoose.Schema(
       default: null,
     },
     primaryData: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    secondaryData: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },

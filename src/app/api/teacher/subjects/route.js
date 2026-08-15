@@ -1,4 +1,5 @@
 import Subject from "@/app/server/models/Subject";
+import Class from "@/app/server/models/Class";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
@@ -121,10 +122,17 @@ export async function GET(req) {
       .populate("teacher", "firstName lastName email")
       .sort({ name: 1 });
 
-    // Filter by class if provided
+    // Filter by class if provided. Class<->Subject is tracked on both sides of the
+    // relationship (Subject.classes and Class.subjects) depending on which screen assigned
+    // it, and the two aren't kept in sync — so a subject only linked via the class's own
+    // "subjects" list (the class edit form) would otherwise be missed here.
     let filtered = subjects;
     if (classId) {
-      filtered = subjects.filter((s) => s.classes.some((c) => c.toString() === classId));
+      const classDoc = await Class.findById(classId).select("subjects");
+      const classSubjectIds = new Set((classDoc?.subjects || []).map((subjectId) => subjectId.toString()));
+      filtered = subjects.filter(
+        (s) => s.classes.some((c) => c.toString() === classId) || classSubjectIds.has(s._id.toString())
+      );
     }
 
     return Response.json({ subjects: filtered }, { status: 200 });

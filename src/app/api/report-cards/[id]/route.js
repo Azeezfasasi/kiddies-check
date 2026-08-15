@@ -30,7 +30,7 @@ export async function GET(req, { params }) {
     await connectDB();
 
     const reportCard = await ReportCard.findById(id)
-      .populate({ path: "student", select: "firstName lastName enrollmentNo" })
+      .populate({ path: "student", select: "firstName lastName enrollmentNo parent" })
       .populate({ path: "class", select: "name level section" })
       .populate({ path: "createdBy", select: "firstName lastName role" });
 
@@ -39,7 +39,16 @@ export async function GET(req, { params }) {
     }
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, reportCard.school.toString()))) {
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+    }
+
+    if (user.role === "parent") {
+      const isOwnChild = reportCard.student?.parent?.toString() === userId;
+      if (!isOwnChild || reportCard.status !== "published") {
+        return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+      }
+    } else if (!(await canAccessSchool(user, reportCard.school.toString()))) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 
@@ -81,6 +90,8 @@ export async function PUT(req, { params }) {
 
     if (existing.cardType === "nursery") {
       payload.nurseryData = body.nurseryData || existing.nurseryData;
+    } else if (existing.cardType === "secondary") {
+      payload.secondaryData = body.secondaryData || existing.secondaryData;
     } else {
       payload.primaryData = body.primaryData || existing.primaryData;
     }

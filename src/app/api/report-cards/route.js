@@ -67,6 +67,7 @@ export async function POST(req) {
       status: body.status || "draft",
       nurseryData: body.cardType === "nursery" ? body.nurseryData || null : null,
       primaryData: body.cardType === "primary" ? body.primaryData || null : null,
+      secondaryData: body.cardType === "secondary" ? body.secondaryData || null : null,
       notes: body.notes || "",
     });
 
@@ -92,11 +93,23 @@ export async function GET(req) {
     await connectDB();
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, schoolId))) {
+    if (!user) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 
     const query = { school: schoolId };
+
+    if (user.role === "parent") {
+      const children = await Student.find({ parent: userId, school: schoolId }).select("_id");
+      if (!children.length) {
+        return NextResponse.json({ success: true, reportCards: [] }, { status: 200 });
+      }
+      query.student = { $in: children.map((c) => c._id) };
+      query.status = "published";
+    } else if (!(await canAccessSchool(user, schoolId))) {
+      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+    }
+
     if (cardType) query.cardType = cardType;
 
     const reportCards = await ReportCard.find(query)
