@@ -63,13 +63,13 @@ export default function DashboardLayout({ children }) {
 
   return (
     <ProtectedRoute allowedRoles={['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent']}>
-      <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-16">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         <DashboardHeader onToggleSidebar={toggleSidebar} onToggleMobileMenu={toggleMobileMenu} />
 
         <div className="flex">
           <DashboardMenu collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-          <main className="flex-1 p-3 md:p-6">{children}</main>
+          <main className="flex-1 p-3 md:p-6 h-screen overflow-y-auto pb-16 md:pb-16">{children}</main>
         </div>
 
         {/* Floating AI Chat - appears on all dashboard pages */}
