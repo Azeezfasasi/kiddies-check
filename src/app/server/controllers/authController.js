@@ -9,6 +9,7 @@ import LoginLog from "../models/LoginLog.js";
 import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
+import emailTemplates from "../templates/emailTemplates.js";
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -78,6 +79,18 @@ const sendEmailViaBrevo = async (toEmail, subject, htmlContent) => {
 // Generate JWT Token
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
+
+// Generate a strong random password (used when an admin resets a
+// password without supplying one themselves)
+const generateSecurePassword = (length = 12) => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  const bytes = crypto.randomBytes(length);
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
 };
 
 // 1. REGISTER - Create new user account
@@ -1013,12 +1026,17 @@ export const getAllUsers = async (req) => {
     const { searchParams } = new URL(req.url);
     const role = searchParams.get("role");
     const isActive = searchParams.get("isActive");
+    const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = parseInt(searchParams.get("limit")) || 10;
 
     let filter = { accountStatus: { $ne: "deleted" } }; // Exclude deleted users
     if (role) filter.role = role;
     if (isActive !== null) filter.isActive = isActive === "true";
+    if (search) {
+      const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      filter.$or = [{ firstName: regex }, { lastName: regex }, { email: regex }];
+    }
 
     const skip = (page - 1) * limit;
 
@@ -1252,9 +1270,9 @@ export const adminResetPassword = async (req, userId) => {
 
     const adminId = req.user?.id;
     const body = await req.json();
-    const { newPassword } = body;
+    const { newPassword: providedPassword } = body || {};
 
-    if (!newPassword || newPassword.length < 6) {
+    if (providedPassword && providedPassword.length < 6) {
       return NextResponse.json(
         {
           success: false,
@@ -1273,30 +1291,39 @@ export const adminResetPassword = async (req, userId) => {
       );
     }
 
+    // Auto-generate a strong password when the admin doesn't supply one
+    const newPassword = providedPassword || generateSecurePassword();
+
     user.password = newPassword;
     user.updatedBy = adminId;
     user.notes = user.notes ? user.notes + "\n" : "";
     user.notes += `Password reset by admin on ${new Date().toISOString()}`;
     await user.save();
 
-    // Send notification email
+    // Send notification email via Brevo (the SMTP transporter above isn't configured)
+    let emailSent = false;
+    let emailError = null;
     try {
-      await transporter.sendMail({
-        to: user.email,
-        subject: "Your Password Has Been Reset",
-        html: `<h2>Password Reset by Administrator</h2>
-               <p>Your password has been reset to: <strong>${newPassword}</strong></p>
-               <p>Please change this password immediately after logging in.</p>`,
-      });
+      await sendEmailViaBrevo(
+        user.email,
+        "Your Kiddies Check Password Has Been Changed",
+        emailTemplates.adminPasswordReset(user.firstName, newPassword)
+      );
+      emailSent = true;
     } catch (mailError) {
-      console.log("Email notification failed:", mailError.message);
+      console.error("Password reset email failed:", mailError.message);
+      emailError = mailError.message;
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: "User password reset successfully",
+        message: emailSent
+          ? "Password updated and emailed to the user"
+          : "Password updated, but the notification email failed to send",
         temporaryPassword: newPassword,
+        emailSent,
+        emailError: emailSent ? undefined : emailError,
       },
       { status: 200 }
     );

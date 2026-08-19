@@ -3,9 +3,10 @@ import { adminResetPassword } from "@/app/server/controllers/authController.js";
 
 // POST /api/users/[userId]/reset-password
 export async function POST(req, { params }) {
+  const { userId } = await params;
   return authenticate(req, async () => {
     return isAdmin(req, async () => {
-      return adminResetPassword(req, params.userId);
+      return adminResetPassword(req, userId);
     });
   });
 }

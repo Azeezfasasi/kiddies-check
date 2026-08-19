@@ -296,6 +296,52 @@ export const emailTemplates = {
       </body>
     </html>
   `,
+
+  // Admin Password Reset Notification
+  adminPasswordReset: (firstName, newPassword) => `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .password-box { background: white; border: 2px solid #1e40af; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
+          .password { font-size: 24px; font-weight: bold; color: #1e40af; letter-spacing: 2px; word-break: break-all; }
+          .footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+          .warning { background: #fef3c7; padding: 10px 15px; border-radius: 5px; margin-top: 15px; color: #92400e; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Your Password Has Been Changed</h2>
+          </div>
+          <div class="content">
+            <p>Hello ${firstName},</p>
+            <p>An administrator has changed the password on your KiddiesCheck account. Your new password is:</p>
+
+            <div class="password-box">
+              <div class="password">${newPassword}</div>
+            </div>
+
+            <div class="warning">
+              <strong>⚠️ Security Notice:</strong><br>
+              Please log in and change this password immediately. If you did not expect this change, contact your school administrator right away.
+            </div>
+
+            <hr>
+            <p><small>Best regards,<br><strong>KiddiesCheck Team</strong></small></p>
+          </div>
+          <div class="footer">
+            <p>© 2026 KiddiesCheck. All rights reserved.</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `,
 };
 
 export default emailTemplates;
