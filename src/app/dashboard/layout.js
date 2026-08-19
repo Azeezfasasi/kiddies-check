@@ -69,7 +69,7 @@ export default function DashboardLayout({ children }) {
         <div className="flex">
           <DashboardMenu collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-3 md:p-6">{children}</main>
         </div>
 
         {/* Floating AI Chat - appears on all dashboard pages */}

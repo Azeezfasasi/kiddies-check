@@ -190,8 +190,8 @@ export default function CreateExamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-4xl rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:rounded-2xl sm:p-6">
+    <div className="min-h-screen bg-gray-50 p-0 md:p-6 mx-auto md:mx-0">
+      <div className="mx-auto max-w-4xl rounded-xl border border-gray-200 bg-white shadow-sm sm:rounded-2xl p-2 md:p-4">
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Create CBT Exam</h1>
           <p className="text-sm text-gray-600">Build an objective exam. It's saved as a draft until you publish it.</p>
