@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search } from "lucide-react";
+import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search, ExternalLink, Info } from "lucide-react";
 import toast from "react-hot-toast";
 
 const statusStyles = {
@@ -11,6 +11,8 @@ const statusStyles = {
   published: "bg-green-100 text-green-700",
   closed: "bg-amber-100 text-amber-700",
 };
+
+const STUDENT_EXAM_URL = "https://kiddiescheck.org/cbt";
 
 export default function ExamsPage() {
   const router = useRouter();
@@ -129,6 +131,11 @@ export default function ExamsPage() {
     toast.success("Access code copied");
   };
 
+  const copyStudentLink = () => {
+    navigator.clipboard.writeText(STUDENT_EXAM_URL);
+    toast.success("Exam link copied");
+  };
+
   const totalPages = Math.max(1, Math.ceil(exams.length / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedExams = exams.slice(startIndex, startIndex + itemsPerPage);
@@ -144,6 +151,23 @@ export default function ExamsPage() {
           <Link href="/dashboard/exams/create" className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto">
             Create Exam
           </Link>
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+            <p className="text-sm text-blue-900">
+              Students take their exam at <span className="font-semibold">kiddiescheck.org/cbt</span> using the exam's access code. Share this link with students, then give them the access code once the exam is published.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button onClick={copyStudentLink} className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+              <Copy className="h-4 w-4" /> Copy link
+            </button>
+            <a href={STUDENT_EXAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+              <ExternalLink className="h-4 w-4" /> Open
+            </a>
+          </div>
         </div>
 
         <div className="mb-4 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-3">

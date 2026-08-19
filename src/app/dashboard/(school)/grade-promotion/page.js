@@ -21,9 +21,12 @@ import toast from "react-hot-toast";
 export default function GradePromotionPage() {
   const router = useRouter();
   const [token, setToken] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [schools, setSchools] = useState([]);
+  const [lockedSchoolName, setLockedSchoolName] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [academicSession, setAcademicSession] = useState("");
+  const [academicSessions, setAcademicSessions] = useState([]);
   const [classGroups, setClassGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -44,7 +47,23 @@ export default function GradePromotionPage() {
       return;
     }
     setToken(t);
-    fetchSchools(t);
+
+    const role = localStorage.getItem("userRole") || "";
+    setUserRole(role);
+    fetchAcademicSessions(t);
+
+    if (role === "admin") {
+      fetchSchools(t);
+    } else {
+      // School-leaders and learning-specialists can only act on their own
+      // school — lock the selection instead of offering every school.
+      const ownSchoolId =
+        localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+      if (ownSchoolId) {
+        setSelectedSchool(ownSchoolId);
+        lockToOwnSchool(t, ownSchoolId);
+      }
+    }
   }, [router]);
 
   const fetchSchools = async (t) => {
@@ -55,6 +74,39 @@ export default function GradePromotionPage() {
       const data = await res.json();
       if (data.success) {
         setSchools(data.schools || []);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const lockToOwnSchool = async (t, schoolId) => {
+    const cachedName = localStorage.getItem("schoolName");
+    if (cachedName) setLockedSchoolName(cachedName);
+    try {
+      const res = await fetch(`/api/schools/${schoolId}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = await res.json();
+      if (data.success && data.school?.name) {
+        setLockedSchoolName(data.school.name);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchAcademicSessions = async (t) => {
+    try {
+      const res = await fetch("/api/admin/academic-calendar", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const sessions = [...new Set((data.terms || []).map((term) => term.session))].sort(
+          (a, b) => b.localeCompare(a)
+        );
+        setAcademicSessions(sessions);
       }
     } catch (error) {
       console.error(error);
@@ -368,36 +420,49 @@ export default function GradePromotionPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     School <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={selectedSchool}
-                    onChange={(e) => {
-                      setSelectedSchool(e.target.value);
-                      setClassGroups([]);
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="">Select school</option>
-                    {schools.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  {userRole === "admin" ? (
+                    <select
+                      value={selectedSchool}
+                      onChange={(e) => {
+                        setSelectedSchool(e.target.value);
+                        setClassGroups([]);
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">Select school</option>
+                      {schools.map((s) => (
+                        <option key={s._id} value={s._id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="w-full border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-700">
+                      {lockedSchoolName || "Loading your school…"}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Academic Session <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 2026/2027"
+                  <select
                     value={academicSession}
                     onChange={(e) => {
                       setAcademicSession(e.target.value);
                       setClassGroups([]);
                     }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="">
+                      {academicSessions.length === 0 ? "No academic sessions configured" : "Select session"}
+                    </option>
+                    {academicSessions.map((session) => (
+                      <option key={session} value={session}>
+                        {session}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex items-end">
                   <button

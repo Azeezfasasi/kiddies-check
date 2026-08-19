@@ -9,11 +9,14 @@ import Student from "@/app/server/models/Student";
 import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
 import User from "@/app/server/models/User";
+import SchoolMember from "@/app/server/models/SchoolMember";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-const verifyAdmin = async (req) => {
+// School-leaders and learning-specialists may manage promotions, but only
+// admins get cross-school access — everyone else must be scoped below.
+const verifyAccess = async (req) => {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -26,14 +29,31 @@ const verifyAdmin = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist"].includes(user.role)) {
-      return { error: "Forbidden: Admin access required", status: 403 };
+    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+      return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 
     return { user };
   } catch (error) {
     return { error: "Unauthorized: Invalid token", status: 401 };
   }
+};
+
+// Admins can act on any school. Everyone else must be an active member of
+// that specific school (or have it as their primary/managed school) —
+// having the learning-specialist/school-leader role alone is not enough.
+const verifySchoolScope = async (user, schoolId) => {
+  if (user.role === "admin") return true;
+  if (user.schoolId && user.schoolId.toString() === schoolId) return true;
+  if (user.managedSchools?.some((id) => id.toString() === schoolId)) return true;
+
+  const membership = await SchoolMember.findOne({
+    user: user._id,
+    school: schoolId,
+    role: { $in: ["school-leader", "learning-specialist"] },
+    status: "active",
+  });
+  return !!membership;
 };
 
 /**
@@ -43,7 +63,7 @@ const verifyAdmin = async (req) => {
  */
 export async function GET(request) {
   try {
-    const auth = await verifyAdmin(request);
+    const auth = await verifyAccess(request);
     if (auth.error) {
       return Response.json(
         { success: false, message: auth.error },
@@ -63,6 +83,13 @@ export async function GET(request) {
     }
 
     await connectDB();
+
+    if (!(await verifySchoolScope(auth.user, schoolId))) {
+      return Response.json(
+        { success: false, message: "Forbidden: You do not have access to this school" },
+        { status: 403 }
+      );
+    }
 
     // Verify school exists
     const school = await School.findById(schoolId);
@@ -138,7 +165,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const auth = await verifyAdmin(request);
+    const auth = await verifyAccess(request);
     if (auth.error) {
       return Response.json(
         { success: false, message: auth.error },
@@ -157,6 +184,13 @@ export async function POST(request) {
     }
 
     await connectDB();
+
+    if (!(await verifySchoolScope(auth.user, schoolId))) {
+      return Response.json(
+        { success: false, message: "Forbidden: You do not have access to this school" },
+        { status: 403 }
+      );
+    }
 
     // Verify school exists
     const school = await School.findById(schoolId);

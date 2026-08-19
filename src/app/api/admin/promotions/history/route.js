@@ -9,11 +9,12 @@ import User from "@/app/server/models/User";
 import Student from "@/app/server/models/Student";
 import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
+import SchoolMember from "@/app/server/models/SchoolMember";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-const verifyAdmin = async (req) => {
+const verifyAccess = async (req) => {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -26,8 +27,8 @@ const verifyAdmin = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist"].includes(user.role)) {
-      return { error: "Forbidden: Admin access required", status: 403 };
+    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+      return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 
     return { user };
@@ -36,13 +37,29 @@ const verifyAdmin = async (req) => {
   }
 };
 
+// Admins can view history across every school. Everyone else must be
+// scoped to a specific school they actually belong to.
+const verifySchoolScope = async (user, schoolId) => {
+  if (user.role === "admin") return true;
+  if (user.schoolId && user.schoolId.toString() === schoolId) return true;
+  if (user.managedSchools?.some((id) => id.toString() === schoolId)) return true;
+
+  const membership = await SchoolMember.findOne({
+    user: user._id,
+    school: schoolId,
+    role: { $in: ["school-leader", "learning-specialist"] },
+    status: "active",
+  });
+  return !!membership;
+};
+
 /**
  * GET /api/admin/promotions/history
  * Query: ?schoolId=&academicSession=&classId=&page=&limit=
  */
 export async function GET(request) {
   try {
-    const auth = await verifyAdmin(request);
+    const auth = await verifyAccess(request);
     if (auth.error) {
       return Response.json(
         { success: false, message: auth.error },
@@ -58,6 +75,24 @@ export async function GET(request) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
+    // Non-admins must scope to a specific school they belong to — leaving
+    // schoolId off would otherwise return every school's promotion history.
+    if (!schoolId && auth.user.role !== "admin") {
+      return Response.json(
+        { success: false, message: "schoolId is required" },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    if (schoolId && !(await verifySchoolScope(auth.user, schoolId))) {
+      return Response.json(
+        { success: false, message: "Forbidden: You do not have access to this school" },
+        { status: 403 }
+      );
+    }
+
     const query = {};
     if (schoolId) query.school = schoolId;
     if (academicSession) query.academicSession = academicSession;
@@ -65,8 +100,6 @@ export async function GET(request) {
     if (classId) {
       query.$or = [{ fromClass: classId }, { toClass: classId }];
     }
-
-    await connectDB();
 
     const skip = (page - 1) * limit;
 

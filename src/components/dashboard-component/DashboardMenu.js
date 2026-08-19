@@ -112,7 +112,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/dashboard/prospective-students', label: 'Prospective Students', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader'] },
     { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin'] },
     { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin'] },
-    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin'] },
+    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin', 'learning-specialist', 'school-leader'] },
     {
       href: '/dashboard/schools',
       label: 'School Manager',

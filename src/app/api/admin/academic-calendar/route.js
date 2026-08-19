@@ -10,7 +10,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-// Helper: verify admin token
+// Helper: verify admin token (write access — creating/editing terms)
 const verifyAdmin = async (req) => {
   try {
     const authHeader = req.headers.get("authorization");
@@ -34,13 +34,39 @@ const verifyAdmin = async (req) => {
   }
 };
 
+// Helper: verify read access. The calendar is global/non-sensitive (just
+// term dates), so school-leaders can read it too — e.g. to populate an
+// academic session picker — even though they can't create/edit terms.
+const verifyRead = async (req) => {
+  try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return { error: "Unauthorized: Invalid token", status: 401 };
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    await connectDB();
+    const user = await User.findById(decoded.id);
+
+    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+      return { error: "Forbidden: Insufficient permissions", status: 403 };
+    }
+
+    return { user };
+  } catch (error) {
+    return { error: "Unauthorized: Invalid token", status: 401 };
+  }
+};
+
 /**
  * GET /api/admin/academic-calendar
  * List all academic calendar terms
  */
 export async function GET(request) {
   try {
-    const auth = await verifyAdmin(request);
+    const auth = await verifyRead(request);
     if (auth.error) {
       return Response.json(
         { success: false, message: auth.error },
