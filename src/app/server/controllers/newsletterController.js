@@ -1,4 +1,5 @@
 import { Subscriber, Campaign, Template, NewsletterActivityLog } from '../models/Newsletter.js';
+import User from '../models/User.js';
 import { connectDB } from '@/utils/db.js';
 import {
   sendEmailViaBrevo,
@@ -537,6 +538,47 @@ ${unsubscribeLink}
   }
 };
 
+// Send a one-off preview of the current draft to specific email address(es)
+// — does NOT require the recipients to be subscribers, and does not touch
+// campaign/subscriber state. Used for "test before sending".
+export const sendTestEmail = async ({ subject, content, htmlContent, testEmails }) => {
+  try {
+    const recipients = (testEmails || []).map(e => e.trim()).filter(Boolean);
+    if (recipients.length === 0) {
+      throw new Error('At least one test email address is required');
+    }
+
+    const body = htmlContent || content || '';
+    if (!body.trim()) {
+      throw new Error('Content is required to send a test email');
+    }
+
+    const result = await sendEmailViaBrevo({
+      to: recipients,
+      subject: `[TEST] ${subject || 'Newsletter Preview'}`,
+      htmlContent: `
+        <div style="background:#fef3c7;border:1px solid #f59e0b;padding:10px 15px;margin-bottom:15px;font-size:13px;color:#92400e;">
+          This is a test send — it was not recorded as sent to your subscriber list.
+        </div>
+        ${body}
+      `,
+      textContent: subject || 'Newsletter Preview',
+      tags: ['newsletter-test'],
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to send test email');
+    }
+
+    return {
+      success: true,
+      message: `Test email sent to ${recipients.join(', ')}`,
+    };
+  } catch (error) {
+    throw new Error(`Error sending test email: ${error.message}`);
+  }
+};
+
 export const scheduleCampaign = async (campaignId, scheduledFor, userId) => {
   try {
     await connectDB();
@@ -1003,6 +1045,63 @@ export const bulkImportSubscribers = async (subscribersData) => {
     };
   } catch (error) {
     throw new Error(`Error in bulk import: ${error.message}`);
+  }
+};
+
+// One-time/repeatable backfill: subscribe every existing website user
+// (registered before newsletter auto-subscribe existed, or created through
+// a path that doesn't call subscribeToNewsletter) without sending each of
+// them a "welcome" email — this is a sync, not a fresh signup.
+export const syncUsersToNewsletter = async () => {
+  try {
+    await connectDB();
+
+    const users = await User.find({
+      accountStatus: { $ne: 'deleted' },
+      email: { $exists: true, $ne: '' },
+    }).select('email firstName lastName');
+
+    const results = { synced: 0, alreadySubscribed: 0, failed: 0, errors: [] };
+
+    for (const user of users) {
+      try {
+        const email = user.email?.toLowerCase().trim();
+        if (!email) continue;
+
+        const existing = await Subscriber.findOne({ email });
+        if (existing) {
+          results.alreadySubscribed++;
+          continue;
+        }
+
+        const subscriber = new Subscriber({
+          email,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          tags: ['user'],
+          subscriptionStatus: 'active',
+        });
+        await subscriber.save();
+
+        await NewsletterActivityLog.create({
+          subscriberId: subscriber._id,
+          eventType: 'subscribed',
+        });
+
+        results.synced++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({ email: user.email, error: error.message });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Synced ${results.synced} user(s) to the newsletter (${results.alreadySubscribed} already subscribed, ${results.failed} failed)`,
+      results,
+    };
+  } catch (error) {
+    throw new Error(`Error syncing users to newsletter: ${error.message}`);
   }
 };
 

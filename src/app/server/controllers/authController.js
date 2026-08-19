@@ -10,6 +10,7 @@ import { connectDB } from "../db/connect.js";
 import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
 import emailTemplates from "../templates/emailTemplates.js";
+import { subscribeToNewsletter } from "./newsletterController.js";
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -206,6 +207,14 @@ export const register = async (req) => {
 
     const user = new User(userData);
     await user.save();
+
+    // Auto-subscribe every new user to the newsletter
+    try {
+      await subscribeToNewsletter({ email: user.email, firstName: user.firstName, lastName: user.lastName });
+    } catch (newsletterError) {
+      console.error("Error auto-subscribing user to newsletter:", newsletterError);
+      // Don't fail registration if newsletter subscription fails
+    }
 
     // Set as school principal if role is school-leader
     if (role === 'school-leader' && schoolRecord) {
@@ -577,6 +586,14 @@ export const createUserByAdmin = async (req) => {
       createdBy: req.user.id,
     });
     await user.save();
+
+    // Auto-subscribe every new user to the newsletter
+    try {
+      await subscribeToNewsletter({ email: user.email, firstName: user.firstName, lastName: user.lastName });
+    } catch (newsletterError) {
+      console.error("Error auto-subscribing user to newsletter:", newsletterError);
+      // Don't fail user creation if newsletter subscription fails
+    }
 
     // Generate token for user (optional, not returned to admin)
     // const token = generateToken(user._id);

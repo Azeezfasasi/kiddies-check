@@ -11,6 +11,7 @@ import {
   Briefcase,
   AlertCircle,
   Loader2,
+  School,
 } from "lucide-react";
 
 function AnimatedCount({ value = 0, duration = 800 }) {
@@ -74,6 +75,9 @@ function StatCard({ icon: Icon, label, value, color, loading }) {
 export default function SchoolLeaderStats() {
   const { user, token } = useAuth();
   const [stats, setStats] = useState(null);
+  const [schoolName, setSchoolName] = useState(
+    typeof window !== "undefined" ? localStorage.getItem("schoolName") || "" : ""
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -107,7 +111,22 @@ export default function SchoolLeaderStats() {
       }
     };
 
+    const fetchSchoolName = async () => {
+      try {
+        const response = await axios.get(`/api/schools/${schoolId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.data.success && response.data.school?.name) {
+          setSchoolName(response.data.school.name);
+          localStorage.setItem("schoolName", response.data.school.name);
+        }
+      } catch (err) {
+        console.error("Failed to fetch school name:", err);
+      }
+    };
+
     fetchStats();
+    fetchSchoolName();
     const interval = setInterval(fetchStats, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [schoolId, token]);
@@ -166,6 +185,11 @@ export default function SchoolLeaderStats() {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
           School Statistics
         </h2>
+        {schoolName && (
+          <p className="flex items-center gap-2 text-purple-700 font-semibold mb-1">
+            <School className="w-4 h-4" /> {schoolName}
+          </p>
+        )}
         <p className="text-gray-600">
           Overview of your school's structure and members
         </p>

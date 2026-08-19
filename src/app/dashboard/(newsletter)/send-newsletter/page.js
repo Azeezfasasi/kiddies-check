@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Send, Clock, Users, Sparkles } from 'lucide-react';
+import { Send, Clock, Users, Sparkles, FlaskConical } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
+import RichTextEditor from '../../components/RichTextEditor';
 import { campaignAPI } from '@/utils/newsletter-api';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { useAuth } from '@/context/AuthContext';
 
 const RECIPIENT_TYPES = [
   { value: 'all', label: 'All Active Subscribers' },
@@ -22,8 +24,11 @@ const CAMPAIGN_TYPES = [
 
 export default function SendNewsletter() {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
   const [formData, setFormData] = useState({
     subject: '',
     content: '',
@@ -34,6 +39,13 @@ export default function SendNewsletter() {
     scheduledFor: '',
   });
 
+  React.useEffect(() => {
+    if (user?.email && !testEmail) {
+      setTestEmail(user.email);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     console.log(`📝 Form field changed: ${name} = "${value}" (length: ${value.length})`);
@@ -41,6 +53,10 @@ export default function SendNewsletter() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleContentChange = (html) => {
+    setFormData(prev => ({ ...prev, content: html }));
   };
 
   const handleTagToggle = (tag) => {
@@ -66,6 +82,43 @@ export default function SendNewsletter() {
       return false;
     }
     return true;
+  };
+
+  const handleSendTest = async () => {
+    if (!formData.subject.trim()) {
+      addToast('Please enter a subject', 'error');
+      return;
+    }
+    if (!formData.content.trim()) {
+      addToast('Please enter campaign content', 'error');
+      return;
+    }
+    if (!testEmail.trim()) {
+      addToast('Please enter an email address to send the test to', 'error');
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const response = await campaignAPI.sendTest(
+        {
+          subject: formData.subject,
+          content: formData.content,
+          testEmails: testEmail.split(',').map(e => e.trim()).filter(Boolean),
+        },
+        localStorage.getItem('authToken')
+      );
+
+      if (response.success) {
+        addToast(response.message || 'Test email sent', 'success');
+      } else {
+        addToast(response.error || 'Failed to send test email', 'error');
+      }
+    } catch (error) {
+      addToast('Error sending test email: ' + error.message, 'error');
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleSendNow = async () => {
@@ -266,23 +319,48 @@ export default function SendNewsletter() {
 
           {/* Content */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <label htmlFor="content" className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
               Content *
             </label>
-            <textarea
-              id="content"
-              name="content"
+            <RichTextEditor
               value={formData.content}
-              onChange={handleChange}
-              placeholder="Enter newsletter content (supports HTML)"
-              rows={10}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+              onChange={handleContentChange}
+              placeholder="Write your newsletter content here..."
+              uploadToken={typeof window !== 'undefined' ? localStorage.getItem('authToken') : null}
             />
           </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Send Test */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center space-x-2">
+              <FlaskConical className="w-4 h-4" />
+              <span>Send Test</span>
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Preview this newsletter in your own inbox before sending it to real subscribers. Test sends aren&apos;t counted or recorded.
+            </p>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleSendTest}
+                disabled={isSendingTest}
+                className="w-full px-4 py-2 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg font-medium hover:bg-amber-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm"
+              >
+                <FlaskConical className="w-4 h-4" />
+                <span>{isSendingTest ? 'Sending test...' : 'Send Test Email'}</span>
+              </button>
+            </div>
+          </div>
+
           {/* Recipients */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -328,12 +406,15 @@ export default function SendNewsletter() {
             {/* Segment Selection */}
             {formData.recipientType === 'segment' && (
               <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter a subscriber <strong>tag</strong> (e.g. &quot;vip&quot;), not an email address — this sends to every subscriber with that tag. To test with a single email, use &quot;Send Test&quot; above instead.
+                </p>
                 <input
                   type="text"
                   name="segment"
                   value={formData.segment}
                   onChange={handleChange}
-                  placeholder="Enter segment name"
+                  placeholder="e.g. vip"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

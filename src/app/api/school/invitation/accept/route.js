@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
 import User from '@/app/server/models/User';
 import { connectDB } from '@/app/server/db/connect';
+import { subscribeToNewsletter } from '@/app/server/controllers/newsletterController';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -147,6 +148,14 @@ export async function POST(request) {
     }
 
     await user.save();
+
+    // Auto-subscribe every new user to the newsletter
+    try {
+      await subscribeToNewsletter({ email: user.email, firstName: user.firstName, lastName: user.lastName });
+    } catch (newsletterError) {
+      console.error('Error auto-subscribing user to newsletter:', newsletterError);
+      // Don't fail invitation acceptance if newsletter subscription fails
+    }
 
     // Mark invitation as accepted
     schoolMember.status = 'active';

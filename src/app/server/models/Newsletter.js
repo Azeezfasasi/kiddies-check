@@ -8,7 +8,9 @@ const subscriberSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email'],
+    // Note: no upper bound on the TLD segment — {2,3} previously rejected
+    // valid modern TLDs like .education, .info, .agency, .london, etc.
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/, 'Please provide a valid email'],
   },
   firstName: {
     type: String,
@@ -209,10 +211,12 @@ const activityLogSchema = new mongoose.Schema({
   metadata: mongoose.Schema.Types.Mixed,
 }, { timestamps: true });
 
-// Create models
-const Subscriber = mongoose.model('Subscriber', subscriberSchema);
-const Campaign = mongoose.model('Campaign', campaignSchema);
-const Template = mongoose.model('Template', templateSchema);
-const NewsletterActivityLog = mongoose.model('NewsletterActivityLog', activityLogSchema);
+// Create models (guarded so Next.js dev-server hot reloads don't re-register
+// an already-compiled model and throw OverwriteModelError)
+const Subscriber = mongoose.models.Subscriber || mongoose.model('Subscriber', subscriberSchema);
+const Campaign = mongoose.models.Campaign || mongoose.model('Campaign', campaignSchema);
+const Template = mongoose.models.Template || mongoose.model('Template', templateSchema);
+const NewsletterActivityLog =
+  mongoose.models.NewsletterActivityLog || mongoose.model('NewsletterActivityLog', activityLogSchema);
 
 export { Subscriber, Campaign, Template, NewsletterActivityLog };

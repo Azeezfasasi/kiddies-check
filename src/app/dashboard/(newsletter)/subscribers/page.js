@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Upload, Download, Search, Filter } from 'lucide-react';
+import { Users, Plus, Upload, Download, Search, Filter, RefreshCw } from 'lucide-react';
 import SubscriberRow from '../../components/SubscriberRow';
 import Modal from '../../components/Modal';
 import { useToast } from '../../components/Toast';
@@ -22,6 +22,7 @@ export default function Subscribers() {
   const [viewModal, setViewModal] = useState({ isOpen: false, subscriber: null });
   const [importModal, setImportModal] = useState({ isOpen: false });
   const [importFile, setImportFile] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const STATUS_OPTIONS = [
     { value: 'active', label: 'Active' },
@@ -104,6 +105,23 @@ export default function Subscribers() {
       addToast('Error deleting subscribers: ' + error.message, 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSyncUsers = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await subscriberAPI.syncUsers(localStorage.getItem('authToken'));
+      if (response.success) {
+        addToast(response.message || 'Users synced to newsletter', 'success');
+        fetchSubscribers();
+      } else {
+        addToast(response.error || 'Failed to sync users', 'error');
+      }
+    } catch (error) {
+      addToast('Error syncing users: ' + error.message, 'error');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -212,6 +230,15 @@ export default function Subscribers() {
           <p className="text-gray-600 mt-2">Manage your newsletter subscriber list</p>
         </div>
         <div className="flex items-center space-x-2 mt-4 lg:mt-0">
+          <button
+            onClick={handleSyncUsers}
+            disabled={isSyncing}
+            title="Subscribe any website users who aren't already on this list"
+            className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2 border border-gray-300 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Users'}</span>
+          </button>
           <button
             onClick={() => setImportModal({ isOpen: true })}
             className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center space-x-2 border border-gray-300"

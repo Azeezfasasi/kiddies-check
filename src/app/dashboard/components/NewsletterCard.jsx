@@ -56,6 +56,16 @@ export default function NewsletterCard({ campaign, onDelete, onEdit, onSend, onP
     });
   };
 
+  const stripHtml = (html) => {
+    if (!html) return '';
+    return html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const previewText = stripHtml(campaign.content);
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 overflow-hidden">
       {/* Header */}
@@ -65,8 +75,10 @@ export default function NewsletterCard({ campaign, onDelete, onEdit, onSend, onP
             <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
               {campaign.subject || 'Untitled Campaign'}
             </h3>
-            <p className={`text-sm font-medium mt-1 ${getTypeColor(campaign.type)}`}>
-              {campaign.type?.charAt(0).toUpperCase() + campaign.type?.slice(1) || 'Standard'}
+            <p className={`text-sm font-medium mt-1 ${getTypeColor(campaign.campaignType)}`}>
+              {campaign.campaignType
+                ? campaign.campaignType.charAt(0).toUpperCase() + campaign.campaignType.slice(1)
+                : 'Standard'}
             </p>
           </div>
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(campaign.status)}`}>
@@ -74,7 +86,7 @@ export default function NewsletterCard({ campaign, onDelete, onEdit, onSend, onP
           </span>
         </div>
         <p className="text-sm text-gray-600 line-clamp-2">
-          {campaign.content?.substring(0, 100) || 'No description'}...
+          {previewText ? `${previewText.substring(0, 100)}${previewText.length > 100 ? '...' : ''}` : 'No description'}
         </p>
       </div>
 

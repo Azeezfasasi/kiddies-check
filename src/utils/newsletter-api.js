@@ -166,6 +166,28 @@ export const subscriberAPI = {
   },
 
   /**
+   * Subscribe every existing website user who isn't already a subscriber
+   * (Admin only) — backfill for users created before newsletter auto-subscribe.
+   */
+  syncUsers: async (token = '') => {
+    try {
+      const response = await fetch(`${API_BASE}?action=sync-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'admin',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({}),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Sync users error:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Bulk update subscribers (Admin only)
    */
   bulkUpdate: async (subscriberIds, updateData, token = '') => {
@@ -278,6 +300,28 @@ export const campaignAPI = {
       return await response.json();
     } catch (error) {
       console.error('Schedule campaign error:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Send a test preview to specific email address(es) — doesn't require the
+   * recipients to be subscribers, and doesn't mark anything as "sent" (Admin only)
+   */
+  sendTest: async ({ subject, content, testEmails }, token = '') => {
+    try {
+      const response = await fetch(`${API_BASE}?action=send-test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'admin',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ subject, content, htmlContent: content, testEmails }),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Send test email error:', error);
       throw error;
     }
   },

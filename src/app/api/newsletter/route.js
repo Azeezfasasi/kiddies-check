@@ -19,6 +19,8 @@ import {
   bulkImportSubscribers,
   bulkDeleteSubscribers,
   bulkUpdateSubscribers,
+  syncUsersToNewsletter,
+  sendTestEmail,
 } from '@/app/server/controllers/newsletterController.js';
 
 // Middleware to check admin role
@@ -226,6 +228,28 @@ export async function POST(request) {
       return NextResponse.json(result);
     }
 
+    // POST /api/newsletter?action=send-test
+    if (action === 'send-test') {
+      if (!requireAdmin(request)) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      const { subject, content, htmlContent, testEmails } = body;
+
+      if (!Array.isArray(testEmails) || testEmails.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'testEmails must be a non-empty array' },
+          { status: 400 }
+        );
+      }
+
+      const result = await sendTestEmail({ subject, content, htmlContent, testEmails });
+      return NextResponse.json(result);
+    }
+
     // POST /api/newsletter?action=schedule-campaign
     if (action === 'schedule-campaign') {
       if (!requireAdmin(request)) {
@@ -282,6 +306,19 @@ export async function POST(request) {
       }
 
       const result = await bulkImportSubscribers(subscribers);
+      return NextResponse.json(result);
+    }
+
+    // POST /api/newsletter?action=sync-users
+    if (action === 'sync-users') {
+      if (!requireAdmin(request)) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      const result = await syncUsersToNewsletter();
       return NextResponse.json(result);
     }
 
