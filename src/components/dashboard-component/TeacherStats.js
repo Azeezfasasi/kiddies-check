@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
   Zap,
+  GraduationCap,
 } from "lucide-react";
 
 function AnimatedCount({ value = 0, duration = 800 }) {
@@ -78,6 +79,7 @@ function StatCard({ icon: Icon, label, value, color, loading, subtext }) {
 export default function TeacherStats() {
   const { user, token } = useAuth();
   const [stats, setStats] = useState(null);
+  const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -118,6 +120,7 @@ export default function TeacherStats() {
 
       if (response.data?.success) {
         setStats(response.data.stats);
+        setClasses(response.data.classes || []);
       } else {
         setError(response.data?.error || "Failed to load statistics");
       }
@@ -230,6 +233,51 @@ export default function TeacherStats() {
         </p>
       </div>
 
+      {/* My Classes */}
+      <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <GraduationCap className="w-5 h-5 text-purple-600" />
+          <h3 className="text-lg font-semibold text-gray-900">My Classes</h3>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center gap-2 text-gray-500 text-sm py-4">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading your classes...
+          </div>
+        ) : classes.length === 0 ? (
+          <p className="text-gray-500 text-sm py-2">
+            You haven&apos;t been assigned to any classes yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {classes.map((cls) => (
+              <div
+                key={cls._id}
+                className="rounded-lg border border-gray-200 p-4 hover:border-purple-300 hover:shadow-sm transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h4 className="font-semibold text-gray-900">{cls.name}</h4>
+                  {cls.section && (
+                    <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full shrink-0">
+                      {cls.section}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 capitalize">{cls.level}</p>
+                <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" /> {cls.studentCount} student{cls.studentCount === 1 ? "" : "s"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5" /> {cls.subjects.length} subject{cls.subjects.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {cardData.map((card, index) => (
           <StatCard
@@ -243,6 +291,7 @@ export default function TeacherStats() {
           />
         ))}
       </div>
+
     </section>
   );
 }

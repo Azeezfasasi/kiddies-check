@@ -127,17 +127,39 @@ export async function GET(req) {
       const classIds = effectiveClasses.map((c) => c._id);
 
       // Fetch stats in parallel
-      const [studentsInClasses, subjectsTeaching, assessmentsCreated] =
+      const [studentsInClasses, subjectsTeaching, assessmentsCreated, classDetails, studentCounts] =
         await Promise.all([
           Student.countDocuments({ class: { $in: classIds } }),
           Subject.countDocuments({ school: schoolObjectId, teacher: user._id }),
           Assessment.countDocuments({ teacher: user._id, school: schoolObjectId }),
+          Class.find({ _id: { $in: classIds } })
+            .select("name level section numberOfStudents subjects")
+            .populate("subjects", "name")
+            .sort({ name: 1 })
+            .lean(),
+          Student.aggregate([
+            { $match: { class: { $in: classIds } } },
+            { $group: { _id: "$class", count: { $sum: 1 } } },
+          ]),
         ]);
 
       // Calculate assessment rate (ratio of students assessed)
       const totalStudents = studentsInClasses || 1; // Avoid division by zero
       const assessmentRate =
         totalStudents > 0 ? ((assessmentsCreated / totalStudents) * 100).toFixed(2) : 0;
+
+      const studentCountByClass = Object.fromEntries(
+        studentCounts.map((c) => [c._id.toString(), c.count])
+      );
+
+      const classList = classDetails.map((c) => ({
+        _id: c._id,
+        name: c.name,
+        level: c.level,
+        section: c.section,
+        subjects: c.subjects || [],
+        studentCount: studentCountByClass[c._id.toString()] ?? c.numberOfStudents ?? 0,
+      }));
 
       const stats = {
         totalStudents: studentsInClasses,
@@ -151,6 +173,7 @@ export async function GET(req) {
         {
           success: true,
           stats,
+          classes: classList,
           timestamp: new Date().toISOString(),
         },
         { status: 200 }
