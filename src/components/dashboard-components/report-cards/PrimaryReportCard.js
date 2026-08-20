@@ -27,22 +27,22 @@ const defaultPhysicalData = {
 };
 
 const defaultSubjectPerformance = [
-  { subject: "English Language", continuousAssess: 78, testScore: 82, total: 80 },
-  { subject: "Mathematics", continuousAssess: 74, testScore: 80, total: 76 },
-  { subject: "Verbal Reasoning", continuousAssess: 72, testScore: 78, total: 74 },
-  { subject: "Basic Science and Tech.", continuousAssess: 76, testScore: 81, total: 78 },
-  { subject: "Vocational Studies", continuousAssess: 70, testScore: 75, total: 72 },
-  { subject: "National Value", continuousAssess: 79, testScore: 84, total: 81 },
-  { subject: "Nigerian Language", continuousAssess: 73, testScore: 77, total: 75 },
-  { subject: "Creative Arts", continuousAssess: 82, testScore: 86, total: 84 },
-  { subject: "Physical & Health Educ.", continuousAssess: 77, testScore: 80, total: 78 },
-  { subject: "Phonics", continuousAssess: 81, testScore: 83, total: 82 },
-  { subject: "Practical Agric.", continuousAssess: 69, testScore: 74, total: 71 },
-  { subject: "Home Economics", continuousAssess: 75, testScore: 79, total: 76 },
-  { subject: "French", continuousAssess: 68, testScore: 72, total: 70 },
-  { subject: "Music", continuousAssess: 80, testScore: 85, total: 82 },
-  { subject: "Computer Studies", continuousAssess: 76, testScore: 80, total: 78 },
-  { subject: "Writing", continuousAssess: 84, testScore: 88, total: 86 },
+  { subject: "English Language", continuousAssess: 31, testScore: 49, total: 80 },
+  { subject: "Mathematics", continuousAssess: 30, testScore: 46, total: 76 },
+  { subject: "Verbal Reasoning", continuousAssess: 29, testScore: 45, total: 74 },
+  { subject: "Basic Science and Tech.", continuousAssess: 30, testScore: 48, total: 78 },
+  { subject: "Vocational Studies", continuousAssess: 28, testScore: 44, total: 72 },
+  { subject: "National Value", continuousAssess: 32, testScore: 49, total: 81 },
+  { subject: "Nigerian Language", continuousAssess: 29, testScore: 46, total: 75 },
+  { subject: "Creative Arts", continuousAssess: 33, testScore: 51, total: 84 },
+  { subject: "Physical & Health Educ.", continuousAssess: 30, testScore: 48, total: 78 },
+  { subject: "Phonics", continuousAssess: 32, testScore: 50, total: 82 },
+  { subject: "Practical Agric.", continuousAssess: 28, testScore: 43, total: 71 },
+  { subject: "Home Economics", continuousAssess: 30, testScore: 46, total: 76 },
+  { subject: "French", continuousAssess: 27, testScore: 43, total: 70 },
+  { subject: "Music", continuousAssess: 32, testScore: 50, total: 82 },
+  { subject: "Computer Studies", continuousAssess: 30, testScore: 48, total: 78 },
+  { subject: "Writing", continuousAssess: 34, testScore: 52, total: 86 },
 ];
 
 const defaultSportsData = {
@@ -96,10 +96,12 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
   const subjectPerformance = Array.isArray(data.subjects) && data.subjects.length ? data.subjects : defaultSubjectPerformance;
   const subjectsCount = subjectPerformance.length || 1;
 
-  const averagePercent = (key) => {
+  const averagePercent = (key, max) => {
     const sum = subjectPerformance.reduce((s, item) => s + toNumber(item[key]), 0);
     const avg = subjectsCount ? sum / subjectsCount : 0;
-    return Number.isFinite(avg) ? `${Math.round(avg * 100) / 100}%` : "0%";
+    if (!Number.isFinite(avg)) return "0%";
+    const pct = max ? (avg / max) * 100 : avg;
+    return `${Math.round(pct * 100) / 100}%`;
   };
   const sportsData = {
     level: data.sports?.level ?? defaultSportsData.level,
@@ -276,23 +278,23 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
           <tbody>
             <tr className="h-7 border-b border-black text-left">
               <td className="border-r-2 border-black px-2 font-bold">Cont. Assess. Scores</td>
-              <td className="border-r border-black text-center font-bold">100</td>
+              <td className="border-r border-black text-center font-bold">40</td>
               {subjectPerformance.map((subject, index) => (
                 <td key={`ca-${index}`} className="border-r border-black text-center">
                   {subject.continuousAssess}
                 </td>
               ))}
-              <td className="text-center font-bold">{averagePercent("continuousAssess")}</td>
+              <td className="text-center font-bold">{averagePercent("continuousAssess", 40)}</td>
             </tr>
             <tr className="h-7 border-b border-black text-left">
               <td className="border-r-2 border-black px-2 font-bold italic text-[11px]">Sum. Test Scores (If any)</td>
-              <td className="border-r border-black text-center font-bold">100</td>
+              <td className="border-r border-black text-center font-bold">60</td>
               {subjectPerformance.map((subject, index) => (
                 <td key={`test-${index}`} className="border-r border-black text-center">
                   {subject.testScore}
                 </td>
               ))}
-              <td className="text-center font-bold">{averagePercent("testScore")}</td>
+              <td className="text-center font-bold">{averagePercent("testScore", 60)}</td>
             </tr>
             <tr className="h-7 bg-gray-50/50 text-left">
               <td className="border-r-2 border-black px-2 font-bold">Total (Weighted Average)</td>
@@ -302,7 +304,7 @@ export default function PrimaryReportCard({ data = {}, studentName = "", classNa
                   {subject.total}
                 </td>
               ))}
-              <td className="text-center font-bold">{averagePercent("total")}</td>
+              <td className="text-center font-bold">{averagePercent("total", 100)}</td>
             </tr>
           </tbody>
         </table>

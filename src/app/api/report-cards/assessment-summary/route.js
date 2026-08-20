@@ -31,8 +31,18 @@ function normalizeTermKey(term) {
 function average(scores) {
   if (!scores.length) return null;
   const sum = scores.reduce((a, b) => a + b, 0);
-  return Math.round((sum / scores.length) * 100) / 100;
+  return sum / scores.length;
 }
+
+function round1(value) {
+  return Math.round(value * 10) / 10;
+}
+
+// Report cards score continuous assessment out of 40 and exams out of 60 (100 total),
+// but individual assessments can be recorded against any maxScore, so we scale each
+// assessment to a percentage first and only then apply the report-card weighting.
+const CA_MAX_MARKS = 40;
+const EXAM_MAX_MARKS = 60;
 
 // GET /api/report-cards/assessment-summary?schoolId=&studentId=&term=&academicYear=
 // Aggregates a student's recorded assessments by subject so a report card draft
@@ -93,28 +103,31 @@ export async function GET(req) {
       if (!a.subject) continue;
       const key = a.subject._id.toString();
       if (!bySubject.has(key)) {
-        bySubject.set(key, { subjectId: key, subjectName: a.subject.name, caScores: [], examScores: [] });
+        bySubject.set(key, { subjectId: key, subjectName: a.subject.name, caPercents: [], examPercents: [] });
       }
       const bucket = bySubject.get(key);
+      const maxScore = a.maxScore || 100;
+      const percentage = maxScore > 0 ? (a.score / maxScore) * 100 : 0;
       if (EXAM_TYPES.includes(a.assessmentType)) {
-        bucket.examScores.push(a.score);
+        bucket.examPercents.push(percentage);
       } else {
-        bucket.caScores.push(a.score);
+        bucket.caPercents.push(percentage);
       }
     }
 
     const subjects = Array.from(bySubject.values()).map((s) => {
-      const continuousAssess = average(s.caScores);
-      const testScore = average(s.examScores);
-      const parts = [continuousAssess, testScore].filter((v) => v !== null);
-      const total = parts.length ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100) / 100 : null;
+      const caPercentAvg = average(s.caPercents);
+      const examPercentAvg = average(s.examPercents);
+      const continuousAssess = caPercentAvg !== null ? round1((caPercentAvg / 100) * CA_MAX_MARKS) : null;
+      const testScore = examPercentAvg !== null ? round1((examPercentAvg / 100) * EXAM_MAX_MARKS) : null;
+      const total = continuousAssess !== null || testScore !== null ? round1((continuousAssess || 0) + (testScore || 0)) : null;
       return {
         subjectId: s.subjectId,
         subjectName: s.subjectName,
         continuousAssess,
         testScore,
         total,
-        assessmentCount: s.caScores.length + s.examScores.length,
+        assessmentCount: s.caPercents.length + s.examPercents.length,
       };
     });
 

@@ -96,6 +96,7 @@ export default function CreateReportCardPage() {
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [syncingAssessments, setSyncingAssessments] = useState(false);
   const [school, setSchool] = useState(null);
+  const [academicSessions, setAcademicSessions] = useState([]);
   const previewRef = useRef(null);
 
   useEffect(() => {
@@ -109,7 +110,7 @@ export default function CreateReportCardPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [classesRes, schoolRes] = await Promise.all([
+        const [classesRes, schoolRes, calendarRes] = await Promise.all([
           fetch(`/api/teacher/classes?schoolId=${schoolId}`, {
             headers: {
               "x-user-id": user?._id || localStorage.getItem("userId") || "",
@@ -122,15 +123,23 @@ export default function CreateReportCardPage() {
               Authorization: token ? `Bearer ${token}` : "",
             },
           }),
+          fetch(`/api/admin/academic-calendar`, {
+            headers: { Authorization: token ? `Bearer ${token}` : "" },
+          }),
         ]);
         const classesData = await classesRes.json();
         const schoolData = await schoolRes.json();
+        const calendarData = await calendarRes.json();
 
         if (classesData?.classes) setClasses(classesData.classes);
         if (schoolData?.success && schoolData.school) {
           setSchool(schoolData.school);
         } else if (schoolData?.data) {
           setSchool(schoolData.data);
+        }
+        if (calendarData?.success && Array.isArray(calendarData.terms)) {
+          const sessions = Array.from(new Set(calendarData.terms.map((t) => t.session))).sort().reverse();
+          setAcademicSessions(sessions);
         }
       } catch (error) {
         console.error(error);
@@ -213,6 +222,19 @@ export default function CreateReportCardPage() {
 
   const selectedStudent = useMemo(() => students.find((student) => student._id === selectedStudentId) || null, [selectedStudentId, students]);
   const selectedClass = useMemo(() => classes.find((classItem) => classItem._id === selectedClassId) || null, [selectedClassId, classes]);
+
+  // Academic Year options: sessions configured in the school calendar, plus a
+  // small fallback range (and the currently selected value) so the dropdown
+  // is never empty or silently drops a legacy freeform value.
+  const academicYearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const fallbackYears = [-1, 0, 1].map((offset) => `${currentYear + offset}/${currentYear + offset + 1}`);
+    const options = new Set([...academicSessions, ...fallbackYears]);
+    if (formData.academicYear) options.add(formData.academicYear);
+    return Array.from(options).sort().reverse();
+  }, [academicSessions, formData.academicYear]);
+
+  const termOptions = ["First Term", "Second Term", "Third Term"];
 
   // Pre-fill CA / Exam / Total from recorded assessments once student, class, term and
   // year are all selected. Only fills blank fields — never overwrites a teacher's edits.
@@ -338,7 +360,18 @@ export default function CreateReportCardPage() {
   const handlePrimarySubjectChange = (index, field, value) => {
     setFormData((prev) => ({
       ...prev,
-      subjects: prev.subjects.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
+      subjects: prev.subjects.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        const next = { ...item, [field]: value };
+        if (field === "continuousAssess" || field === "testScore") {
+          const ca = next.continuousAssess === "" ? null : Number(next.continuousAssess);
+          const exam = next.testScore === "" ? null : Number(next.testScore);
+          const hasCa = ca !== null && Number.isFinite(ca);
+          const hasExam = exam !== null && Number.isFinite(exam);
+          next.total = hasCa || hasExam ? String(Math.round(((hasCa ? ca : 0) + (hasExam ? exam : 0)) * 10) / 10) : "";
+        }
+        return next;
+      }),
     }));
   };
 
@@ -455,11 +488,21 @@ export default function CreateReportCardPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Term</label>
-              <input value={formData.term || ""} onChange={(e) => handleChange("term", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <select value={formData.term || ""} onChange={(e) => handleChange("term", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2">
+                <option value="">Select term</option>
+                {termOptions.map((term) => (
+                  <option key={term} value={term}>{term}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">Academic Year</label>
-              <input value={formData.academicYear || ""} onChange={(e) => handleChange("academicYear", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+              <select value={formData.academicYear || ""} onChange={(e) => handleChange("academicYear", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2">
+                <option value="">Select academic year</option>
+                {academicYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -499,10 +542,22 @@ export default function CreateReportCardPage() {
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Attendance</h2>
                 {formData.attendance?.map((row, index) => (
                   <div key={row.label} className="mb-3 grid gap-2 rounded-lg border border-gray-100 p-2 sm:mb-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">
-                    <input value={row.label} onChange={(e) => { const next = [...formData.attendance]; next[index].label = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2 md:col-span-1" />
-                    <input value={row.school} onChange={(e) => { const next = [...formData.attendance]; next[index].school = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="School" />
-                    <input value={row.sports} onChange={(e) => { const next = [...formData.attendance]; next[index].sports = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Sports" />
-                    <input value={row.activities} onChange={(e) => { const next = [...formData.attendance]; next[index].activities = e.target.value; handleChange("attendance", next); }} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Activities" />
+                    <div className="sm:col-span-2 md:col-span-1">
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Criteria</label>
+                      <input value={row.label} onChange={(e) => { const next = [...formData.attendance]; next[index].label = e.target.value; handleChange("attendance", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">School</label>
+                      <input value={row.school} onChange={(e) => { const next = [...formData.attendance]; next[index].school = e.target.value; handleChange("attendance", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Sports</label>
+                      <input value={row.sports} onChange={(e) => { const next = [...formData.attendance]; next[index].sports = e.target.value; handleChange("attendance", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Activities</label>
+                      <input value={row.activities} onChange={(e) => { const next = [...formData.attendance]; next[index].activities = e.target.value; handleChange("attendance", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -510,26 +565,68 @@ export default function CreateReportCardPage() {
               <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Conduct</h2>
                 <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-                  <input value={formData.conduct?.greenNumber || ""} onChange={(e) => handleChange("conduct.greenNumber", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Green number" />
-                  <input value={formData.conduct?.redNumber || ""} onChange={(e) => handleChange("conduct.redNumber", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Red number" />
-                  <input value={formData.conduct?.greenDeed || ""} onChange={(e) => handleChange("conduct.greenDeed", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Green deed" />
-                  <input value={formData.conduct?.redDeed || ""} onChange={(e) => handleChange("conduct.redDeed", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Red deed" />
-                  <textarea value={formData.conduct?.comments || ""} onChange={(e) => handleChange("conduct.comments", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2" rows={2} placeholder="Comments" />
-                  <textarea value={formData.conduct?.remarks || ""} onChange={(e) => handleChange("conduct.remarks", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2" rows={2} placeholder="Remarks" />
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Green Number</label>
+                    <input value={formData.conduct?.greenNumber || ""} onChange={(e) => handleChange("conduct.greenNumber", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Red Number</label>
+                    <input value={formData.conduct?.redNumber || ""} onChange={(e) => handleChange("conduct.redNumber", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Green Deed</label>
+                    <input value={formData.conduct?.greenDeed || ""} onChange={(e) => handleChange("conduct.greenDeed", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Red Deed</label>
+                    <input value={formData.conduct?.redDeed || ""} onChange={(e) => handleChange("conduct.redDeed", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Comments</label>
+                    <textarea value={formData.conduct?.comments || ""} onChange={(e) => handleChange("conduct.comments", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Remarks</label>
+                    <textarea value={formData.conduct?.remarks || ""} onChange={(e) => handleChange("conduct.remarks", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} />
+                  </div>
                 </div>
               </div>
 
               <div className="rounded-xl border border-gray-200 p-3 sm:p-4">
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Physical Development</h2>
                 <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-                  <input value={formData.physical?.heightStart || ""} onChange={(e) => handleChange("physical.heightStart", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Height start" />
-                  <input value={formData.physical?.heightEnd || ""} onChange={(e) => handleChange("physical.heightEnd", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Height end" />
-                  <input value={formData.physical?.weightStart || ""} onChange={(e) => handleChange("physical.weightStart", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Weight start" />
-                  <input value={formData.physical?.weightEnd || ""} onChange={(e) => handleChange("physical.weightEnd", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Weight end" />
-                  <input value={formData.physical?.illnessDays || ""} onChange={(e) => handleChange("physical.illnessDays", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Illness days" />
-                  <input value={formData.physical?.illnessNature || ""} onChange={(e) => handleChange("physical.illnessNature", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Nature of illness" />
-                  <input value={formData.physical?.cleanliness || ""} onChange={(e) => handleChange("physical.cleanliness", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Cleanliness" />
-                  <input value={formData.physical?.cleanlinessRemarks || ""} onChange={(e) => handleChange("physical.cleanlinessRemarks", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Cleanliness remarks" />
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Height (Start of Term)</label>
+                    <input value={formData.physical?.heightStart || ""} onChange={(e) => handleChange("physical.heightStart", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Height (End of Term)</label>
+                    <input value={formData.physical?.heightEnd || ""} onChange={(e) => handleChange("physical.heightEnd", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Weight (Start of Term)</label>
+                    <input value={formData.physical?.weightStart || ""} onChange={(e) => handleChange("physical.weightStart", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Weight (End of Term)</label>
+                    <input value={formData.physical?.weightEnd || ""} onChange={(e) => handleChange("physical.weightEnd", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Days Absent Due to Illness</label>
+                    <input value={formData.physical?.illnessDays || ""} onChange={(e) => handleChange("physical.illnessDays", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Nature of Illness</label>
+                    <input value={formData.physical?.illnessNature || ""} onChange={(e) => handleChange("physical.illnessNature", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Cleanliness Rating</label>
+                    <input value={formData.physical?.cleanliness || ""} onChange={(e) => handleChange("physical.cleanliness", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Cleanliness Remarks</label>
+                    <input value={formData.physical?.cleanlinessRemarks || ""} onChange={(e) => handleChange("physical.cleanlinessRemarks", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </div>
                 </div>
               </div>
 
@@ -540,14 +637,26 @@ export default function CreateReportCardPage() {
                     <span className="text-xs font-medium text-blue-600">Syncing from assessments…</span>
                   )}
                 </div>
-                <p className="mb-3 -mt-2 text-xs text-gray-500">CA and Exam columns are pre-filled from this student&apos;s recorded assessments for the selected term — feel free to override any value.</p>
+                <p className="mb-3 -mt-2 text-xs text-gray-500">CA (out of 40) and Exam (out of 60) are pre-filled from this student&apos;s recorded assessments for the selected term — feel free to override any value. Total is calculated automatically out of 100.</p>
                 <div className="space-y-2">
                   {formData.subjects?.map((subject, index) => (
                     <div key={`${subject.subject}-${index}`} className="grid gap-2 rounded-lg border border-gray-100 p-2 sm:grid-cols-2 sm:border-0 sm:p-0 md:grid-cols-4">
-                      <input value={subject.subject} onChange={(e) => handlePrimarySubjectChange(index, "subject", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2 sm:col-span-2 md:col-span-1" />
-                      <input value={subject.continuousAssess} onChange={(e) => handlePrimarySubjectChange(index, "continuousAssess", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="CA/Test" />
-                      <input value={subject.testScore} onChange={(e) => handlePrimarySubjectChange(index, "testScore", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Exam" />
-                      <input value={subject.total} onChange={(e) => handlePrimarySubjectChange(index, "total", e.target.value)} className="rounded-lg border border-gray-300 px-3 py-2" placeholder="Total" />
+                      <div className="sm:col-span-2 md:col-span-1">
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Subject</label>
+                        <input value={subject.subject} onChange={(e) => handlePrimarySubjectChange(index, "subject", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-600">CA/Test (Max 40)</label>
+                        <input type="number" min={0} max={40} step="0.5" value={subject.continuousAssess} onChange={(e) => handlePrimarySubjectChange(index, "continuousAssess", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Exam (Max 60)</label>
+                        <input type="number" min={0} max={60} step="0.5" value={subject.testScore} onChange={(e) => handlePrimarySubjectChange(index, "testScore", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Total (Max 100)</label>
+                        <input value={subject.total} readOnly title="Auto-calculated from CA + Exam" className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-600" />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -557,15 +666,20 @@ export default function CreateReportCardPage() {
                 <h2 className="mb-3 text-lg font-semibold text-gray-800">Sports and Clubs</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <input value={formData.sports?.level || ""} onChange={(e) => handleChange("sports.level", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="Sports level" />
-                    <textarea value={formData.sports?.comments || ""} onChange={(e) => handleChange("sports.comments", e.target.value)} className="mt-3 w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} placeholder="Sports comments" />
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Sports Level</label>
+                    <input value={formData.sports?.level || ""} onChange={(e) => handleChange("sports.level", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
+                    <label className="mb-1 mt-3 block text-xs font-medium text-gray-600">Sports Comments</label>
+                    <textarea value={formData.sports?.comments || ""} onChange={(e) => handleChange("sports.comments", e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} />
                   </div>
                   <div className="space-y-3">
                     {formData.clubs?.map((club, index) => (
                       <div key={`${club.organization}-${index}`} className="rounded-lg border border-gray-200 p-3">
-                        <input value={club.organization} onChange={(e) => { const next = [...formData.clubs]; next[index].organization = e.target.value; handleChange("clubs", next); }} className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="Organization" />
-                        <input value={club.office} onChange={(e) => { const next = [...formData.clubs]; next[index].office = e.target.value; handleChange("clubs", next); }} className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="Office held" />
-                        <textarea value={club.contribution} onChange={(e) => { const next = [...formData.clubs]; next[index].contribution = e.target.value; handleChange("clubs", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} placeholder="Contribution" />
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Organization</label>
+                        <input value={club.organization} onChange={(e) => { const next = [...formData.clubs]; next[index].organization = e.target.value; handleChange("clubs", next); }} className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Office Held</label>
+                        <input value={club.office} onChange={(e) => { const next = [...formData.clubs]; next[index].office = e.target.value; handleChange("clubs", next); }} className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                        <label className="mb-1 block text-xs font-medium text-gray-600">Contribution</label>
+                        <textarea value={club.contribution} onChange={(e) => { const next = [...formData.clubs]; next[index].contribution = e.target.value; handleChange("clubs", next); }} className="w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} />
                       </div>
                     ))}
                   </div>

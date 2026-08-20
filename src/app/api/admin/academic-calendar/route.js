@@ -35,8 +35,9 @@ const verifyAdmin = async (req) => {
 };
 
 // Helper: verify read access. The calendar is global/non-sensitive (just
-// term dates), so school-leaders can read it too — e.g. to populate an
-// academic session picker — even though they can't create/edit terms.
+// term dates), so school-leaders and teachers can read it too — e.g. to
+// populate an academic session/term picker — even though they can't
+// create/edit terms.
 const verifyRead = async (req) => {
   try {
     const authHeader = req.headers.get("authorization");
@@ -50,7 +51,7 @@ const verifyRead = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+    if (!user || !["admin", "learning-specialist", "school-leader", "teacher"].includes(user.role)) {
       return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 
