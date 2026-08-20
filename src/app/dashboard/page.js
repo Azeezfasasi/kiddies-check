@@ -41,6 +41,11 @@ const UserChart = dynamic(() => import("@/components/dashboard-component/UserCha
   loading: () => <div className="h-80 rounded-xl bg-white shadow-sm animate-pulse" />,
 });
 
+const TeacherAttendanceActivityChart = dynamic(() => import("@/components/dashboard-component/TeacherAttendanceActivityChart"), {
+  ssr: false,
+  loading: () => <div className="h-80 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
 export default function Dashboard() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
@@ -70,23 +75,34 @@ export default function Dashboard() {
         <div className="flex flex-col lg:flex-col gap-6 justify-center mt-6">
           <PerformanceChart />
           <AttendanceChart />
-          <UserChart /> 
+          <TeacherAttendanceActivityChart />
+          <UserChart />
         </div>
         </>
       ) : user?.role === 'school-leader' ? (
         <>
           <SchoolLeaderStats />
+          <TeacherAttendanceActivityChart />
           <SchoolBaseAttendanceChat />
+          <div className="mt-6">
+            <PerformanceChart />
+          </div>
         </>
       ) : user?.role === 'teacher' ? (
         <>
           <TeacherStats />
+          <TeacherAttendanceActivityChart />
           <SchoolBaseAttendanceChat />
+          <div className="mt-6">
+            <PerformanceChart />
+          </div>
         </>
       ) : user?.role === 'learning-specialist' ? (
         <>
           <SchoolLeaderStats />
+          <TeacherAttendanceActivityChart />
           <SchoolBaseAttendanceChat />
+          <PerformanceChart />
         </>
       ) : null}
     </>

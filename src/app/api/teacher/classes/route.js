@@ -98,10 +98,37 @@ export async function GET(req) {
       query.isActive = true;
     }
 
-    const classes = await Class.find(query)
+    let classes = await Class.find(query)
       .populate("classTeacher", "firstName lastName email")
       .populate("subjects", "name code")
       .sort({ name: 1 });
+
+    // Teachers should only see classes they are assigned to.
+    if (user.role === "teacher") {
+      let assignedClasses = classes.filter(
+        (c) => c.classTeacher && c.classTeacher._id.toString() === userId
+      );
+
+      // Fallback: legacy `teacher` field on Class
+      if (assignedClasses.length === 0) {
+        assignedClasses = classes.filter(
+          (c) => c.teacher && c.teacher.toString() === userId
+        );
+      }
+
+      // Fallback: classes reached via subjects this teacher teaches
+      if (assignedClasses.length === 0) {
+        const subjects = await Subject.find({ school: schoolId, teacher: userId }).select("classes");
+        const classIdsFromSubjects = new Set(
+          subjects.flatMap((s) => (s.classes || []).map((id) => id.toString()))
+        );
+        if (classIdsFromSubjects.size > 0) {
+          assignedClasses = classes.filter((c) => classIdsFromSubjects.has(c._id.toString()));
+        }
+      }
+
+      classes = assignedClasses;
+    }
 
     return Response.json({ classes }, { status: 200 });
   } catch (error) {

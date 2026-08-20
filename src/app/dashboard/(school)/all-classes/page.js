@@ -11,7 +11,7 @@ import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 
 export default function AllClassesPage() {
   const router = useRouter();
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSchoolId, setActiveSchoolId] = useState("");
@@ -121,7 +121,9 @@ export default function AllClassesPage() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-0 mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Classes Management</h1>
-            <p className="text-gray-600 mt-2">Manage and organize your school classes</p>
+            <p className="text-gray-600 mt-2">
+              {isTeacher ? "Classes you are assigned to teach" : "Manage and organize your school classes"}
+            </p>
           </div>
           {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
             <button
@@ -138,8 +140,14 @@ export default function AllClassesPage() {
         {classes.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No classes yet</h2>
-            <p className="text-gray-600 mb-6">Create your first class to get started</p>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              {isTeacher ? "No classes assigned yet" : "No classes yet"}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {isTeacher
+                ? "You haven't been assigned to any classes. Contact your school admin to get assigned."
+                : "Create your first class to get started"}
+            </p>
             {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
               <button
                 onClick={handleAddClass}

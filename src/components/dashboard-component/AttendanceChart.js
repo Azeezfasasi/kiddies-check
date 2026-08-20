@@ -16,10 +16,18 @@ export default function AttendanceChart({
   schoolId = null,
   title = "School Attendance Overview" 
 }) {
+  const getToday = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(getToday);
+  const [endDate, setEndDate] = useState(getToday);
   const [stats, setStats] = useState({
     totalRecords: 0,
     presentCount: 0,
@@ -187,7 +195,7 @@ export default function AttendanceChart({
   }
 
   return (
-    <div className="w-full bg-white rounded-xl shadow-lg p-6 space-y-6">
+    <div className="w-full bg-white rounded-xl border border-gray-300 shadow-lg p-6 space-y-6">
       {/* Header */}
       <div className="border-b border-gray-200 pb-4">
         <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
