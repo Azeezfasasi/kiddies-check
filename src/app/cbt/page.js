@@ -252,13 +252,26 @@ export default function CbtExamPage() {
 
         {stage === "exam" && (
           <div>
-            <div className="sticky top-0 z-10 mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-              <div>
-                <p className="font-semibold text-gray-900">{examMeta?.title}</p>
-                <p className="text-xs text-gray-500">{studentName} · {answeredCount}/{questions.length} answered</p>
+            <div className="sticky top-20 z-10 mb-4 rounded-xl border border-gray-300 bg-white shadow-lg">
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+                <p className="text-sm font-medium text-gray-500">{examMeta?.title}</p>
+                <div className={`rounded-lg px-3 py-1 font-mono text-sm font-bold ${secondsLeft < 60 ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+                  {formatTime(secondsLeft)}
+                </div>
               </div>
-              <div className={`rounded-lg px-3 py-1.5 font-mono text-lg font-bold ${secondsLeft < 60 ? "bg-red-100 text-red-700" : "bg-blue-50 text-blue-700"}`}>
-                {formatTime(secondsLeft)}
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                    {studentName
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((n) => n[0].toUpperCase())
+                      .join("")}
+                  </div>
+                  <p className="text-lg font-bold leading-tight text-gray-900">{studentName}</p>
+                </div>
+                <p className="text-xs text-gray-500">{answeredCount}/{questions.length} answered</p>
               </div>
             </div>
 
