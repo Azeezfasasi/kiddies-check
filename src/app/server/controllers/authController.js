@@ -1044,15 +1044,24 @@ export const getAllUsers = async (req) => {
     const role = searchParams.get("role");
     const isActive = searchParams.get("isActive");
     const search = searchParams.get("search");
+    const schoolId = searchParams.get("schoolId");
     const page = parseInt(searchParams.get("page")) || 1;
     const limit = parseInt(searchParams.get("limit")) || 10;
 
     let filter = { accountStatus: { $ne: "deleted" } }; // Exclude deleted users
+    if (schoolId) {
+      const schoolMembers = await SchoolMember.find({ school: schoolId, status: "active" }).select("user");
+      filter.$or = [
+        { schoolId },
+        { _id: { $in: schoolMembers.map((member) => member.user) } },
+      ];
+    }
     if (role) filter.role = role;
     if (isActive !== null) filter.isActive = isActive === "true";
     if (search) {
       const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      filter.$or = [{ firstName: regex }, { lastName: regex }, { email: regex }];
+      const searchFilter = [{ firstName: regex }, { lastName: regex }, { email: regex }];
+      filter.$and = [...(filter.$and || []), { $or: searchFilter }];
     }
 
     const skip = (page - 1) * limit;

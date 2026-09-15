@@ -23,7 +23,7 @@ export default function TeacherAttendanceActivityChart({
   const [totalClasses, setTotalClasses] = useState(0);
 
   useEffect(() => {
-    const sid = schoolId || localStorage.getItem("schoolId");
+    const sid = schoolId || localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
     if (sid) {
       fetchActivity(sid);
     }

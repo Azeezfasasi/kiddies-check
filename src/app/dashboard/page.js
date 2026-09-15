@@ -50,6 +50,12 @@ export default function Dashboard() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const { user } = useAuth();
+  const [selectedSchoolId, setSelectedSchoolId] = React.useState(null);
+
+  React.useEffect(() => {
+    const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+    setSelectedSchoolId(schoolId);
+  }, []);
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -71,12 +77,12 @@ export default function Dashboard() {
 
       {user?.role === 'admin' ? (
         <>
-        <DashboardStats />
+        <DashboardStats schoolId={selectedSchoolId} />
         <div className="flex flex-col lg:flex-col gap-6 justify-center mt-6">
-          <PerformanceChart />
-          <AttendanceChart />
-          <TeacherAttendanceActivityChart />
-          <UserChart />
+          <PerformanceChart schoolId={selectedSchoolId} />
+          <AttendanceChart schoolId={selectedSchoolId} />
+          <TeacherAttendanceActivityChart schoolId={selectedSchoolId} />
+          <UserChart schoolId={selectedSchoolId} />
         </div>
         </>
       ) : user?.role === 'school-leader' ? (

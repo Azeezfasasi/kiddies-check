@@ -115,7 +115,7 @@ function Count({ value = 0, duration = 800 }) {
   return <span className="text-2xl md:text-3xl font-bold text-gray-900">{display.toLocaleString()}</span>
 }
 
-export default function DashboardStats({ data = {} }) {
+export default function DashboardStats({ data = {}, schoolId = null }) {
   const { token } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +129,8 @@ export default function DashboardStats({ data = {} }) {
         setLoading(true);
         setError(null);
 
-        const response = await axios.get('/api/dashboard/stats', {
+        const selectedSchoolId = schoolId || localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+        const response = await axios.get(`/api/dashboard/stats${selectedSchoolId ? `?schoolId=${selectedSchoolId}` : ""}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -166,7 +167,7 @@ export default function DashboardStats({ data = {} }) {
       return () => clearInterval(interval);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, schoolId]);
 
   // Use provided data if no token, otherwise use fetched stats
   const displayStats = stats || data || {

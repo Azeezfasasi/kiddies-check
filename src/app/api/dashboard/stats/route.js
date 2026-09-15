@@ -16,6 +16,17 @@ export async function GET(req) {
     return isAdmin(req, async () => {
       try {
         await connectDB();
+        const schoolId = req.nextUrl.searchParams.get("schoolId");
+        let schoolUserFilter = {};
+
+        if (schoolId) {
+          const schoolMembers = await SchoolMember.find({ school: schoolId, status: "active" }).select("user");
+          const memberUserIds = schoolMembers.map((member) => member.user);
+          schoolUserFilter = { $or: [{ schoolId }, { _id: { $in: memberUserIds } }] };
+        }
+
+        const scopedUserFilter = (extra = {}) => ({ ...extra, ...schoolUserFilter });
+        const scopedMemberFilter = schoolId ? { school: schoolId, status: "active" } : { status: "active" };
 
         // Fetch counts from all collections in parallel
         const [
@@ -31,17 +42,27 @@ export async function GET(req) {
           adminCount,
           studentsCount,
         ] = await Promise.all([
-          User.countDocuments({ isActive: true }),
+          User.countDocuments(scopedUserFilter({ isActive: true })),
           Blog.countDocuments({ status: "published" }),
           Contact.countDocuments(),
           Quote.countDocuments(),
           Project.countDocuments(),
-          User.countDocuments({ role: "school-leader", isActive: true }),
-          User.countDocuments({ role: "learning-specialist", isActive: true }),
-          SchoolMember.countDocuments({ role: "teacher", status: "active" }),
-          User.countDocuments({ role: "parent", isActive: true }),
-          User.countDocuments({ role: "admin", isActive: true }),
-          Student.countDocuments(),
+          schoolId
+            ? SchoolMember.countDocuments({ ...scopedMemberFilter, role: "school-leader" })
+            : User.countDocuments({ role: "school-leader", isActive: true }),
+          schoolId
+            ? SchoolMember.countDocuments({ ...scopedMemberFilter, role: "learning-specialist" })
+            : User.countDocuments({ role: "learning-specialist", isActive: true }),
+          schoolId
+            ? SchoolMember.countDocuments({ ...scopedMemberFilter, role: "teacher" })
+            : SchoolMember.countDocuments({ role: "teacher", status: "active" }),
+          schoolId
+            ? SchoolMember.countDocuments({ ...scopedMemberFilter, role: "parent" })
+            : User.countDocuments({ role: "parent", isActive: true }),
+          schoolId
+            ? SchoolMember.countDocuments({ ...scopedMemberFilter, role: "admin" })
+            : User.countDocuments({ role: "admin", isActive: true }),
+          schoolId ? Student.countDocuments({ school: schoolId, isActive: true }) : Student.countDocuments(),
         ]);
 
         // Count pending/open items

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -13,12 +13,39 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PerformanceChart({ 
+  schoolId = null,
   currentPerformance = [],
   previousPerformanceData = [],
   title = "Student Performance Overview" 
 }) {
+  const { token } = useAuth();
+  const [fetchedCurrentPerformance, setFetchedCurrentPerformance] = useState(currentPerformance);
+  const [fetchedPreviousPerformance, setFetchedPreviousPerformance] = useState(previousPerformanceData);
+
+  useEffect(() => {
+    const selectedSchoolId = schoolId || localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+    if (!token || !selectedSchoolId) return;
+
+    const fetchPerformance = async () => {
+      try {
+        const response = await fetch(`/api/dashboard/performance?schoolId=${selectedSchoolId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setFetchedCurrentPerformance(data.currentPerformance || []);
+        setFetchedPreviousPerformance(data.previousPerformanceData || []);
+      } catch (error) {
+        console.error("Failed to fetch dashboard performance:", error);
+      }
+    };
+
+    fetchPerformance();
+  }, [schoolId, token]);
+
   // Default sample data if none provided
   const defaultCurrentData = [
     { name: "Excellent (75-100)", value: 35, fill: "#10b981" },
@@ -36,8 +63,8 @@ export default function PerformanceChart({
     { name: "Poor (<40)", value: 3, fill: "#d32f2f" },
   ];
 
-  const chartData = currentPerformance.length > 0 ? currentPerformance : defaultCurrentData;
-  const previousData = previousPerformanceData.length > 0 ? previousPerformanceData : defaultPreviousData;
+  const chartData = fetchedCurrentPerformance.length > 0 ? fetchedCurrentPerformance : defaultCurrentData;
+  const previousData = fetchedPreviousPerformance.length > 0 ? fetchedPreviousPerformance : defaultPreviousData;
 
   // Calculate metrics
   const calculateWeightedAverage = (data) => {

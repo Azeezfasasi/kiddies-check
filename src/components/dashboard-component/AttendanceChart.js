@@ -39,7 +39,7 @@ export default function AttendanceChart({
   const [classBreakdown, setClassBreakdown] = useState([]);
 
   useEffect(() => {
-    const sid = schoolId || localStorage.getItem("schoolId");
+    const sid = schoolId || localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
     if (sid) {
       fetchAttendanceData(sid);
     }

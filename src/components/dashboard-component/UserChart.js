@@ -26,7 +26,7 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function UserChart() {
+export default function UserChart({ schoolId = null }) {
   const { token } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,8 @@ export default function UserChart() {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/users', {
+        const selectedSchoolId = schoolId || localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+        const response = await axios.get(`/api/users${selectedSchoolId ? `?schoolId=${selectedSchoolId}&limit=1000` : "?limit=1000"}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -86,7 +87,7 @@ export default function UserChart() {
       if (token) fetchUserData();
     }, 120000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, schoolId]);
 
   if (loading) {
     return (
