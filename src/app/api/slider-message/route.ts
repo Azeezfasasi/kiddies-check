@@ -4,6 +4,7 @@ import {
   getActiveSliderMessages,
   createSliderMessage,
   reorderSliderMessages,
+  updateSliderMessage,
 } from "../../server/controllers/sliderMessageController";
 import { authenticate } from "../../server/middleware/auth";
 
@@ -86,9 +87,6 @@ export async function PUT(req: NextRequest) {
       }
 
       const { id, ...updateData } = body;
-      // BUG: `updateSliderMessage` is not defined or imported, so this line throws a
-      // ReferenceError and every single-message update returns a 500.
-      // @ts-expect-error -- kept as-is during the TypeScript conversion; see BUG above.
       const updated = await updateSliderMessage(id, updateData);
       return NextResponse.json({ success: true, message: updated });
     });
