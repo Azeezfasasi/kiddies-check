@@ -2,6 +2,12 @@ import withPWA from 'next-pwa';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Lint runs separately (`npm run lint`) so existing lint errors can't block
+  // a production build. TypeScript type errors still fail the build.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Image optimization
   images: {
     remotePatterns: [

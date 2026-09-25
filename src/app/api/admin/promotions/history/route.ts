@@ -1,0 +1,143 @@
+import type { NextRequest } from "next/server";
+/**
+ * /api/admin/promotions/history
+ * Promotion history (admin only)
+ */
+
+import { connectDB } from "@/app/server/db/connect";
+import PromotionRecord from "@/app/server/models/PromotionRecord";
+import User from "@/app/server/models/User";
+import Student from "@/app/server/models/Student";
+import Class from "@/app/server/models/Class";
+import School from "@/app/server/models/School";
+import SchoolMember from "@/app/server/models/SchoolMember";
+import jwt from "jsonwebtoken";
+import { can } from "@/utils/roles";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+const verifyAccess = async (req) => {
+  try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return { error: "Unauthorized: Invalid token", status: 401 };
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    await connectDB();
+    const user = await User.findById(decoded.id);
+
+    if (!user || !(["admin", "learning-specialist", "school-leader"].includes(user.role) || can(user.role, "promotion"))) {
+      return { error: "Forbidden: Insufficient permissions", status: 403 };
+    }
+
+    return { user };
+  } catch (error) {
+    return { error: "Unauthorized: Invalid token", status: 401 };
+  }
+};
+
+// Admins can view history across every school. Everyone else must be
+// scoped to a specific school they actually belong to.
+const verifySchoolScope = async (user, schoolId) => {
+  if (user.role === "admin" || can(user.role, "promotion")) return true;
+  if (user.schoolId && user.schoolId.toString() === schoolId) return true;
+  if (user.managedSchools?.some((id) => id.toString() === schoolId)) return true;
+
+  const membership = await SchoolMember.findOne({
+    user: user._id,
+    school: schoolId,
+    role: { $in: ["school-leader", "learning-specialist"] },
+    status: "active",
+  });
+  return !!membership;
+};
+
+/**
+ * GET /api/admin/promotions/history
+ * Query: ?schoolId=&academicSession=&classId=&page=&limit=
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await verifyAccess(request);
+    if (auth.error) {
+      return Response.json(
+        { success: false, message: auth.error },
+        { status: auth.status }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const schoolId = searchParams.get("schoolId");
+    const academicSession = searchParams.get("academicSession");
+    const classId = searchParams.get("classId");
+    const status = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
+
+    // Non-admins must scope to a specific school they belong to — leaving
+    // schoolId off would otherwise return every school's promotion history.
+    if (!schoolId && auth.user.role !== "admin" && !can(auth.user.role, "promotion")) {
+      return Response.json(
+        { success: false, message: "schoolId is required" },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    if (schoolId && !(await verifySchoolScope(auth.user, schoolId))) {
+      return Response.json(
+        { success: false, message: "Forbidden: You do not have access to this school" },
+        { status: 403 }
+      );
+    }
+
+    const query: Record<string, unknown> = {};
+    if (schoolId) query.school = schoolId;
+    if (academicSession) query.academicSession = academicSession;
+    if (status) query.status = status;
+    if (classId) {
+      query.$or = [{ fromClass: classId }, { toClass: classId }];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [records, total] = await Promise.all([
+      PromotionRecord.find(query)
+        .populate("student", "firstName lastName enrollmentNo")
+        .populate("fromClass", "name level section")
+        .populate("toClass", "name level section")
+        .populate("promotedBy", "firstName lastName email")
+        .populate("school", "name")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PromotionRecord.countDocuments(query),
+    ]);
+
+    // Get distinct academic sessions for filter dropdown
+    const sessions = await PromotionRecord.distinct("academicSession", schoolId ? { school: schoolId } : {});
+
+    return Response.json(
+      {
+        success: true,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        sessions: sessions.sort().reverse(),
+        records,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error fetching promotion history:", error);
+    return Response.json(
+      { success: false, message: "Failed to fetch promotion history", error: error.message },
+      { status: 500 }
+    );
+  }
+}
+

@@ -1,0 +1,126 @@
+"use client";
+
+import { CircleChevronDown } from "lucide-react";
+import type { Loose } from "@/types/loose";
+
+export function SelectField({ label, value, onChange, options, required }: { label: string; value: string; onChange: (value: string) => void; options: Loose[]; required?: boolean }) {
+  const optionsArray = Array.isArray(options) ? options : [];
+  
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        required={required}
+      >
+        <option value="">{`Select ${label}`}</option>
+        {optionsArray.length > 0 ? (
+          optionsArray.map((opt) => (
+            <option key={opt._id} value={opt._id}>
+              {opt.firstName ? `${opt.firstName} ${opt.lastName}` : opt.name || opt.className || "Unnamed"}
+            </option>
+          ))
+        ) : (
+          <option disabled>No {label.toLowerCase()}s available</option>
+        )}
+      </select>
+    </div>
+  );
+}
+
+export function NumberField({ label, value, onChange, min, max }: { label: string; value: number | string; onChange: (value: number) => void; min?: number; max?: number }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value) || 0)}
+        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        min={min}
+        max={max}
+      />
+    </div>
+  );
+}
+
+export function DateField({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        required={required}
+      />
+    </div>
+  );
+}
+
+export function TextAreaField({ label, value, onChange, rows = 3 }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+        rows={rows}
+      />
+    </div>
+  );
+}
+
+export function RatingSelect({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value ? parseInt(e.target.value) : "")}
+        className="w-full px-3 py-2 border rounded-lg"
+      >
+        <option value="">Select...</option>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <option key={n} value={n}>{n}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export function FormButtons({ onCancel, isEdit }) {
+  return (
+    <div className="flex gap-3 pt-2 flex-wrap">
+      <button
+        type="submit"
+        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+      >
+        {isEdit ? "Update" : "Save"}
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+export function AccordionSection({ title, children, open = false }) {
+  return (
+    <details open={open} className="group rounded-2xl border border-gray-200 bg-slate-50">
+      <summary className="flex cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-gray-800 transition-colors hover:bg-slate-100">
+        <span>{title}</span>
+        <span className="text-blue-600 transition-transform duration-200 ease-in-out group-open:rotate-180"><CircleChevronDown className="w-4 h-4" /></span>
+      </summary>
+      <div className="px-4 py-4">{children}</div>
+    </details>
+  );
+}
