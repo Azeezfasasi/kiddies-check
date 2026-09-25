@@ -8,7 +8,7 @@ import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
 import ProspectiveStudent from '@/app/server/models/ProspectiveStudent';
 import { sendAdminPendingNotification } from '@/app/server/utils/emailService';
-import { legacy, type LegacyUserFields } from "@/types/legacy";
+import { getUserSchoolName } from "@/app/server/lib/userSchool";
 
 export async function POST(request: NextRequest) {
   try {
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         user.firstName,
         user.lastName,
         user.email,
-        legacy<LegacyUserFields>(user).school || 'School Name Not Provided',
+        (await getUserSchoolName(user)) || 'School Name Not Provided',
         user.model || 'Model Not Specified',
         user.location || 'Location Not Specified',
         user.numberOfStudents || 0,

@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
 import { sendOtpEmail } from '@/app/server/utils/emailService';
-import { legacy, type LegacyUserFields } from "@/types/legacy";
+import { getUserSchoolName } from "@/app/server/lib/userSchool";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
 
     // Send OTP email
     try {
-      // BUG: User has no `school` field, so the school name in the OTP email is undefined.
-      await sendOtpEmail(email, user.firstName, otp, legacy<LegacyUserFields>(user).school);
+      // Same rule as the first OTP email sent at registration.
+      await sendOtpEmail(email, user.firstName, otp, (await getUserSchoolName(user)) || 'Kiddies Check');
     } catch (emailError) {
       console.error('Error sending OTP email:', emailError);
       return Response.json(

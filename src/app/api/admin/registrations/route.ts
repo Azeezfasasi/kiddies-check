@@ -10,6 +10,7 @@ import { sendApprovalEmail, sendRejectionEmail } from '@/app/server/utils/emailS
 import jwt from 'jsonwebtoken';
 import { can } from "@/utils/roles";
 import { legacy, type LegacyUserFields } from "@/types/legacy";
+import { getUserSchoolName } from "@/app/server/lib/userSchool";
 
 // Middleware to verify admin token
 const verifyAdminToken = (req) => {
@@ -148,10 +149,11 @@ export async function PUT(request: NextRequest) {
 
       await user.save();
 
+      const schoolName = await getUserSchoolName(user);
+
       // Send approval email
       try {
-        // BUG: User has no `school` field, so the school name in this email is always undefined.
-        await sendApprovalEmail(user.email, user.firstName, legacy<LegacyUserFields>(user).school);
+        await sendApprovalEmail(user.email, user.firstName, schoolName);
       } catch (emailError) {
         console.error('Error sending approval email:', emailError);
         // Don't fail the approval due to email issues
@@ -166,7 +168,7 @@ export async function PUT(request: NextRequest) {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            school: legacy<LegacyUserFields>(user).school,
+            school: schoolName,
             approvalStatus: user.approvalStatus,
             approvedAt: user.approvedAt,
           },
@@ -189,10 +191,11 @@ export async function PUT(request: NextRequest) {
 
       await user.save();
 
+      const schoolName = await getUserSchoolName(user);
+
       // Send rejection email
       try {
-        // BUG: User has no `school` field, so the school name in this email is always undefined.
-        await sendRejectionEmail(user.email, user.firstName, legacy<LegacyUserFields>(user).school, rejectionReason);
+        await sendRejectionEmail(user.email, user.firstName, schoolName, rejectionReason);
       } catch (emailError) {
         console.error('Error sending rejection email:', emailError);
         // Don't fail the rejection due to email issues
@@ -207,7 +210,7 @@ export async function PUT(request: NextRequest) {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            school: legacy<LegacyUserFields>(user).school,
+            school: schoolName,
             approvalStatus: user.approvalStatus,
             rejectionReason: user.rejectionReason,
           },
