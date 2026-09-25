@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PLATFORM_ROLES, ROLE_LABELS, withFeature } from '@/utils/roles';
 
 const roles = [
   { value: "parent", label: "Parent" },
@@ -9,6 +10,7 @@ const roles = [
   { value: "learning-specialist", label: "Learning Specialist" },
   { value: "school-leader", label: "School Leader" },
   { value: "teacher", label: "Teacher" },
+  ...PLATFORM_ROLES.map((value) => ({ value, label: ROLE_LABELS[value] })),
 ];
 
 export default function AddUserPage() {
@@ -67,7 +69,7 @@ export default function AddUserPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'users')}>
     <div className="max-w-xl mx-auto p-4 md:p-8 bg-white rounded-xl shadow-lg mt-3 md:mt-8">
       <h1 className="text-[20px] md:text-2xl font-bold mb-6">Add New User</h1>
       <form onSubmit={handleSubmit} className="space-y-5">

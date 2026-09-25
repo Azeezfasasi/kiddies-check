@@ -18,7 +18,7 @@ const MAX_REMINDERS = 500;
 export async function POST(request) {
   try {
     const body = await request.json();
-    const auth = await authorizeSchool(request, body.schoolId);
+    const auth = await authorizeSchool(request, body.schoolId, { requireRecorder: true });
     if (auth.error) return jsonError(auth.error, auth.status);
 
     const billIds = [...new Set((body.billIds || []).filter(isValidId))];

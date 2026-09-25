@@ -3,6 +3,7 @@ import { connectDB } from "@/utils/db.js";
 import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
 import { NextResponse } from "next/server";
+import { can } from "@/utils/roles";
 
 // PATCH /api/schools/:id/approval-status - Update school approval status
 export async function PATCH(req, { params }) {
@@ -11,7 +12,7 @@ export async function PATCH(req, { params }) {
       await connectDB();
 
       // Verify admin or learning specialist access
-      if (user.role !== "admin" && user.role !== "learning-specialist") {
+      if (user.role !== "admin" && user.role !== "learning-specialist" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }

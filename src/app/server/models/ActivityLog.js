@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ALL_ROLES } from "@/utils/roles";
 
 const activityLogSchema = new mongoose.Schema(
   {
@@ -13,7 +14,7 @@ const activityLogSchema = new mongoose.Schema(
     lastName: String,
     userRole: {
       type: String,
-      enum: ["admin", "school-leader", "teacher", "parent", "learning-specialist"],
+      enum: ALL_ROLES,
     },
     school: {
       type: mongoose.Schema.Types.ObjectId,

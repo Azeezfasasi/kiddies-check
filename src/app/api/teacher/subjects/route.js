@@ -3,6 +3,7 @@ import Class from "@/app/server/models/Class";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function POST(req) {
   try {
@@ -31,7 +32,7 @@ export async function POST(req) {
     
     // Allow admin + learning-specialist full access to any school
     // Teachers are allowed only if they match the requested school (handled by hasAccess below)
-    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
+    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -98,7 +99,7 @@ export async function GET(req) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));

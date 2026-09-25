@@ -1,6 +1,7 @@
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin, withFeature } from "@/utils/roles";
 
 export async function GET(req) {
   try {
@@ -27,13 +28,13 @@ export async function GET(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const allowedRoles = ['admin', 'learning-specialist', 'school-leader', 'teacher'];
+    const allowedRoles = withFeature(['admin', 'learning-specialist', 'school-leader', 'teacher'], "academics");
     if (!allowedRoles.includes(user.role)) {
       return Response.json({ error: "Unauthorized to view parents" }, { status: 403 });
     }
 
     // Check school access for non-admin users
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));

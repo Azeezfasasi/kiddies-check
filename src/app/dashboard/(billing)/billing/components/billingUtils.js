@@ -1,5 +1,11 @@
+import { can } from "@/utils/roles";
+
 export const FEE_MANAGER_ROLES = ["admin", "school-leader"];
 export const BILLING_ROLES = ["admin", "school-leader", "learning-specialist"];
+
+// Mirrors the server: platform roles get view / edit (record) / manage via roles.js.
+export const canViewBilling = (role) => BILLING_ROLES.includes(role) || can(role, "billing", "view");
+export const canRecordPayments = (role) => BILLING_ROLES.includes(role) || can(role, "billing", "edit");
 
 export const TERM_LABELS = { first: "First Term", second: "Second Term", third: "Third Term" };
 export const TERMS = Object.keys(TERM_LABELS);
@@ -85,7 +91,7 @@ export function balanceAfterPayment(bill, payment) {
   return bill.netAmount - paid;
 }
 
-export const canManageFees = (role) => FEE_MANAGER_ROLES.includes(role);
+export const canManageFees = (role) => FEE_MANAGER_ROLES.includes(role) || can(role, "billing", "manage");
 
 export async function billingRequest(token, url, options = {}) {
   const res = await fetch(url, {

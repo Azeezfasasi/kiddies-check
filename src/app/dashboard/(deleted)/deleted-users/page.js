@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { withFeature } from '@/utils/roles';
 
 const PAGE_SIZE = 10;
 
@@ -242,7 +243,7 @@ export default function DeletedUsersPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'users')}>
       <div className="w-[360px] md:w-full md:max-w-7xl p-2 md:p-6 bg-white rounded-xl shadow-lg">
         <h1 className="text-[20px] md:text-2xl font-bold mb-4">Deleted Users</h1>
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchGalleries, deleteGallery } from '@/app/utils/galleryApi';
 import { Plus, Edit, Trash2, Eye, Loader, Search } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { withFeature } from '@/utils/roles';
 
 const CATEGORIES = ['learning', 'education', 'infrastructure', 'technology', 'other'];
 
@@ -96,7 +97,7 @@ export default function AllGalleriesPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'gallery')}>
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}

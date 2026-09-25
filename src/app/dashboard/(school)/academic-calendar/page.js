@@ -16,6 +16,8 @@ import {
   Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
+import { can } from "@/utils/roles";
 
 const TERM_ICONS = {
   first: Sun,
@@ -31,6 +33,9 @@ const TERM_LABELS = {
 
 export default function AcademicCalendarPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  // IT Support can view the calendar but not change it.
+  const canEdit = ["admin", "learning-specialist"].includes(user?.role) || can(user?.role, "calendar", "edit");
   const [terms, setTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -239,13 +244,15 @@ export default function AcademicCalendarPage() {
               Manage academic sessions, terms, and public holidays globally
             </p>
           </div>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors shadow-md"
-          >
-            <Plus className="w-5 h-5" />
-            Add Term
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => handleOpenModal()}
+              className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition-colors shadow-md"
+            >
+              <Plus className="w-5 h-5" />
+              Add Term
+            </button>
+          )}
         </div>
 
         {sortedSessions.length === 0 ? (
@@ -257,13 +264,15 @@ export default function AcademicCalendarPage() {
             <p className="text-gray-600 mb-6">
               Create your first academic term to get started
             </p>
-            <button
-              onClick={() => handleOpenModal()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Add Term
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => handleOpenModal()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg inline-flex items-center gap-2 transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+                Add Term
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-8">
@@ -315,7 +324,7 @@ export default function AcademicCalendarPage() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex gap-1">
+                            <div className={`flex gap-1 ${canEdit ? "" : "hidden"}`}>
                               {!isCurrent && (
                                 <button
                                   onClick={() => handleSetCurrent(term._id)}

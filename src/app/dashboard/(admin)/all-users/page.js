@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PLATFORM_ROLES, ROLE_LABELS, withFeature } from '@/utils/roles';
 
 const PAGE_SIZE = 10;
 
@@ -412,7 +413,7 @@ export default function AllUsersPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'users')}>
     <div className="w-[360px] md:w-full md:max-w-7xl p-2 md:p-6 bg-white rounded-xl shadow-lg">
       <h1 className="text-[20px] md:text-2xl font-bold mb-4">All Users</h1>
 
@@ -436,6 +437,9 @@ export default function AllUsersPage() {
           <option value="learning-specialist">Learning Specialist</option>
           <option value="school-leader">School Leader</option>
           <option value="teacher">Teacher</option>
+          {PLATFORM_ROLES.map((r) => (
+            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+          ))}
         </select>
         <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="border px-3 py-2 rounded-lg outline-none border-gray-400 focus:ring-2 focus:ring-blue-500 text-[14px] md:text-base">
           <option value="">All Status</option>
@@ -752,6 +756,9 @@ export default function AllUsersPage() {
                 <option value="learning-specialist">Learning Specialist</option>
                 <option value="school-leader">School Leader</option>
                 <option value="teacher">Teacher</option>
+                {PLATFORM_ROLES.map((r) => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
               </select>
             </div>
             <div className="flex gap-3">
@@ -791,6 +798,9 @@ export default function AllUsersPage() {
                 <option value="learning-specialist">Learning Specialist</option>
                 <option value="school-leader">School Leader</option>
                 <option value="teacher">Teacher</option>
+                {PLATFORM_ROLES.map((r) => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
               </select>
             </div>
             <div className="flex gap-3">

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText, Wallet  } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
+import { ALL_ROLES, withFeature } from '@/utils/roles'
 
 function Icon({ name }) {
   switch (name) {
@@ -98,59 +99,59 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     onClose();
   };
   const items = [
-    { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent'] },
+    { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ALL_ROLES },
     {
       href: '/dashboard/blog',
       label: 'Blog',
       icon: 'blog',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'blog'),
       children: [
-        { href: '/dashboard/add-blog', label: 'Add Blog', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: ['admin', 'learning-specialist'] }
+        { href: '/dashboard/add-blog', label: 'Add Blog', roles: withFeature(['admin', 'learning-specialist'], 'blog') },
+        { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: withFeature(['admin', 'learning-specialist'], 'blog') }
       ]
     },
     // { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
     { href: '/dashboard/my-children', label: 'My Children', icon: 'dashboard', roles: ['parent'] },
-    { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: ['admin'] },
-    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: ['admin'] },
-    { href: '/dashboard/prospective-students', label: 'Prospective Students', icon: 'dashboard', roles: ['admin', 'learning-specialist', 'school-leader'] },
-    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin'] },
-    { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin'] },
-    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin', 'learning-specialist', 'school-leader'] },
+    { href: '/dashboard/contact-form-responses', label: 'Contact Form Responses', icon: 'Contact', roles: withFeature(['admin'], 'contact-responses') },
+    { href: '/dashboard/manage-registration', label: 'Manage Registrations', icon: 'registration', roles: withFeature(['admin'], 'registrations') },
+    { href: '/dashboard/prospective-students', label: 'Prospective Students', icon: 'dashboard', roles: withFeature(['admin', 'learning-specialist', 'school-leader'], 'prospective') },
+    { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: withFeature(['admin'], 'schools') },
+    { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: withFeature(['admin'], 'calendar') },
+    { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: withFeature(['admin', 'learning-specialist', 'school-leader'], 'promotion') },
     {
       href: '/dashboard/billing-menu',
       label: 'Billing',
       icon: 'billing',
-      roles: ['admin', 'school-leader', 'learning-specialist'],
+      roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'billing'),
       children: [
-        { href: '/dashboard/billing', label: 'Student Bills', roles: ['admin', 'school-leader', 'learning-specialist'] },
-        { href: '/dashboard/billing/fee-setup', label: 'Fee Setup', roles: ['admin', 'school-leader', 'learning-specialist'] },
-        { href: '/dashboard/billing/payments', label: 'Payment History', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/billing', label: 'Student Bills', roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'billing') },
+        { href: '/dashboard/billing/fee-setup', label: 'Fee Setup', roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'billing') },
+        { href: '/dashboard/billing/payments', label: 'Payment History', roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'billing') },
       ]
     },
     {
       href: '/dashboard/schools',
       label: 'School Manager',
       icon: 'graduation',
-      roles: ['admin', 'school-leader', 'learning-specialist'],
+      roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager'),
       children: [
-        { href: '/dashboard/school-members', label: 'School members', roles: ['admin', 'school-leader'] },
-        { href: '/dashboard/invite-member', label: 'Invite Members', roles: ['admin', 'school-leader'] },
-        { href: '/dashboard/school-parents', label: 'Parent List', roles: ['admin', 'school-leader'] },
-        { href: '/dashboard/assign-class', label: 'Class Assignment', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/school-members', label: 'School members', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
+        { href: '/dashboard/invite-member', label: 'Invite Members', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
+        { href: '/dashboard/school-parents', label: 'Parent List', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
+        { href: '/dashboard/assign-class', label: 'Class Assignment', roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager') },
       ]
     },
     {
       href: '/dashboard/teachers',
       label: 'Learning Specialist',
       icon: 'teacher',
-      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
+      roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'academics'),
       children: [
-        { href: '/dashboard/all-classes', label: 'Classes', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/all-students', label: 'All Students', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/all-subjects', label: 'Subjects', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/student-assessments', label: 'Student Learning Data', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
-        { href: '/dashboard/mark-attendance', label: 'Mark Attendance', roles: ['admin', 'school-leader', 'teacher', 'learning-specialist'] },
+        { href: '/dashboard/all-classes', label: 'Classes', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
+        { href: '/dashboard/all-students', label: 'All Students', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
+        { href: '/dashboard/all-subjects', label: 'Subjects', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
+        { href: '/dashboard/student-assessments', label: 'Student Learning Data', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
+        { href: '/dashboard/mark-attendance', label: 'Mark Attendance', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
         // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
       ]
     },
@@ -159,21 +160,21 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/all-newsletter',
       label: 'Newsletter Management',
       icon: 'Newsletter',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'newsletter'),
       children: [
-        { href: '/dashboard/send-newsletter', label: 'Send Newsletter', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/all-newsletters', label: 'All Newsletters', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/subscribers', label: 'Subscribers', roles: ['admin', 'learning-specialist'] },
+        { href: '/dashboard/send-newsletter', label: 'Send Newsletter', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
+        { href: '/dashboard/all-newsletters', label: 'All Newsletters', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
+        { href: '/dashboard/subscribers', label: 'Subscribers', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
       ]
     },
     {
       href: '/dashboard/gallery',
       label: 'Gallery Management',
       icon: 'Gallery',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'gallery'),
       children: [
-        { href: '/dashboard/add-gallery', label: 'Add Gallery', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/all-gallery', label: 'All Gallery', roles: ['admin', 'learning-specialist'] },
+        { href: '/dashboard/add-gallery', label: 'Add Gallery', roles: withFeature(['admin', 'learning-specialist'], 'gallery') },
+        { href: '/dashboard/all-gallery', label: 'All Gallery', roles: withFeature(['admin', 'learning-specialist'], 'gallery') },
       ]
     },
     { href: '/gallery', label: 'Our Gallery', icon: 'projects', roles: ['client'] },
@@ -181,61 +182,61 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/users',
       label: 'Manage Users',
       icon: 'Users',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'users'),
       children: [
-        { href: '/dashboard/all-users', label: 'All Users', roles: ['admin'] },
-        { href: '/dashboard/add-user', label: 'Add User', roles: ['admin'] },
-        { href: '/dashboard/change-user-password', label: 'Change User Password', roles: ['admin'] },
-        { href: '/dashboard/deleted-users', label: 'Deleted Users', roles: ['admin'] }
+        { href: '/dashboard/all-users', label: 'All Users', roles: withFeature(['admin'], 'users') },
+        { href: '/dashboard/add-user', label: 'Add User', roles: withFeature(['admin'], 'users') },
+        { href: '/dashboard/change-user-password', label: 'Change User Password', roles: withFeature(['admin'], 'users') },
+        { href: '/dashboard/deleted-users', label: 'Deleted Users', roles: withFeature(['admin'], 'users') }
       ]
     },
     {
       href: '/dashboard/deleted-data',
       label: 'Deleted Data',
       icon: 'Delete',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'deleted-data'),
       children: [
-        { href: '/dashboard/deleted-students', label: 'Deleted Students', roles: ['admin'] },
-        { href: '/dashboard/deleted-classes', label: 'Deleted Classes', roles: ['admin'] },
-        { href: '/dashboard/deleted-subjects', label: 'Deleted Subjects', roles: ['admin'] },
-        { href: '/dashboard/deleted-schools', label: 'Deleted Schools', roles: ['admin'] }
+        { href: '/dashboard/deleted-students', label: 'Deleted Students', roles: withFeature(['admin'], 'deleted-data') },
+        { href: '/dashboard/deleted-classes', label: 'Deleted Classes', roles: withFeature(['admin'], 'deleted-data') },
+        { href: '/dashboard/deleted-subjects', label: 'Deleted Subjects', roles: withFeature(['admin'], 'deleted-data') },
+        { href: '/dashboard/deleted-schools', label: 'Deleted Schools', roles: withFeature(['admin'], 'deleted-data') }
       ]
     },
     {
       href: '/dashboard/teacher-report-cards',
       label: 'Report Cards',
       icon: 'Report Cards',
-      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
+      roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'report-cards'),
       children: [
-        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
-        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/report-cards/create', label: 'Create Report Card', roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'report-cards', 'edit') },
+        { href: '/dashboard/report-cards', label: 'All Report Cards', roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'report-cards') },
       ]
     },
     {
       href: '/dashboard/cbt-exams',
       label: 'CBT Exams',
       icon: 'Report Cards',
-      roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'],
+      roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'cbt'),
       children: [
-        { href: '/dashboard/exams/create', label: 'Create Exam', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
-        { href: '/dashboard/exams', label: 'All Exams', roles: ['admin', 'school-leader', 'learning-specialist', 'teacher'] },
+        { href: '/dashboard/exams/create', label: 'Create Exam', roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'cbt', 'edit') },
+        { href: '/dashboard/exams', label: 'All Exams', roles: withFeature(['admin', 'school-leader', 'learning-specialist', 'teacher'], 'cbt') },
       ]
     },
-    { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ['admin', 'school-leader', 'teacher', 'parent', 'learning-specialist'] },
-    { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: ['admin'] },
+    { href: '/dashboard/my-profile', label: 'Profile', icon: 'profile', roles: ALL_ROLES },
+    { href: '/dashboard/logs', label: 'Logs', icon: 'profile', roles: withFeature(['admin'], 'logs') },
     {
       href: '/dashboard/home',
       label: 'Homepage Contents',
       icon: 'house',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'site-content'),
       children: [
-        { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/home-cta', label: 'Home CTA', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/our-services-contents', label: 'Our Services', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/testimonials', label: 'Testimonials', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/why-rayob', label: 'Why Kiddies Check', roles: ['admin', 'learning-specialist'] },
+        { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/home-cta', label: 'Home CTA', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/our-services-contents', label: 'Our Services', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/testimonials', label: 'Testimonials', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/why-rayob', label: 'Why Kiddies Check', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
         
       ]
     },
@@ -243,11 +244,11 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       href: '/dashboard/about-page',
       label: 'About Page Contents',
       icon: 'about',
-      roles: ['admin'],
+      roles: withFeature(['admin'], 'site-content'),
       children: [
-        { href: '/dashboard/company-overview', label: 'Company Overview', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/history-milestones', label: 'History & Milestones', roles: ['admin', 'learning-specialist'] },
-        { href: '/dashboard/team-section', label: 'Our Team Manager', roles: ['admin', 'learning-specialist'] },
+        { href: '/dashboard/company-overview', label: 'Company Overview', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/history-milestones', label: 'History & Milestones', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/team-section', label: 'Our Team Manager', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
       ]
     },
   ]
@@ -301,7 +302,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
                     {/* Submenu (desktop) */}
                     {!collapsed && isOpen && (
                       <ul className="mt-1 space-y-1 pl-10">
-                        {i.children.map(c => (
+                        {visibleChildren.map(c => (
                           <li key={c.href}>
                             <Link href={c.href} className={`block px-3 py-2 rounded-md text-sm ${pathname === c.href ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-600'}`}>
                               {c.label}
@@ -371,7 +372,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
                         {/* Mobile submenu accordion */}
                         {isOpen && (
                           <ul className="mt-1 space-y-1 pl-6">
-                            {i.children.map(c => (
+                            {visibleChildren.map(c => (
                               <li key={c.href}>
                                 <Link href={c.href} onClick={onClose} className={`block px-3 py-2 rounded-md text-sm ${pathname === c.href ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-900'}`}>
                                   {c.label}

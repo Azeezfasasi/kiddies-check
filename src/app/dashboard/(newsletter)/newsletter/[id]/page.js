@@ -18,6 +18,7 @@ import {
 import { campaignAPI } from '@/utils/newsletter-api';
 import { useToast } from '../../../components/Toast';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { withFeature } from '@/utils/roles';
 
 const STATUS_COLORS = {
   sent: 'bg-green-100 text-green-800',
@@ -100,7 +101,7 @@ export default function CampaignAnalyticsPage() {
   }, [fetchData]);
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'newsletter')}>
       <div className="space-y-6">
         <Link
           href="/dashboard/all-newsletters"

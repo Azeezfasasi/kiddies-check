@@ -3,6 +3,7 @@ import { connectDB } from "@/utils/db.js";
 import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
 import { NextResponse } from "next/server";
+import { can } from "@/utils/roles";
 
 // GET /api/schools/:id - Get a single school
 export async function GET(req, { params }) {
@@ -42,7 +43,7 @@ export async function PUT(req, { params }) {
       await connectDB();
 
       // Verify admin access
-      if (user.role !== "admin") {
+      if (user.role !== "admin" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
           { error: "Only admins can update schools" },
           { status: 403 }
@@ -125,7 +126,7 @@ export async function DELETE(req, { params }) {
       await connectDB();
 
       // Verify admin access
-      if (user.role !== "admin") {
+      if (user.role !== "admin" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
           { error: "Only admins can delete schools" },
           { status: 403 }

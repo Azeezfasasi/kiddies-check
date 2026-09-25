@@ -125,7 +125,7 @@ export default function FeeSetupPage() {
       {!isFeeManager && (
         <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-sm text-blue-800">
           <Info className="w-5 h-5 shrink-0" />
-          Class fees can only be changed by an admin or school leader. You can view them here and record payments on the Student Bills page.
+          Class fees can only be changed by an admin, school leader or school director. You have view-only access to them here.
         </div>
       )}
 

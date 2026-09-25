@@ -5,6 +5,7 @@ import SchoolMember from "@/app/server/models/SchoolMember";
 import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -31,7 +32,7 @@ export async function GET(req, { params }) {
     //   (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     // );
     let hasAccess = user && (
-      ['admin', 'learning-specialist'].includes(user.role) ||
+      isAcademicAdmin(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) || 
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     );
@@ -82,7 +83,7 @@ export async function PUT(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -217,7 +218,7 @@ export async function DELETE(req, { params }) {
     const schoolObjectId = new Types.ObjectId(schoolId);
     
     // Allow admin and learning-specialist full access to any school
-    let hasAccess = ['admin', 'learning-specialist'].includes(user.role);
+    let hasAccess = isAcademicAdmin(user.role);
 
     // If not admin/learning-specialist, check schoolId or SchoolMember
     if (!hasAccess) {

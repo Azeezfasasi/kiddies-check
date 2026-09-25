@@ -95,11 +95,13 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
   }
 
   const { bill, history, totalOutstanding, canManageFees } = data;
+  // Older responses predate this flag; the server still enforces it.
+  const canRecord = data.canRecordPayments !== false;
   const overdue = isOverdue(bill);
   const payments = [...bill.payments].sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt));
   const guardian = bill.student?.guardian;
   const carried = isCarriedForward(bill);
-  const owing = !bill.waived && !carried && bill.balance > 0;
+  const owing = canRecord && !bill.waived && !carried && bill.balance > 0;
   const lastReminder = bill.reminders?.length ? bill.reminders[bill.reminders.length - 1] : null;
 
   return (
@@ -234,12 +236,14 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
             )}
           </>
         )}
-        <button
-          className={secondaryButton}
-          onClick={() => openPanel("notes", { notes: bill.notes || "", dueDate: toInputDate(bill.dueDate) })}
-        >
-          <Pencil className="w-4 h-4" /> Notes & Due Date
-        </button>
+        {canRecord && (
+          <button
+            className={secondaryButton}
+            onClick={() => openPanel("notes", { notes: bill.notes || "", dueDate: toInputDate(bill.dueDate) })}
+          >
+            <Pencil className="w-4 h-4" /> Notes & Due Date
+          </button>
+        )}
       </div>
 
       {panel && (

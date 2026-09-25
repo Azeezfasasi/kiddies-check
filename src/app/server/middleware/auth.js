@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { connectDB } from "@/utils/db";
+import { can } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -116,6 +117,21 @@ export const checkPermission = (...permissions) => {
 // Middleware for admin only
 export const isAdmin = async (req, callback) => {
   if (!req.user || req.user.role !== "admin") {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Admin access only",
+      },
+      { status: 403 }
+    );
+  }
+
+  return callback();
+};
+
+// Middleware for user management: admins, plus roles granted "users" (IT Support)
+export const isUserManager = async (req, callback) => {
+  if (!req.user || !(req.user.role === "admin" || can(req.user.role, "users", "edit"))) {
     return NextResponse.json(
       {
         success: false,

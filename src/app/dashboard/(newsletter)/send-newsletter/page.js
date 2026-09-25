@@ -8,6 +8,7 @@ import RichTextEditor from '../../components/RichTextEditor';
 import { campaignAPI } from '@/utils/newsletter-api';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
+import { withFeature } from '@/utils/roles';
 
 const RECIPIENT_TYPES = [
   { value: 'all', label: 'All Active Subscribers' },
@@ -264,7 +265,7 @@ export default function SendNewsletter() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'newsletter')}>
     <div className="space-y-6">
       {/* Header */}
       <div>

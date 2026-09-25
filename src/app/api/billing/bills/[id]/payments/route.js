@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
     const bill = await StudentBill.findById(id);
     if (!bill) return jsonError("Bill not found", 404);
 
-    const denied = await checkSchoolAccess(auth.user, bill.school);
+    const denied = await checkSchoolAccess(auth.user, bill.school, { requireRecorder: true });
     if (denied) return jsonError(denied.error, denied.status);
 
     if (isCarriedForward(bill)) return jsonError(carriedForwardMessage(bill), 400);

@@ -3,6 +3,7 @@ import User from "@/app/server/models/User";
 import Student from "@/app/server/models/Student";
 import { connectDB } from "@/utils/db";
 import mongoose from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -62,7 +63,7 @@ export async function PUT(req, { params }) {
     // Only author or admin can update
     if (feedback.author.toString() !== userId) {
       const user = await User.findById(userId);
-      if (!['admin', 'learning-specialist'].includes(user.role)) {
+      if (!isAcademicAdmin(user.role)) {
         return Response.json({ error: "Unauthorized to update this feedback" }, { status: 403 });
       }
     }
@@ -109,7 +110,7 @@ export async function DELETE(req, { params }) {
 
     // Only author or admin can delete
     const user = await User.findById(userId);
-    if (feedback.author.toString() !== userId && !['admin', 'learning-specialist'].includes(user.role)) {
+    if (feedback.author.toString() !== userId && !isAcademicAdmin(user.role)) {
       return Response.json({ error: "Unauthorized to delete this feedback" }, { status: 403 });
     }
 

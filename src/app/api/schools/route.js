@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import School from "@/app/server/models/School.js";
 import User from "@/app/server/models/User.js";
 import { NextResponse } from "next/server";
+import { can } from "@/utils/roles";
 
 // GET /api/schools - Fetch schools with search, filter, and pagination
 export async function GET(req) {
@@ -12,7 +13,7 @@ export async function GET(req) {
       await connectDB();
 
       // Verify admin or learning specialist access
-      if (user.role !== "admin" && user.role !== "learning-specialist") {
+      if (user.role !== "admin" && user.role !== "learning-specialist" && !can(user.role, "schools")) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }
@@ -99,7 +100,7 @@ export async function POST(req) {
       await connectDB();
 
       // Verify admin access
-      if (user.role !== "admin") {
+      if (user.role !== "admin" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
           { error: "Only admins can create schools" },
           { status: 403 }

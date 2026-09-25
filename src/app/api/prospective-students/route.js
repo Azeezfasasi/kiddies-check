@@ -5,6 +5,7 @@ import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { can } from "@/utils/roles";
 
 // GET - Fetch prospective students
 export async function GET(req) {
@@ -31,8 +32,9 @@ export async function GET(req) {
     }
 
     // Only admin, school-leader, and learning-specialist can view prospective students
-    const hasAccess = ['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
-      (user.role === 'admin' || user.schoolId?.equals(schoolId));
+    const hasAccess = can(user.role, 'prospective') ||
+      (['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
+        (user.role === 'admin' || user.schoolId?.equals(schoolId)));
 
     if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });
@@ -185,8 +187,9 @@ export async function PUT(req) {
     }
 
     // Verify user has access to this school
-    const hasAccess = ['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
-      (user.role === 'admin' || user.schoolId?.equals(prospectiveStudent.school));
+    const hasAccess = can(user.role, 'prospective') ||
+      (['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
+        (user.role === 'admin' || user.schoolId?.equals(prospectiveStudent.school)));
 
     if (!hasAccess) {
       return Response.json({ error: "Access denied" }, { status: 403 });

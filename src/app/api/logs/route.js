@@ -4,6 +4,7 @@ import LoginLog from "@/app/server/models/LoginLog";
 import ActivityLog from "@/app/server/models/ActivityLog";
 import IssueReport from "@/app/server/models/IssueReport";
 import User from "@/app/server/models/User";
+import { can } from "@/utils/roles";
 
 /**
  * GET /api/logs
@@ -31,7 +32,7 @@ export async function GET(req) {
 
     // Verify user is admin, school-leader, or learning-specialist
     const user = await User.findById(userId);
-    if (!user || !["admin", "school-leader", "learning-specialist"].includes(user.role)) {
+    if (!user || !(["admin", "school-leader", "learning-specialist"].includes(user.role) || can(user.role, "logs"))) {
       return NextResponse.json(
         { success: false, error: "Insufficient permissions" },
         { status: 403 }

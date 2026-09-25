@@ -1,10 +1,11 @@
 import React from 'react'
 import ProfileManagement from './components/ProfileManagement'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { ALL_ROLES } from '@/utils/roles';
 
 export default function page() {
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent']}>
+    <ProtectedRoute allowedRoles={ALL_ROLES}>
       <ProfileManagement />
     </ProtectedRoute>
   )

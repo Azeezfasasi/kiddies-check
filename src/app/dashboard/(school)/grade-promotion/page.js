@@ -17,6 +17,7 @@ import {
   Filter,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { can } from "@/utils/roles";
 
 export default function GradePromotionPage() {
   const router = useRouter();
@@ -273,6 +274,9 @@ export default function GradePromotionPage() {
   };
 
   const preview = getPreviewCounts();
+  // View-only roles can load students and see history but not run a promotion.
+  const canRunPromotion =
+    ["admin", "learning-specialist", "school-leader"].includes(userRole) || can(userRole, "promotion", "edit");
   const hasConfiguredMappings = Object.keys(promotionMappings).length > 0;
 
   return (
@@ -483,6 +487,12 @@ export default function GradePromotionPage() {
 
             {classGroups.length > 0 && (
               <>
+                {!canRunPromotion && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-sm text-blue-800">
+                    You have view-only access to grade promotion. You can review classes, pupils and history, but
+                    promotions must be run by an admin, school leader, learning specialist, school director or support staff.
+                  </div>
+                )}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
                     <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -654,7 +664,7 @@ export default function GradePromotionPage() {
                     })}
                   </div>
 
-                  {hasConfiguredMappings && (
+                  {hasConfiguredMappings && canRunPromotion && (
                     <div className="mt-6 flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={() => setPreviewMode(true)}

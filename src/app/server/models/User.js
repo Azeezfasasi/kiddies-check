@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { ALL_ROLES, hasAllSchoolAccess, isPlatformRole } from "@/utils/roles";
 import { type } from "os";
 
 const userSchema = new mongoose.Schema(
@@ -93,7 +94,7 @@ const userSchema = new mongoose.Schema(
     // Authorization
     role: {
       type: String,
-      enum: ["admin", "learning-specialist", "school-leader", "teacher", "parent"],
+      enum: ALL_ROLES,
       default: "teacher",
     },
     permissions: [
@@ -345,6 +346,8 @@ userSchema.statics.findByRole = function (role) {
 
 // Method to check if user can access a school
 userSchema.methods.canAccessSchool = function (schoolId) {
+  // Platform support roles work across every school
+  if (isPlatformRole(this.role) && hasAllSchoolAccess(this.role)) return true;
   // Admin and learning-specialist can access schools in managedSchools
   if (['admin', 'learning-specialist'].includes(this.role)) {
     return this.managedSchools.some(id => id.toString() === schoolId.toString());
@@ -355,6 +358,9 @@ userSchema.methods.canAccessSchool = function (schoolId) {
 
 // Method to get all accessible schools
 userSchema.methods.getAccessibleSchools = async function () {
+  if (isPlatformRole(this.role) && hasAllSchoolAccess(this.role)) {
+    return (await mongoose.model("School").find({}).select("_id")).map((s) => s._id);
+  }
   if (['admin', 'learning-specialist'].includes(this.role)) {
     return this.managedSchools;
   }

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
+import { can } from '@/utils/roles';
 
 export default function ClassAssignment() {
   const { user, token } = useAuth();
@@ -51,7 +52,7 @@ export default function ClassAssignment() {
   }, [schoolId, token, user?._id]);
 
   if (!user) return <div>Please login to assign classes.</div>;
-  if (!['admin','school-leader','learning-specialist'].includes(user.role)) {
+  if (!['admin','school-leader','learning-specialist'].includes(user.role) && !can(user.role, 'school-manager', 'edit')) {
     return <div>Access denied. Only school leaders and learning specialists can assign teachers.</div>;
   }
 

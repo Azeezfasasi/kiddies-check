@@ -2,6 +2,7 @@ import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req) {
   try {
@@ -34,7 +35,7 @@ export async function GET(req) {
     }
 
     // Allow admin and learning-specialist full access to any school
-    let hasSchoolAccess = ['admin', 'learning-specialist'].includes(user.role);
+    let hasSchoolAccess = isAcademicAdmin(user.role);
 
     // If not admin/learning-specialist, check schoolId or SchoolMember
     if (!hasSchoolAccess) {

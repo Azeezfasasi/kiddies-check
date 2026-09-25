@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ALL_ROLES } from "@/utils/roles";
 
 const feedbackSchema = new mongoose.Schema(
   {
@@ -21,7 +22,7 @@ const feedbackSchema = new mongoose.Schema(
     },
     authorRole: {
       type: String,
-      enum: ["teacher", "admin", "school-leader", "learning-specialist", "parent"],
+      enum: ALL_ROLES,
       required: true,
     },
     category: {
@@ -64,7 +65,7 @@ const feedbackSchema = new mongoose.Schema(
         },
         authorRole: {
           type: String,
-          enum: ["teacher", "admin", "school-leader", "learning-specialist", "parent"],
+          enum: ALL_ROLES,
         },
         comment: String,
         createdAt: {

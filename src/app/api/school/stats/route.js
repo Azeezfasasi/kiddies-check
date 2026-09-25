@@ -6,6 +6,7 @@ import SchoolMember from "@/app/server/models/SchoolMember.js";
 import Class from "@/app/server/models/Class.js";
 import Student from "@/app/server/models/Student.js";
 import User from "@/app/server/models/User.js";
+import { hasAllSchoolAccess } from "@/utils/roles";
 
 // GET /api/school/stats
 // Fetch school statistics for school leaders/admins
@@ -41,7 +42,7 @@ export async function GET(req) {
       const isLearningSpecialist = user.role === "learning-specialist";
       const hasSchoolAccess = !!userAccess;
 
-      if (!hasSchoolAccess && !isAdmin && !isSchoolLeader && !isLearningSpecialist) {
+      if (!hasSchoolAccess && !isAdmin && !isSchoolLeader && !isLearningSpecialist && !hasAllSchoolAccess(user.role)) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }

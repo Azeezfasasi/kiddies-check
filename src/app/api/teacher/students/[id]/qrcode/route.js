@@ -3,6 +3,7 @@ import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import QRCode from "qrcode";
 import crypto from "crypto";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -20,7 +21,7 @@ export async function GET(req, { params }) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import axios from 'axios'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { withFeature } from '@/utils/roles';
 
 function EditBlogContent() {
 	const router = useRouter()
@@ -247,7 +248,7 @@ function EditBlogContent() {
 	}
 
 	return (
-		<ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'blog')}>
 		<div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
 			<div className="max-w-4xl mx-auto">
 				{/* Header with Back Button */}

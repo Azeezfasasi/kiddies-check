@@ -7,6 +7,7 @@ import Subject from "@/app/server/models/Subject.js";
 import Assessment from "@/app/server/models/Assessment.js";
 import Student from "@/app/server/models/Student.js";
 import SchoolMember from "@/app/server/models/SchoolMember.js";
+import { isAcademicAdmin } from "@/utils/roles";
 
 // GET /api/teacher/stats
 // Fetch teacher statistics for their teaching activities
@@ -39,7 +40,7 @@ export async function GET(req) {
       // Also allow if user is an admin/learning-specialist/teacher with school management access
       const hasManagementAccess =
         user &&
-        ((user.role === "admin" || user.role === "learning-specialist") ||
+        ((isAcademicAdmin(user.role)) ||
           (user.schoolId && user.schoolId.toString() === schoolId) ||
           (user.managedSchools &&
             user.managedSchools.some((id) => id.toString() === schoolId)));

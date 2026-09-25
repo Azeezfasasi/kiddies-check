@@ -2,6 +2,7 @@ import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -29,7 +30,7 @@ export async function GET(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -81,7 +82,7 @@ export async function PUT(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -144,7 +145,7 @@ export async function DELETE(req, { params }) {
     // Verify user access
     const user = await User.findById(userId);
     const hasAccess = user && (
-      ['admin', 'learning-specialist'].includes(user.role) ||
+      isAcademicAdmin(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) || 
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     );

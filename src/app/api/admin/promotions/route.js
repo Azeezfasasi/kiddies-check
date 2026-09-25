@@ -11,12 +11,14 @@ import School from "@/app/server/models/School";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import jwt from "jsonwebtoken";
+import { can } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 // School-leaders and learning-specialists may manage promotions, but only
 // admins get cross-school access — everyone else must be scoped below.
-const verifyAccess = async (req) => {
+// level "view" for loading students, "edit" for running a promotion.
+const verifyAccess = async (req, level = "view") => {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -29,7 +31,7 @@ const verifyAccess = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+    if (!user || !(["admin", "learning-specialist", "school-leader"].includes(user.role) || can(user.role, "promotion", level))) {
       return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 
@@ -43,7 +45,7 @@ const verifyAccess = async (req) => {
 // that specific school (or have it as their primary/managed school) —
 // having the learning-specialist/school-leader role alone is not enough.
 const verifySchoolScope = async (user, schoolId) => {
-  if (user.role === "admin") return true;
+  if (user.role === "admin" || can(user.role, "promotion")) return true;
   if (user.schoolId && user.schoolId.toString() === schoolId) return true;
   if (user.managedSchools?.some((id) => id.toString() === schoolId)) return true;
 
@@ -165,7 +167,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const auth = await verifyAccess(request);
+    const auth = await verifyAccess(request, "edit");
     if (auth.error) {
       return Response.json(
         { success: false, message: auth.error },

@@ -5,6 +5,7 @@ import { Trash2, Eye, Reply, Search, Filter, ChevronLeft, ChevronRight, X } from
 // import { useAuth } from '../../../context/AuthContext';
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { withFeature } from '@/utils/roles';
 
 const ContactFormResponses = () => {
 		useEffect(() => {
@@ -230,7 +231,7 @@ const ContactFormResponses = () => {
 	}
 
 	return (
-		<ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'contact-responses')}>
 		<div className="bg-gray-50 py-4 md:py-8 px-0 sm:px-6 lg:px-8">
 			<div className="max-w-7xl mx-auto overflow-x-hidden">
 				<h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Contact Form Responses</h1>

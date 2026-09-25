@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, X, Loader, ChevronDown, ChevronUp } from 'lucide-r
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import toast from 'react-hot-toast';
 import { uploadImageToCloudinary } from '@/app/utils/galleryApi';
+import { withFeature } from '@/utils/roles';
 
 const COLOR_OPTIONS = ['indigo', 'blue', 'green', 'yellow', 'pink'];
 
@@ -244,7 +245,7 @@ export default function CompanyOverviewManager() {
 
   if (loading) {
     return (
-      <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+      <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader className="w-8 h-8 animate-spin text-blue-600" />
         </div>
@@ -253,7 +254,7 @@ export default function CompanyOverviewManager() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
       <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">Company Overview Manager</h1>

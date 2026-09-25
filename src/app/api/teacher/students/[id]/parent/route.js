@@ -3,6 +3,7 @@ import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
 import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
+import { isAcademicAdmin, withFeature } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -22,7 +23,7 @@ export async function GET(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));
@@ -70,13 +71,13 @@ export async function PUT(req, { params }) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const allowedRoles = ['admin', 'learning-specialist', 'school-leader', 'teacher'];
+    const allowedRoles = withFeature(['admin', 'learning-specialist', 'school-leader', 'teacher'], "academics");
     if (!allowedRoles.includes(user.role)) {
       return Response.json({ error: "Only staff can assign parents" }, { status: 403 });
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));

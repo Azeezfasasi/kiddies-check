@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { uploadImageToCloudinary } from '@/app/utils/galleryApi';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import toast from 'react-hot-toast';
+import { withFeature } from '@/utils/roles';
 
 export default function HeroSliderManager() {
   const [slides, setSlides] = useState([]);
@@ -207,7 +208,7 @@ export default function HeroSliderManager() {
 
   if (loading) {
     return (
-      <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+      <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader className="w-8 h-8 animate-spin text-blue-600" />
         </div>
@@ -216,7 +217,7 @@ export default function HeroSliderManager() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
       <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}

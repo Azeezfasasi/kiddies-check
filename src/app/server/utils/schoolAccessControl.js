@@ -1,5 +1,6 @@
 import SchoolMember from '@/app/server/models/SchoolMember';
 import School from '@/app/server/models/School';
+import { hasAllSchoolAccess, isPlatformRole } from '@/utils/roles';
 
 /**
  * Check if user is a member of a school
@@ -103,6 +104,9 @@ export async function userHasSchoolPermission(userId, schoolId, permission) {
 export function canUserAccessSchool(user, schoolId) {
   if (!user || !schoolId) return false;
 
+  // Platform support roles work across every school
+  if (isPlatformRole(user.role) && hasAllSchoolAccess(user.role)) return true;
+
   // Admins and learning-specialists check managedSchools
   if (['admin', 'learning-specialist'].includes(user.role)) {
     if (!user.managedSchools) return false;
@@ -146,6 +150,8 @@ export async function verifySchoolAccessForUser(user, schoolId) {
  */
 export async function canUserAccessSchoolWithMembership(userId, schoolId, userRole, managedSchools) {
   try {
+    if (isPlatformRole(userRole) && hasAllSchoolAccess(userRole)) return true;
+
     // Admins and learning-specialists with managedSchools
     if (['admin', 'learning-specialist'].includes(userRole)) {
       if (managedSchools && managedSchools.length > 0) {

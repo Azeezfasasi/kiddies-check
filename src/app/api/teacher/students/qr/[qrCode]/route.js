@@ -2,6 +2,7 @@ import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
 import { connectDB } from "@/utils/db";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function GET(req, { params }) {
   try {
@@ -18,7 +19,7 @@ export async function GET(req, { params }) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));

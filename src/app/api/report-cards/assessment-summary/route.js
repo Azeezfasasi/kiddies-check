@@ -4,13 +4,14 @@ import Assessment from "@/app/server/models/Assessment";
 import AcademicCalendar from "@/app/server/models/AcademicCalendar";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
+import { can, isAcademicAdmin, withFeature } from "@/utils/roles";
 
-const allowedRoles = ["admin", "learning-specialist", "school-leader", "teacher"];
+const allowedRoles = withFeature(["admin", "learning-specialist", "school-leader", "teacher"], "report-cards");
 
 async function canAccessSchool(user, schoolId) {
   if (!user) return false;
   if (allowedRoles.includes(user.role)) {
-    if (user.role === "admin" || user.role === "learning-specialist") return true;
+    if (isAcademicAdmin(user.role) || can(user.role, "report-cards")) return true;
     if (user.schoolId && user.schoolId.toString() === schoolId) return true;
     if (user.managedSchools && user.managedSchools.some((id) => id.toString() === schoolId)) return true;
     return false;

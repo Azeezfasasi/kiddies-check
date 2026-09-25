@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { fetchGallery, updateGallery, uploadImageToCloudinary, deleteImageFromCloudinary } from '@/app/utils/galleryApi';
 import { Upload, X, Loader, ArrowLeft } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { withFeature } from '@/utils/roles';
 
 const CATEGORIES = ['learning', 'education', 'infrastructure', 'technology', 'other'];
 const TAGS = ['schools', 'active', 'parents', 'teachers', 'all'];
@@ -163,7 +164,7 @@ export default function EditGalleryPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'gallery')}>
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto px-3 sm:px-4">
         {/* Back Button */}

@@ -6,6 +6,7 @@ import { Edit2, Trash2, Eye, EyeOff, Search, Filter, ChevronLeft, ChevronRight }
 import Link from 'next/link'
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { withFeature } from '@/utils/roles';
 
 const ManageBlogPage = () => {
 	const router = useRouter()
@@ -140,7 +141,7 @@ const ManageBlogPage = () => {
 	}
 
 	return (
-		<ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'blog')}>
 		<div className="space-y-6 overflow-x-hidden">
 			{/* Header with Create Button */}
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

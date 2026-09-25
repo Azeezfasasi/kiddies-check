@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/app/server/db/connect";
 import IssueReport from "@/app/server/models/IssueReport";
 import User from "@/app/server/models/User";
+import { can } from "@/utils/roles";
 
 /**
  * POST /api/logs/issue
@@ -92,8 +93,8 @@ export async function GET(req) {
 
     const query = {};
 
-    // Admin/school-leader can see school issues
-    if (["admin", "school-leader"].includes(user.role)) {
+    // Admin/school-leader (and roles with log access) can see school issues
+    if (["admin", "school-leader"].includes(user.role) || can(user.role, "logs")) {
       if (schoolId) {
         query.school = schoolId;
       }

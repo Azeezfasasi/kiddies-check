@@ -13,6 +13,7 @@ import {
   BILL_STUDENT_FIELDS,
   authorizeSchool,
   canManageFees,
+  canRecordPayments,
   jsonError,
   syncMissingBills,
 } from "@/app/server/lib/billing";
@@ -68,6 +69,7 @@ export async function GET(request) {
     return Response.json({
       success: true,
       canManageFees: canManageFees(auth.user),
+      canRecordPayments: canRecordPayments(auth.user),
       classes,
       structures,
       bills: bills

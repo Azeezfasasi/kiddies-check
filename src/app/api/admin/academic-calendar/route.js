@@ -7,6 +7,7 @@ import { connectDB } from "@/app/server/db/connect";
 import AcademicCalendar from "@/app/server/models/AcademicCalendar";
 import User from "@/app/server/models/User";
 import jwt from "jsonwebtoken";
+import { can, hasAllSchoolAccess } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -24,7 +25,7 @@ const verifyAdmin = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist"].includes(user.role)) {
+    if (!user || !(["admin", "learning-specialist"].includes(user.role) || can(user.role, "calendar", "edit"))) {
       return { error: "Forbidden: Admin access required", status: 403 };
     }
 
@@ -51,7 +52,7 @@ const verifyRead = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist", "school-leader", "teacher"].includes(user.role)) {
+    if (!user || !(["admin", "learning-specialist", "school-leader", "teacher"].includes(user.role) || hasAllSchoolAccess(user.role))) {
       return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 

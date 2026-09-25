@@ -3,6 +3,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { withFeature } from '@/utils/roles';
 
 function generateClientPassword(length = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
@@ -135,7 +136,7 @@ export default function ChangeUserPassword() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["admin"]}>
+    <ProtectedRoute allowedRoles={withFeature(["admin"], 'users')}>
       <div className="w-[360px] md:w-full md:max-w-2xl p-4 md:p-6 bg-white rounded-xl shadow-lg">
         <h1 className="text-[20px] md:text-2xl font-bold mb-1">Change User Password</h1>
         <p className="text-sm text-gray-600 mb-6">

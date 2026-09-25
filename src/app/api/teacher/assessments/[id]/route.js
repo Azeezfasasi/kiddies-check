@@ -3,6 +3,7 @@ import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
 
 function getGradeLevel(score) {
   if (score >= 75) return "A1";
@@ -83,7 +84,7 @@ export async function GET(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -131,7 +132,7 @@ export async function PUT(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -224,7 +225,7 @@ export async function DELETE(req, { params }) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));

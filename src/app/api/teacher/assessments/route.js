@@ -3,6 +3,7 @@ import AssessmentTrend from "@/app/server/models/AssessmentTrend";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import { connectDB } from "@/utils/db";
+import { isAcademicAdmin } from "@/utils/roles";
 
 function getGradeLevel(score) {
   if (score >= 75) return "A1";
@@ -75,8 +76,7 @@ export async function POST(req) {
 
     // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
     const hasSchoolAccess =
-      user.role === "admin" ||
-      user.role === "learning-specialist" ||
+      isAcademicAdmin(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) ||
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)) ||
       (await SchoolMember.findOne({
@@ -189,8 +189,7 @@ export async function GET(req) {
 
     // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
     const hasSchoolAccess =
-      user.role === "admin" ||
-      user.role === "learning-specialist" ||
+      isAcademicAdmin(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) ||
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)) ||
       (await SchoolMember.findOne({

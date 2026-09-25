@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import User from '@/app/server/models/User';
 import School from '@/app/server/models/School';
 import { connectDB } from '@/app/server/db/connect';
+import { hasAllSchoolAccess } from '@/utils/roles';
 
 /**
  * POST /api/school/switch
@@ -39,10 +40,10 @@ export async function POST(request) {
       );
     }
 
-    // Only admin and learning-specialist can switch schools
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    // Admins, learning-specialists and platform support roles can switch schools
+    if (!hasAllSchoolAccess(user.role)) {
       return NextResponse.json(
-        { success: false, error: 'Only admins and learning-specialists can switch schools' },
+        { success: false, error: 'Your role cannot switch schools' },
         { status: 403 }
       );
     }
@@ -118,8 +119,8 @@ export async function GET(request) {
     // Get accessible schools
     let accessibleSchools = [];
 
-    if (['admin', 'learning-specialist'].includes(user.role)) {
-      // For admins/learning-specialists, fetch ALL schools in the database
+    if (hasAllSchoolAccess(user.role)) {
+      // For admins/learning-specialists/support roles, fetch ALL schools in the database
       accessibleSchools = await School.find({}, 'name email location logo _id').sort({ name: 1 });
     } else if (user.schoolId) {
       // Return primary school for regular users

@@ -38,6 +38,7 @@ import {
   TERM_LABELS,
   billingRequest,
   canManageFees,
+  canRecordPayments,
   downloadCSV,
   formatCurrency,
   formatDate,
@@ -115,6 +116,8 @@ export default function BillingPage() {
 
   const bills = useMemo(() => data?.bills || [], [data]);
   const isFeeManager = data?.canManageFees ?? canManageFees(scope.role);
+  // View-only billing roles see the data but no selection, payment or reminder actions.
+  const canRecord = data?.canRecordPayments ?? canRecordPayments(scope.role);
 
   const classScoped = useMemo(
     () => (classFilter === "all" ? bills : bills.filter((b) => b.class?._id === classFilter)),
@@ -420,7 +423,7 @@ export default function BillingPage() {
           </div>
 
           {/* Bulk action bar */}
-          {selected.size > 0 && (
+          {canRecord && selected.size > 0 && (
             <div className="sticky top-0 z-20 bg-blue-900 text-white rounded-xl shadow-lg px-4 py-3 mb-4 flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold mr-2">{selected.size} selected</span>
               <BulkButton icon={CheckCheck} label="Mark as Paid" onClick={() => setBulkAction("mark-paid")} />
@@ -445,15 +448,17 @@ export default function BillingPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b text-left text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="px-4 py-3 w-10">
-                      <input
-                        type="checkbox"
-                        checked={allFilteredSelected}
-                        onChange={toggleAllFiltered}
-                        className="w-4 h-4 rounded border-gray-300"
-                        aria-label="Select all matching students"
-                      />
-                    </th>
+                    {canRecord && (
+                      <th className="px-4 py-3 w-10">
+                        <input
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={toggleAllFiltered}
+                          className="w-4 h-4 rounded border-gray-300"
+                          aria-label="Select all matching students"
+                        />
+                      </th>
+                    )}
                     <th className="px-4 py-3">Student</th>
                     <th className="px-4 py-3">Class</th>
                     <th className="px-4 py-3 text-right">Fees</th>
@@ -467,7 +472,7 @@ export default function BillingPage() {
                 <tbody className="divide-y divide-gray-100">
                   {pageRows.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan={canRecord ? 9 : 8} className="px-4 py-12 text-center text-gray-500">
                         No students match these filters.
                       </td>
                     </tr>
@@ -476,15 +481,17 @@ export default function BillingPage() {
                       const owing = !bill.waived && bill.balance > 0;
                       return (
                         <tr key={bill._id} className={`hover:bg-gray-50 ${selected.has(bill._id) ? "bg-blue-50/60" : ""}`}>
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selected.has(bill._id)}
-                              onChange={() => toggleOne(bill._id)}
-                              className="w-4 h-4 rounded border-gray-300"
-                              aria-label={`Select ${studentName(bill.student)}`}
-                            />
-                          </td>
+                          {canRecord && (
+                            <td className="px-4 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selected.has(bill._id)}
+                                onChange={() => toggleOne(bill._id)}
+                                className="w-4 h-4 rounded border-gray-300"
+                                aria-label={`Select ${studentName(bill.student)}`}
+                              />
+                            </td>
+                          )}
                           <td className="px-4 py-3">
                             <button onClick={() => setDetailBillId(bill._id)} className="text-left">
                               <div className="font-medium text-gray-800 hover:text-blue-700">{studentName(bill.student)}</div>
@@ -520,7 +527,7 @@ export default function BillingPage() {
                           <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(bill.lastPaymentAt)}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-1">
-                              {owing && (
+                              {canRecord && owing && (
                                 <>
                                   <IconButton title="Record payment" onClick={() => setPayBill(bill)} icon={Plus} tone="blue" />
                                   <IconButton title="Mark as fully paid" onClick={() => setQuickPaid(bill)} icon={CheckCheck} tone="green" />

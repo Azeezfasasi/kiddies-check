@@ -6,6 +6,7 @@ import StudentBill, { computeBillTotals } from "@/app/server/models/StudentBill"
 import {
   BILL_STUDENT_FIELDS,
   canManageFees,
+  canRecordPayments,
   carriedForwardMessage,
   checkSchoolAccess,
   isCarriedForward,
@@ -55,6 +56,7 @@ export async function GET(request, { params }) {
     return Response.json({
       success: true,
       canManageFees: canManageFees(auth.user),
+      canRecordPayments: canRecordPayments(auth.user),
       bill,
       history,
       totalOutstanding,
@@ -84,7 +86,10 @@ export async function PATCH(request, { params }) {
     const bill = await StudentBill.findById(id);
     if (!bill) return jsonError("Bill not found", 404);
 
-    const denied = await checkSchoolAccess(auth.user, bill.school, { requireFeeManager: body.action !== "update" });
+    const denied = await checkSchoolAccess(auth.user, bill.school, {
+      requireFeeManager: body.action !== "update",
+      requireRecorder: true,
+    });
     if (denied) return jsonError(denied.error, denied.status);
 
     // A carried-forward bill is closed: its balance now lives on a later

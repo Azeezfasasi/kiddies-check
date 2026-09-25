@@ -12,6 +12,7 @@ import EditParentModal from '@/app/components/EditParentModal';
 import ParentChildrenModal from '@/app/components/ParentChildrenModal';
 import MessageParentModal from '@/app/components/MessageParentModal';
 import ConfirmActionModal from '@/app/components/ConfirmActionModal';
+import { withFeature } from '@/utils/roles';
 
 export default function SchoolParentList() {
   const [parents, setParents] = useState([]);
@@ -266,7 +267,7 @@ export default function SchoolParentList() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'school-leader', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager')}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-3 md:p-8">
         <div className="w-full max-w-7xl mx-auto px-1 md:px-0">
           {/* Header */}

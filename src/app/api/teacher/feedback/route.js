@@ -2,6 +2,7 @@ import Feedback from "@/app/server/models/Feedback";
 import User from "@/app/server/models/User";
 import Student from "@/app/server/models/Student";
 import { connectDB } from "@/utils/db";
+import { isAcademicAdmin, withFeature } from "@/utils/roles";
 
 export async function GET(req) {
   try {
@@ -37,7 +38,7 @@ export async function GET(req) {
       // Find all students where this user is the parent
       const studentIds = await Student.find({ parent: userId, school: schoolId }).select('_id');
       query.student = { $in: studentIds.map(s => s._id) };
-    } else if (!['admin', 'learning-specialist'].includes(user.role)) {
+    } else if (!isAcademicAdmin(user.role)) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));
@@ -76,7 +77,7 @@ export async function POST(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    const allowedRoles = ['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent'];
+    const allowedRoles = withFeature(['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent'], "academics");
     if (!allowedRoles.includes(user.role)) {
       return Response.json({ error: "User cannot create feedback" }, { status: 403 });
     }
@@ -95,7 +96,7 @@ export async function POST(req) {
       if (!student.parent || student.parent.toString() !== userId) {
         return Response.json({ error: "Unauthorized to add feedback for this student" }, { status: 403 });
       }
-    } else if (!['admin', 'learning-specialist'].includes(user.role)) {
+    } else if (!isAcademicAdmin(user.role)) {
       // Teachers and school-leaders need to be in the same school
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 

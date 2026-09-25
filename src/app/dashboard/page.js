@@ -5,6 +5,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Commet } from "react-loading-indicators";
 import SchoolBaseAttendanceChat from "@/components/dashboard-component/SchoolBaseAttendanceChat";
+import Link from "next/link";
+import { can, hasAllSchoolAccess, isPlatformRole } from "@/utils/roles";
+
+// Home-page shortcuts for roles without a school dashboard (media/content managers).
+const CONTENT_LINKS = [
+  { feature: "blog", href: "/dashboard/manage-blog", label: "Manage Blogs", description: "Write, edit and publish blog posts" },
+  { feature: "gallery", href: "/dashboard/all-gallery", label: "Gallery", description: "Upload and organise gallery albums" },
+  { feature: "site-content", href: "/dashboard/hero-slider", label: "Homepage Contents", description: "Hero slider, services, testimonials and more" },
+  { feature: "site-content", href: "/dashboard/company-overview", label: "About Page Contents", description: "Company overview, milestones and team" },
+  { feature: "newsletter", href: "/dashboard/all-newsletters", label: "Newsletters", description: "Compose newsletters and manage subscribers" },
+  { feature: "contact-responses", href: "/dashboard/contact-form-responses", label: "Contact Form Responses", description: "Messages sent through the contact form" },
+];
 
 const DashboardWelcome = dynamic(() => import("@/components/dashboard-component/DashboardWelcome"), {
   ssr: false,
@@ -103,13 +115,26 @@ export default function Dashboard() {
             <PerformanceChart />
           </div>
         </>
-      ) : user?.role === 'learning-specialist' ? (
+      ) : user?.role === 'learning-specialist' || (isPlatformRole(user?.role) && hasAllSchoolAccess(user?.role)) ? (
         <>
           <SchoolLeaderStats />
           <TeacherAttendanceActivityChart />
           <SchoolBaseAttendanceChat />
           <PerformanceChart />
         </>
+      ) : isPlatformRole(user?.role) ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          {CONTENT_LINKS.filter((l) => can(user.role, l.feature)).map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:border-blue-300 hover:shadow-md transition"
+            >
+              <p className="font-semibold text-gray-800">{l.label}</p>
+              <p className="text-sm text-gray-500 mt-1">{l.description}</p>
+            </Link>
+          ))}
+        </div>
       ) : null}
     </>
   );

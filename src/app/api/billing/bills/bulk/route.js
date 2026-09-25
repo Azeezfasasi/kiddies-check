@@ -37,6 +37,7 @@ export async function POST(request) {
 
     const auth = await authorizeSchool(request, schoolId, {
       requireFeeManager: FEE_MANAGER_ACTIONS.includes(action),
+      requireRecorder: true,
     });
     if (auth.error) return jsonError(auth.error, auth.status);
 

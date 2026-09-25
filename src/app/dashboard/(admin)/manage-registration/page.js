@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { can } from '@/utils/roles';
 
 export default function ManageRegistration() {
   const { user, token } = useAuth();
@@ -19,7 +20,7 @@ export default function ManageRegistration() {
 
   // Check if user is admin
   useEffect(() => {
-    if (user && user.role !== 'admin') {
+    if (user && user.role !== 'admin' && !can(user.role, 'registrations')) {
       router.push('/dashboard');
     }
   }, [user, router]);

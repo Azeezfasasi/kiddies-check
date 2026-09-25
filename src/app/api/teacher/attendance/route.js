@@ -6,6 +6,7 @@ import School from "@/app/server/models/School";
 import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { sendAttendanceNotificationToParent } from "@/app/server/utils/emailService";
+import { isAcademicAdmin } from "@/utils/roles";
 
 export async function POST(req) {
   try {
@@ -21,7 +22,7 @@ export async function POST(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
+    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));
@@ -130,7 +131,7 @@ export async function GET(req) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    if (!isAcademicAdmin(user.role)) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));

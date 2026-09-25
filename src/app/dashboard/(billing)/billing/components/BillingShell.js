@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarX, Loader, ShieldAlert, Wallet } from "lucide-react";
-import { BILLING_ROLES, STATUS_META, TERM_LABELS } from "./billingUtils";
+import { STATUS_META, TERM_LABELS, canViewBilling } from "./billingUtils";
 
 const TABS = [
   { href: "/dashboard/billing", label: "Student Bills" },
@@ -17,12 +17,12 @@ const selectClass =
 export default function BillingShell({ scope, title, description, actions, children }) {
   const pathname = usePathname();
 
-  if (scope.initialised && !BILLING_ROLES.includes(scope.role)) {
+  if (scope.initialised && !canViewBilling(scope.role)) {
     return (
       <EmptyState
         icon={ShieldAlert}
         title="Access restricted"
-        message="Billing is available to admins, school leaders and learning specialists."
+        message="Your role does not have access to billing."
       />
     );
   }

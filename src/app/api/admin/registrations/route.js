@@ -7,6 +7,7 @@ import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
 import { sendApprovalEmail, sendRejectionEmail } from '@/app/server/utils/emailService';
 import jwt from 'jsonwebtoken';
+import { can } from "@/utils/roles";
 
 // Middleware to verify admin token
 const verifyAdminToken = (req) => {
@@ -27,7 +28,7 @@ const verifyAdminToken = (req) => {
 // Middleware to check if user is admin
 const isAdmin = async (userId) => {
   const user = await User.findById(userId);
-  return user && (user.role === 'admin' || user.role === 'learning-specialist' || user.isAdmin === true);
+  return user && (user.role === 'admin' || user.role === 'learning-specialist' || user.isAdmin === true || can(user.role, 'registrations', 'edit'));
 };
 
 /**

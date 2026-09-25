@@ -11,6 +11,7 @@ import nodemailer from "nodemailer";
 import { sendOtpEmail } from "../utils/emailService.js";
 import emailTemplates from "../templates/emailTemplates.js";
 import { subscribeToNewsletter } from "./newsletterController.js";
+import { ALL_ROLES, can, hasAllSchoolAccess, isPlatformRole } from "@/utils/roles";
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -455,6 +456,13 @@ export const login = async (req) => {
       }
     }
 
+    // Platform support roles aren't tied to one school. Start them on the
+    // first school so school-scoped pages work; they switch from the header.
+    if (isPlatformRole(user.role) && hasAllSchoolAccess(user.role) && !schoolId) {
+      const firstSchool = await School.findOne({ isActive: true }).sort({ name: 1 }).select("_id");
+      if (firstSchool) schoolId = firstSchool._id;
+    }
+
     // If teacher/parent has schoolId but no SchoolMember, create one (for backward compatibility)
     if ((user.role === 'teacher' || user.role === 'parent') && schoolId) {
       try {
@@ -535,8 +543,8 @@ export const createUserByAdmin = async (req) => {
   try {
     await connectDB();
 
-    // Only allow admins/super-admins
-    if (!req.user || !["admin", "super-admin"].includes(req.user.role)) {
+    // Only allow admins/super-admins and user managers (IT Support)
+    if (!req.user || !(["admin", "super-admin"].includes(req.user.role) || can(req.user.role, "users", "edit"))) {
       return NextResponse.json(
         { success: false, message: "Forbidden: Admins only" },
         { status: 403 }
@@ -559,7 +567,7 @@ export const createUserByAdmin = async (req) => {
         { status: 400 }
       );
     }
-    if (!["admin", 'learning-specialist', 'school-leader', 'teacher', 'parent' ].includes(role)) {
+    if (!ALL_ROLES.includes(role)) {
       return NextResponse.json(
         { success: false, message: "Invalid role" },
         { status: 400 }
@@ -1188,9 +1196,9 @@ export const changeUserRole = async (req, userId) => {
     const body = await req.json();
     const { role, permissions } = body;
 
-    if (!role || !["admin", "learning-specialist", "school-leader", "teacher", "parent"].includes(role)) {
+    if (!role || !ALL_ROLES.includes(role)) {
       return NextResponse.json(
-        { success: false, message: "Invalid role. Must be one of: admin, learning-specialist, school-leader, teacher, parent" },
+        { success: false, message: `Invalid role. Must be one of: ${ALL_ROLES.join(", ")}` },
         { status: 400 }
       );
     }

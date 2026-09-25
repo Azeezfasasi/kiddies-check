@@ -6,6 +6,7 @@ import DashboardHeader from "@/components/dashboard-component/DashboardHeader"
 import DashboardMenu from "@/components/dashboard-component/DashboardMenu"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { useAuth } from "@/context/AuthContext"
+import { ALL_ROLES } from "@/utils/roles"
 
 const FloatingAIChat = dynamic(() => import("@/components/FloatingAIChat"), {
   ssr: false,
@@ -62,7 +63,7 @@ export default function DashboardLayout({ children }) {
   const studentData = getStudentData()
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist', 'school-leader', 'teacher', 'parent']}>
+    <ProtectedRoute allowedRoles={ALL_ROLES}>
       <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         <DashboardHeader onToggleSidebar={toggleSidebar} onToggleMobileMenu={toggleMobileMenu} />
 

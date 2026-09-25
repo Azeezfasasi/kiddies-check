@@ -7,6 +7,7 @@ import SchoolMember from "@/app/server/models/SchoolMember";
 import Student from "@/app/server/models/Student";
 import FeeStructure from "@/app/server/models/FeeStructure";
 import StudentBill, { computeBillTotals } from "@/app/server/models/StudentBill";
+import { can } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -18,7 +19,11 @@ export const FEE_MANAGER_ROLES = ["admin", "school-leader"];
 export const TERMS = ["first", "second", "third"];
 export const PAYMENT_METHODS = ["cash", "bank-transfer", "pos", "cheque", "online", "other"];
 
-export const canManageFees = (user) => FEE_MANAGER_ROLES.includes(user?.role);
+// Platform roles get billing through the shared permission map: "view" to
+// see bills, "edit" to record payments/send reminders, "manage" for fees.
+export const canViewBilling = (user) => BILLING_ROLES.includes(user?.role) || can(user?.role, "billing", "view");
+export const canRecordPayments = (user) => BILLING_ROLES.includes(user?.role) || can(user?.role, "billing", "edit");
+export const canManageFees = (user) => FEE_MANAGER_ROLES.includes(user?.role) || can(user?.role, "billing", "manage");
 
 export const jsonError = (message, status) =>
   Response.json({ success: false, message }, { status });
@@ -39,7 +44,7 @@ export async function verifyBillingUser(req) {
     if (!user || !user.isActive) {
       return { error: "Unauthorized: Invalid token", status: 401 };
     }
-    if (!BILLING_ROLES.includes(user.role)) {
+    if (!canViewBilling(user)) {
       return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
     return { user };
@@ -52,7 +57,7 @@ export async function verifyBillingUser(req) {
 // must belong to (or manage) that specific school.
 export async function verifySchoolScope(user, schoolId) {
   if (!isValidId(schoolId)) return false;
-  if (user.role === "admin") return true;
+  if (user.role === "admin" || can(user.role, "billing")) return true;
   if (user.schoolId && user.schoolId.toString() === schoolId.toString()) return true;
   if (user.managedSchools?.some((id) => id.toString() === schoolId.toString())) return true;
 
@@ -67,9 +72,12 @@ export async function verifySchoolScope(user, schoolId) {
 
 // Checks an already-authenticated user can act on schoolId. Returns an
 // { error, status } object on failure, or null when allowed.
-export async function checkSchoolAccess(user, schoolId, { requireFeeManager = false } = {}) {
+export async function checkSchoolAccess(user, schoolId, { requireFeeManager = false, requireRecorder = false } = {}) {
   if (requireFeeManager && !canManageFees(user)) {
-    return { error: "Only admins and school leaders can perform this action", status: 403 };
+    return { error: "Only admins, school leaders and school directors can perform this action", status: 403 };
+  }
+  if (requireRecorder && !canRecordPayments(user)) {
+    return { error: "Your role has view-only access to billing", status: 403 };
   }
   if (!isValidId(schoolId)) return { error: "A valid schoolId is required", status: 400 };
   if (!(await verifySchoolScope(user, schoolId))) {

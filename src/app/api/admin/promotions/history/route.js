@@ -11,6 +11,7 @@ import Class from "@/app/server/models/Class";
 import School from "@/app/server/models/School";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import jwt from "jsonwebtoken";
+import { can } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -27,7 +28,7 @@ const verifyAccess = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !["admin", "learning-specialist", "school-leader"].includes(user.role)) {
+    if (!user || !(["admin", "learning-specialist", "school-leader"].includes(user.role) || can(user.role, "promotion"))) {
       return { error: "Forbidden: Insufficient permissions", status: 403 };
     }
 
@@ -40,7 +41,7 @@ const verifyAccess = async (req) => {
 // Admins can view history across every school. Everyone else must be
 // scoped to a specific school they actually belong to.
 const verifySchoolScope = async (user, schoolId) => {
-  if (user.role === "admin") return true;
+  if (user.role === "admin" || can(user.role, "promotion")) return true;
   if (user.schoolId && user.schoolId.toString() === schoolId) return true;
   if (user.managedSchools?.some((id) => id.toString() === schoolId)) return true;
 
@@ -77,7 +78,7 @@ export async function GET(request) {
 
     // Non-admins must scope to a specific school they belong to — leaving
     // schoolId off would otherwise return every school's promotion history.
-    if (!schoolId && auth.user.role !== "admin") {
+    if (!schoolId && auth.user.role !== "admin" && !can(auth.user.role, "promotion")) {
       return Response.json(
         { success: false, message: "schoolId is required" },
         { status: 400 }

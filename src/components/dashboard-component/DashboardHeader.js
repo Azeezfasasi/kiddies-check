@@ -6,13 +6,15 @@ import useNotifications from './useNotifications';
 import NotificationModal from './NotificationModal';
 import { ArrowRightLeft } from 'lucide-react';
 import { SchoolSwitcher } from '@/app/components/SchoolSwitcher';
+import { can, hasAllSchoolAccess, isPlatformRole, roleLabel } from '@/utils/roles';
 
 export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu }) {
   const { user, logout } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const fullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
   const avatar = user && user.avatar ? user.avatar : '/images/profile1.jpg';
-  const role = user?.role ? user.role.replace('-', ' ') : 'User';
+  const role = roleLabel(user?.role);
+  const canSwitchSchools = !!user && (user.role === 'admin' || (isPlatformRole(user.role) && hasAllSchoolAccess(user.role)));
   const [activeSchoolId, setActiveSchoolId] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -107,7 +109,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
 
             <SchoolSwitcher 
               currentSchoolId={activeSchoolId}
-              isAdmin={user && ['admin'].includes(user.role)}
+              isAdmin={canSwitchSchools}
               onSchoolSwitch={(newSchoolId) => setActiveSchoolId(newSchoolId)}
             />
 
@@ -123,7 +125,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
                 </div>
                 <div className='hidden sm:flex flex-col items-start'>
                   <span className="hidden sm:block text-sm text-gray-700">{fullName || 'User'}</span>
-                  <span className="hidden sm:block text-sm text-gray-700">{role.charAt(0).toUpperCase() + role.slice(1)}</span>
+                  <span className="hidden sm:block text-sm text-gray-700">{role}</span>
                 </div>
                 <svg className="w-4 h-4 ml-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
@@ -133,7 +135,7 @@ export default function DashboardHeader({ onToggleSidebar, onToggleMobileMenu })
                     <li>
                       <Link href="/" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition w-full text-left">Back to Home</Link>
                     </li>
-                    {user?.role === 'admin' ? (
+                    {user?.role === 'admin' || can(user?.role, 'registrations') ? (
                       <li>
                         <Link href="/dashboard/manage-registration" className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition w-full text-left">Manage Applications</Link>
                       </li>

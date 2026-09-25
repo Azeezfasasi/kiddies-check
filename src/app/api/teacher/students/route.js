@@ -3,6 +3,7 @@ import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
 import { connectDB } from "@/utils/db";
 import crypto from "crypto";
+import { isAcademicAdmin } from "@/utils/roles";
 
 // Helper function to find the next available enrollment number
 async function getNextAvailableEnrollmentNo(schoolId, startingNumber = 1) {
@@ -51,7 +52,7 @@ export async function POST(req) {
     
     // Allow admin + learning-specialist full access to any school
     // Teachers are allowed only if they match the requested school (handled by hasAccess below)
-    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
+    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
@@ -184,7 +185,7 @@ export async function GET(req) {
     
     // Allow admin + learning-specialist full access to any school.
     // Teachers are allowed only if they match the requested school (handled below by hasAccess).
-    if (!['admin', 'learning-specialist', 'teacher'].includes(user.role)) {
+    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));

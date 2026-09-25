@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Users, Mail, UserCheck, Clock, AlertCircle, Download } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { withFeature } from '@/utils/roles';
 
 export default function SchoolMembersPage() {
   const [schoolId, setSchoolId] = useState('');
@@ -124,7 +125,7 @@ export default function SchoolMembersPage() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'school-leader', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager')}>
       <div className="min-h-screen bg-gray-50 py-4 sm:py-6 md:py-8">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           {/* Header */}
