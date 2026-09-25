@@ -40,8 +40,6 @@ export async function POST(req: NextRequest) {
     const ipAddress =
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
-      // BUG: App Router requests have no `socket`, so this fallback is always undefined.
-      (req as unknown as { socket?: { remoteAddress?: string } }).socket?.remoteAddress ||
       "unknown";
 
     const loginLog = await LoginLog.create({
