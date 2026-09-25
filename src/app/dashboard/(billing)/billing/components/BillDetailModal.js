@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Ban, BadgePercent, History, Loader, Pencil, Phone, Plus, Printer, ReceiptText, Undo2 } from "lucide-react";
+import { ArrowRightLeft, Ban, BadgePercent, Bell, History, Loader, Mail, Pencil, Phone, Plus, Printer, ReceiptText, Undo2 } from "lucide-react";
 import toast from "react-hot-toast";
 import ModalFrame, { dangerButton, inputClass, labelClass, primaryButton, secondaryButton } from "./ModalFrame";
 import { StatusBadge } from "./BillingShell";
@@ -9,12 +9,15 @@ import {
   TERM_LABELS,
   balanceAfterPayment,
   billingRequest,
+  feesOnly,
   formatCurrency,
   formatDate,
+  isCarriedForward,
   isOverdue,
   methodLabel,
   printReceipt,
   studentName,
+  timeAgo,
   toInputDate,
 } from "./billingUtils";
 
@@ -63,6 +66,24 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
     }
   };
 
+  const sendReminder = async () => {
+    setSaving(true);
+    try {
+      const res = await billingRequest(token, "/api/billing/reminders", {
+        method: "POST",
+        body: JSON.stringify({ schoolId: data.bill.school, billIds: [billId] }),
+      });
+      if (res.sent) toast.success("Reminder emailed to parent");
+      else toast.error(res.message);
+      await load();
+      onChanged?.();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading || !data) {
     return (
       <ModalFrame title="Bill details" onClose={onClose} size="lg">
@@ -77,6 +98,9 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
   const overdue = isOverdue(bill);
   const payments = [...bill.payments].sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt));
   const guardian = bill.student?.guardian;
+  const carried = isCarriedForward(bill);
+  const owing = !bill.waived && !carried && bill.balance > 0;
+  const lastReminder = bill.reminders?.length ? bill.reminders[bill.reminders.length - 1] : null;
 
   return (
     <ModalFrame
@@ -89,7 +113,12 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
           <button className={secondaryButton} onClick={onClose}>
             Close
           </button>
-          {!bill.waived && bill.balance > 0 && (
+          {owing && (
+            <button className={secondaryButton} onClick={sendReminder} disabled={saving}>
+              <Bell className="w-4 h-4" /> Send Reminder
+            </button>
+          )}
+          {owing && (
             <button className={primaryButton} onClick={() => onRecordPayment(bill)}>
               <Plus className="w-4 h-4" /> Record Payment
             </button>
@@ -113,6 +142,14 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
       <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
         <table className="w-full text-sm">
           <tbody className="divide-y divide-gray-100">
+            {(bill.arrears || []).map((a) => (
+              <tr key={a.bill} className="bg-violet-50/50">
+                <td className="px-4 py-2 text-violet-700">
+                  Balance brought forward — {TERM_LABELS[a.term]} {a.academicSession}
+                </td>
+                <td className="px-4 py-2 text-right text-violet-700">{formatCurrency(a.amount)}</td>
+              </tr>
+            ))}
             {bill.items.map((item, idx) => (
               <tr key={idx}>
                 <td className="px-4 py-2 text-gray-600">{item.name}</td>
@@ -126,13 +163,21 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
               </tr>
             )}
             <tr className="bg-gray-50 font-semibold">
-              <td className="px-4 py-2">Total fees</td>
+              <td className="px-4 py-2">{bill.arrearsAmount > 0 ? "Total due (incl. arrears)" : "Total fees"}</td>
               <td className="px-4 py-2 text-right">{formatCurrency(bill.netAmount)}</td>
             </tr>
             <tr>
               <td className="px-4 py-2 text-green-700">Amount paid</td>
               <td className="px-4 py-2 text-right text-green-700">{formatCurrency(bill.amountPaid)}</td>
             </tr>
+            {carried && (
+              <tr className="bg-violet-50/50">
+                <td className="px-4 py-2 text-violet-700">
+                  Carried forward to {TERM_LABELS[bill.carriedForward.term]} {bill.carriedForward.academicSession}
+                </td>
+                <td className="px-4 py-2 text-right text-violet-700">−{formatCurrency(bill.carriedForward.amount)}</td>
+              </tr>
+            )}
             <tr className="font-bold">
               <td className="px-4 py-2">{bill.balance < 0 ? "Credit" : "Outstanding balance"}</td>
               <td className={`px-4 py-2 text-right ${bill.balance > 0 ? "text-red-600" : "text-gray-800"}`}>
@@ -149,9 +194,28 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
         </div>
       )}
 
+      {carried && (
+        <div className="flex gap-2 bg-violet-50 border border-violet-200 rounded-lg p-3 text-sm text-violet-800 mb-4">
+          <ArrowRightLeft className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            The unpaid {formatCurrency(bill.carriedForward.amount)} was moved to the {TERM_LABELS[bill.carriedForward.term]}{" "}
+            {bill.carriedForward.academicSession} bill on {formatDate(bill.carriedForward.at)}. Record payments and make
+            changes on that bill.
+          </span>
+        </div>
+      )}
+
+      {lastReminder && (
+        <p className="flex items-center gap-1.5 text-xs text-gray-500 mb-4">
+          <Bell className="w-3.5 h-3.5" />
+          Last reminder {timeAgo(lastReminder.sentAt)} to {lastReminder.recipients.join(", ")}
+          {bill.reminders.length > 1 && <span>· {bill.reminders.length} sent in total</span>}
+        </p>
+      )}
+
       {/* Actions */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {canManageFees && (
+        {canManageFees && !carried && (
           <>
             <button
               className={secondaryButton}
@@ -188,12 +252,12 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
                   <input
                     type="number"
                     min="0"
-                    max={bill.grossAmount}
+                    max={feesOnly(bill)}
                     value={form.amount}
                     onChange={(e) => setForm({ ...form, amount: e.target.value })}
                     className={inputClass}
                   />
-                  <p className="text-xs text-gray-500 mt-1">Max {formatCurrency(bill.grossAmount)}. Use 0 to remove.</p>
+                  <p className="text-xs text-gray-500 mt-1">Max {formatCurrency(feesOnly(bill))} (this term&apos;s fees). Use 0 to remove.</p>
                 </div>
                 <div>
                   <label className={labelClass}>Reason</label>
@@ -289,6 +353,11 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
                     <span className={p.voided ? "line-through" : ""}>{p.receiptNo}</span>
                     {p.voided && <div className="text-xs text-red-500">Voided: {p.voidReason}</div>}
                     {p.reference && <div className="text-xs text-gray-400">Ref: {p.reference}</div>}
+                    {p.receiptEmailedTo?.length > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-green-600" title={p.receiptEmailedTo.join(", ")}>
+                        <Mail className="w-3 h-3" /> Receipt emailed
+                      </div>
+                    )}
                   </td>
                   <td className="px-3 py-2">{methodLabel(p.method)}</td>
                   <td className={`px-3 py-2 text-right font-semibold ${p.voided ? "line-through" : "text-gray-800"}`}>{formatCurrency(p.amount)}</td>
@@ -305,7 +374,7 @@ export default function BillDetailModal({ token, billId, schoolName, onClose, on
                       >
                         <Printer className="w-4 h-4" />
                       </button>
-                      {canManageFees && !p.voided && (
+                      {canManageFees && !p.voided && !carried && (
                         <button
                           title="Void payment"
                           className="p-1.5 rounded text-gray-500 hover:bg-red-50 hover:text-red-600"

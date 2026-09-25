@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown, FileText, GraduationCap } from "lucide-react";
+import { Loader, Users, BookOpen, MessageSquare, TrendingUp, Clock, ChevronDown, FileText, GraduationCap, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import StudentDetailsModal from "@/app/components/StudentDetailsModal";
 import StudentFeedbackPanel from "@/app/components/StudentFeedbackPanel";
 import StudentNotebookGallery from "@/app/components/StudentNotebookGallery";
 import StudentReportCardsPanel from "@/app/components/StudentReportCardsPanel";
 import StudentExamResultsPanel from "@/app/components/StudentExamResultsPanel";
+import StudentFeesPanel from "@/app/components/StudentFeesPanel";
 
 export default function MyChildrenPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function MyChildrenPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showReportCards, setShowReportCards] = useState(false);
   const [showExamResults, setShowExamResults] = useState(false);
+  const [showFees, setShowFees] = useState(false);
   const [feedbackData, setFeedbackData] = useState([]);
   const [feedbackLoadingFeedback, setLoadingFeedback] = useState(false);
   const [expandedStudents, setExpandedStudents] = useState({});
@@ -229,7 +231,7 @@ export default function MyChildrenPage() {
                     </div>
 
                     {/* Card Footer - Actions */}
-                    <div className="border-t pt-4 mt-4 flex gap-2">
+                    <div className="border-t pt-4 mt-4 grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleViewStudent(student)}
                         className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
@@ -257,6 +259,16 @@ export default function MyChildrenPage() {
                       >
                         <GraduationCap className="w-4 h-4" />
                         Exam Results
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          setShowFees(true);
+                        }}
+                        className="col-span-2 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Wallet className="w-4 h-4" />
+                        School Fees
                       </button>
                     </div>
                   </div>
@@ -300,6 +312,15 @@ export default function MyChildrenPage() {
           schoolName={localStorage.getItem("schoolName") || ""}
           schoolLogo={localStorage.getItem("schoolLogo") || ""}
           onClose={() => setShowReportCards(false)}
+        />
+      )}
+
+      {/* School Fees Panel Modal */}
+      {showFees && selectedStudent && (
+        <StudentFeesPanel
+          studentId={selectedStudent._id}
+          studentName={`${selectedStudent.firstName} ${selectedStudent.lastName}`}
+          onClose={() => setShowFees(false)}
         />
       )}
 

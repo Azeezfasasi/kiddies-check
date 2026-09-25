@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Copy, Info, Layers, Loader, Pencil, School, Settings2, Trash2, TrendingUp } from "lucide-react";
+import { ArrowRightLeft, Copy, Info, Layers, Loader, Pencil, School, Settings2, Trash2, TrendingUp } from "lucide-react";
 import toast from "react-hot-toast";
 import ConfirmActionModal from "@/app/components/ConfirmActionModal";
 import useBillingScope from "../components/useBillingScope";
@@ -19,6 +19,8 @@ export default function FeeSetupPage() {
   const [deleteRow, setDeleteRow] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showCopy, setShowCopy] = useState(false);
+  const [showCarry, setShowCarry] = useState(false);
+  const [carrying, setCarrying] = useState(false);
   const [serverCanManage, setServerCanManage] = useState(null);
 
   const { token, schoolId, academicSession, term, ready } = scope;
@@ -64,6 +66,23 @@ export default function FeeSetupPage() {
       return next;
     });
 
+  const carryForward = async () => {
+    setCarrying(true);
+    try {
+      const res = await billingRequest(token, "/api/billing/carry-forward", {
+        method: "POST",
+        body: JSON.stringify({ schoolId, academicSession, term }),
+      });
+      toast.success(res.message, { duration: 6000 });
+      setShowCarry(false);
+      load();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setCarrying(false);
+    }
+  };
+
   const confirmDelete = async () => {
     setDeleting(true);
     try {
@@ -88,6 +107,9 @@ export default function FeeSetupPage() {
           <>
             <button className={secondaryButton} onClick={() => setShowCopy(true)} disabled={!ready}>
               <Copy className="w-4 h-4" /> Copy From Another Term
+            </button>
+            <button className={secondaryButton} onClick={() => setShowCarry(true)} disabled={!ready || totals.configured === 0}>
+              <ArrowRightLeft className="w-4 h-4" /> Bring Forward Balances
             </button>
             <button
               className={primaryButton}
@@ -227,6 +249,17 @@ export default function FeeSetupPage() {
           isLoading={deleting}
           onConfirm={confirmDelete}
           onCancel={() => setDeleteRow(null)}
+        />
+      )}
+
+      {showCarry && (
+        <ConfirmActionModal
+          title="Bring forward unpaid balances?"
+          message={`Any unpaid balance a student has from an earlier term is added to their ${TERM_LABELS[term]} ${academicSession} bill as "Balance brought forward", and the earlier bill is marked Carried Forward. New bills do this automatically — use this for bills that were created before the earlier balance existed.`}
+          confirmText="Bring Forward"
+          isLoading={carrying}
+          onConfirm={carryForward}
+          onCancel={() => setShowCarry(false)}
         />
       )}
 

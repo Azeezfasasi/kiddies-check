@@ -3,10 +3,12 @@
  * Apply one action to many student bills at once.
  */
 
-import StudentBill, { roundMoney } from "@/app/server/models/StudentBill";
+import StudentBill, { computeBillTotals, roundMoney } from "@/app/server/models/StudentBill";
+import { sendReceiptEmails } from "@/app/server/lib/billingEmails";
 import {
   authorizeSchool,
   generateReceiptNo,
+  isCarriedForward,
   isValidId,
   jsonError,
   parsePaymentInput,
@@ -25,7 +27,8 @@ const ACTIONS = ["mark-paid", "record-payment", ...FEE_MANAGER_ACTIONS];
  *   discount        — { amount, discountType: "fixed" | "percent", reason }
  *   waive           — { reason }
  *   unwaive
- * Payment actions also accept { method, reference, paidAt, note }.
+ * Payment actions also accept { method, reference, paidAt, note, notifyParent }
+ * and email each parent a receipt unless notifyParent is false.
  */
 export async function POST(request) {
   try {
@@ -68,9 +71,15 @@ export async function POST(request) {
     const bills = await StudentBill.find({ _id: { $in: billIds }, school: schoolId });
 
     const userId = auth.user._id;
-    const summary = { updated: 0, skipped: 0, capped: 0, totalRecorded: 0 };
+    const summary = { updated: 0, skipped: 0, capped: 0, totalRecorded: 0, receiptsEmailed: 0 };
+    const recordedPayments = [];
 
     for (const bill of bills) {
+      // Carried-forward bills are closed; their balance lives on a later bill.
+      if (isCarriedForward(bill)) {
+        summary.skipped++;
+        continue;
+      }
       switch (action) {
         case "mark-paid":
         case "record-payment": {
@@ -92,10 +101,10 @@ export async function POST(request) {
           break;
         }
         case "discount": {
+          // Discounts apply to this term's fees, not brought-forward arrears.
+          const { feesAmount } = computeBillTotals(bill);
           const discount =
-            body.discountType === "percent"
-              ? roundMoney((bill.grossAmount * amount) / 100)
-              : Math.min(amount, bill.grossAmount);
+            body.discountType === "percent" ? roundMoney((feesAmount * amount) / 100) : Math.min(amount, feesAmount);
           bill.discount = { amount: discount, reason: discount > 0 ? reason : "" };
           bill.activity.push({
             action: "discount",
@@ -129,13 +138,24 @@ export async function POST(request) {
       bill.updatedBy = userId;
       await bill.save();
       summary.updated++;
+      if (action === "mark-paid" || action === "record-payment") {
+        recordedPayments.push({ bill, payment: bill.payments[bill.payments.length - 1] });
+      }
     }
 
     summary.skipped += billIds.length - bills.length;
 
+    if (recordedPayments.length && body.notifyParent !== false) {
+      const results = await sendReceiptEmails(recordedPayments);
+      summary.receiptsEmailed = results.filter((r) => r.emailedTo.length).length;
+    }
+
     const parts = [`${summary.updated} bill(s) updated`];
     if (summary.skipped) parts.push(`${summary.skipped} skipped`);
     if (summary.capped) parts.push(`${summary.capped} capped at their outstanding balance`);
+    if (recordedPayments.length && body.notifyParent !== false) {
+      parts.push(`${summary.receiptsEmailed} receipt(s) emailed to parents`);
+    }
 
     return Response.json({ success: true, message: parts.join(", ") + ".", ...summary });
   } catch (error) {

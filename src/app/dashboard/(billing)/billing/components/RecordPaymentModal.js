@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Loader, Printer } from "lucide-react";
+import { CheckCircle, Loader, Mail, Printer } from "lucide-react";
 import toast from "react-hot-toast";
 import ModalFrame, { inputClass, labelClass, primaryButton, secondaryButton } from "./ModalFrame";
 import {
@@ -20,6 +20,7 @@ export default function RecordPaymentModal({ token, bill, schoolName, onClose, o
   const [reference, setReference] = useState("");
   const [paidAt, setPaidAt] = useState(toInputDate(new Date()));
   const [note, setNote] = useState("");
+  const [notifyParent, setNotifyParent] = useState(bill.canEmail !== false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -33,7 +34,7 @@ export default function RecordPaymentModal({ token, bill, schoolName, onClose, o
     try {
       const data = await billingRequest(token, `/api/billing/bills/${bill._id}/payments`, {
         method: "POST",
-        body: JSON.stringify({ amount: numericAmount, method, reference, paidAt, note }),
+        body: JSON.stringify({ amount: numericAmount, method, reference, paidAt, note, notifyParent }),
       });
       toast.success("Payment recorded");
       setResult(data);
@@ -80,6 +81,18 @@ export default function RecordPaymentModal({ token, bill, schoolName, onClose, o
               {formatCurrency(Math.max(result.bill.balance, 0))}
             </span>
           </p>
+          {result.email && (
+            <p
+              className={`inline-flex items-center gap-1.5 text-xs mt-4 px-3 py-1.5 rounded-full ${
+                result.email.emailedTo.length ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+              }`}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {result.email.emailedTo.length
+                ? `Receipt emailed to ${result.email.emailedTo.join(", ")}`
+                : `Receipt not emailed: ${result.email.error}`}
+            </p>
+          )}
         </div>
       </ModalFrame>
     );
@@ -164,6 +177,20 @@ export default function RecordPaymentModal({ token, bill, schoolName, onClose, o
           <label className={labelClass}>Note (optional)</label>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={inputClass} placeholder="e.g. Paid by father at the bursary" />
         </div>
+        <label className="flex items-start gap-3 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={notifyParent}
+            onChange={(e) => setNotifyParent(e.target.checked)}
+            className="w-4 h-4 mt-0.5 rounded border-gray-300"
+          />
+          <span>
+            Email receipt to parent/guardian
+            {bill.canEmail === false && (
+              <span className="block text-xs text-amber-600">No parent or guardian email is on record for this student.</span>
+            )}
+          </span>
+        </label>
       </div>
     </ModalFrame>
   );

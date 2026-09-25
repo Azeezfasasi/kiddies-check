@@ -7,6 +7,8 @@ import {
   Ban,
   BadgePercent,
   Banknote,
+  Bell,
+  MailX,
   CheckCheck,
   ChevronLeft,
   ChevronRight,
@@ -41,6 +43,7 @@ import {
   formatDate,
   isOverdue,
   studentName,
+  timeAgo,
 } from "./components/billingUtils";
 
 const STATUS_FILTERS = [
@@ -52,6 +55,7 @@ const STATUS_FILTERS = [
   { value: "overdue", label: "Overdue" },
   { value: "waived", label: "Waived" },
   { value: "overpaid", label: "In credit" },
+  { value: "carried-forward", label: "Carried forward" },
 ];
 
 const SORTS = [
@@ -79,6 +83,7 @@ export default function BillingPage() {
   const [detailBillId, setDetailBillId] = useState(null);
   const [bulkAction, setBulkAction] = useState(null);
   const [quickPaid, setQuickPaid] = useState(null);
+  const [remindBill, setRemindBill] = useState(null);
   const [quickSaving, setQuickSaving] = useState(false);
 
   const { token, schoolId, academicSession, term, ready } = scope;
@@ -203,6 +208,7 @@ export default function BillingPage() {
       "Admission No.",
       "Class",
       "Total Fees",
+      "Brought Forward",
       "Discount",
       "Amount Paid",
       "Balance",
@@ -218,6 +224,7 @@ export default function BillingPage() {
       b.student?.enrollmentNo || "",
       b.class?.name || "",
       b.netAmount,
+      b.arrearsAmount || 0,
       b.discount?.amount || 0,
       b.amountPaid,
       b.waived ? 0 : b.balance,
@@ -293,7 +300,11 @@ export default function BillingPage() {
 
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
-            <StatCard label="Expected" value={formatCurrency(summary.expected)} sub={`${summary.count} students billed`} icon={CircleDollarSign} tone="blue" />
+            <StatCard label="Expected" value={formatCurrency(summary.expected)} sub={
+                summary.broughtForward > 0
+                  ? `${summary.count} billed · incl. ${formatCurrency(summary.broughtForward)} brought forward`
+                  : `${summary.count} students billed`
+              } icon={CircleDollarSign} tone="blue" />
             <StatCard label="Collected" value={formatCurrency(summary.collected)} sub={`${summary.paidCount} fully paid`} icon={Banknote} tone="green" />
             <StatCard
               label="Outstanding"
@@ -414,6 +425,7 @@ export default function BillingPage() {
               <span className="text-sm font-semibold mr-2">{selected.size} selected</span>
               <BulkButton icon={CheckCheck} label="Mark as Paid" onClick={() => setBulkAction("mark-paid")} />
               <BulkButton icon={Plus} label="Record Payment" onClick={() => setBulkAction("record-payment")} />
+              <BulkButton icon={Bell} label="Send Reminder" onClick={() => setBulkAction("remind")} />
               {isFeeManager && (
                 <>
                   <BulkButton icon={BadgePercent} label="Discount" onClick={() => setBulkAction("discount")} />
@@ -480,11 +492,21 @@ export default function BillingPage() {
                                 {bill.student?.enrollmentNo || "—"}
                                 {bill.student?.isActive === false && <span className="ml-2 text-red-500">Withdrawn</span>}
                                 {bill.discount?.amount > 0 && <span className="ml-2 text-sky-600">Discount</span>}
+                                {bill.canEmail === false && (
+                                  <span className="ml-2 inline-flex items-center gap-0.5 text-gray-400" title="No parent or guardian email on record">
+                                    <MailX className="w-3 h-3" /> No email
+                                  </span>
+                                )}
                               </div>
                             </button>
                           </td>
                           <td className="px-4 py-3 text-gray-700 whitespace-nowrap">{bill.class?.name || "—"}</td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">{formatCurrency(bill.netAmount)}</td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            {formatCurrency(bill.netAmount)}
+                            {bill.arrearsAmount > 0 && (
+                              <div className="text-xs text-violet-600">incl. {formatCurrency(bill.arrearsAmount)} b/f</div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap text-green-700">{formatCurrency(bill.amountPaid)}</td>
                           <td className={`px-4 py-3 text-right whitespace-nowrap font-semibold ${owing ? "text-red-600" : "text-gray-500"}`}>
                             {bill.waived ? "—" : formatCurrency(Math.max(bill.balance, 0))}
@@ -502,6 +524,14 @@ export default function BillingPage() {
                                 <>
                                   <IconButton title="Record payment" onClick={() => setPayBill(bill)} icon={Plus} tone="blue" />
                                   <IconButton title="Mark as fully paid" onClick={() => setQuickPaid(bill)} icon={CheckCheck} tone="green" />
+                                  {bill.canEmail && (
+                                    <IconButton
+                                      title={bill.lastReminderAt ? `Send reminder (last sent ${timeAgo(bill.lastReminderAt)})` : "Send payment reminder"}
+                                      onClick={() => setRemindBill(bill)}
+                                      icon={Bell}
+                                      tone="amber"
+                                    />
+                                  )}
                                 </>
                               )}
                               <IconButton title="View details" onClick={() => setDetailBillId(bill._id)} icon={Eye} />
@@ -585,12 +615,28 @@ export default function BillingPage() {
         />
       )}
 
+      {remindBill && (
+        <BulkActionModal
+          token={token}
+          schoolId={schoolId}
+          action="remind"
+          bills={[remindBill]}
+          onClose={() => setRemindBill(null)}
+          onDone={() => {
+            setRemindBill(null);
+            load();
+          }}
+        />
+      )}
+
       {quickPaid && (
         <ConfirmActionModal
           title="Mark as fully paid?"
           message={`This records a cash payment of ${formatCurrency(quickPaid.balance)} for ${studentName(
             quickPaid.student
-          )}, clearing their balance for ${TERM_LABELS[term]}. Use "Record payment" instead to set a different method or reference.`}
+          )}, clearing their balance for ${TERM_LABELS[term]}${
+            quickPaid.canEmail ? ", and emails the parent a receipt" : ""
+          }. Use "Record payment" instead to set a different method or reference.`}
           confirmText="Mark as Paid"
           isLoading={quickSaving}
           onConfirm={markFullyPaid}
@@ -613,9 +659,11 @@ function summarise(bills) {
     waivedCount: 0,
     overdueCount: 0,
     owingCount: 0,
+    broughtForward: 0,
   };
   for (const b of bills) {
     if (!b.waived) s.expected += b.netAmount;
+    if (!b.waived) s.broughtForward += b.arrearsAmount || 0;
     s.collected += b.amountPaid;
     if (!b.waived && b.balance > 0) {
       s.outstanding += b.balance;
@@ -653,6 +701,7 @@ function IconButton({ icon: Icon, title, onClick, tone = "gray" }) {
     gray: "text-gray-500 hover:bg-gray-100 hover:text-gray-800",
     blue: "text-blue-600 hover:bg-blue-50",
     green: "text-green-600 hover:bg-green-50",
+    amber: "text-amber-600 hover:bg-amber-50",
   };
   return (
     <button title={title} aria-label={title} onClick={onClick} className={`p-1.5 rounded-lg transition ${tones[tone]}`}>

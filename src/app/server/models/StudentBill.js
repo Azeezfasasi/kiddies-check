@@ -33,8 +33,31 @@ const paymentSchema = new mongoose.Schema(
     voidReason: { type: String, trim: true },
     voidedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     voidedAt: Date,
+    // Addresses the receipt email was sent to (empty if none was sent).
+    receiptEmailedTo: [{ type: String }],
   },
   { _id: true }
+);
+
+// An unpaid balance from an earlier term brought into this bill.
+const arrearsSchema = new mongoose.Schema(
+  {
+    bill: { type: mongoose.Schema.Types.ObjectId, ref: "StudentBill", required: true },
+    academicSession: { type: String, required: true },
+    term: { type: String, required: true },
+    amount: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
+const reminderSchema = new mongoose.Schema(
+  {
+    sentAt: { type: Date, default: Date.now },
+    sentBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    recipients: [{ type: String }],
+    balance: Number,
+  },
+  { _id: false }
 );
 
 // Audit trail for changes that aren't payments (discounts, waivers, fee
@@ -82,6 +105,18 @@ const studentBillSchema = new mongoose.Schema(
       required: true,
     },
     items: [billItemSchema],
+    arrears: [arrearsSchema],
+    // When this bill's unpaid balance was moved into a later term's bill.
+    // The balance then lives on that bill, so it isn't counted twice.
+    carriedForward: {
+      amount: { type: Number, default: 0 },
+      toBill: { type: mongoose.Schema.Types.ObjectId, ref: "StudentBill" },
+      academicSession: String,
+      term: String,
+      at: Date,
+    },
+    feesAmount: { type: Number, default: 0 },
+    arrearsAmount: { type: Number, default: 0 },
     grossAmount: { type: Number, default: 0 },
     discount: {
       amount: { type: Number, default: 0, min: 0 },
@@ -92,7 +127,7 @@ const studentBillSchema = new mongoose.Schema(
     balance: { type: Number, default: 0 },
     status: {
       type: String,
-      enum: ["unpaid", "partial", "paid", "overpaid", "waived"],
+      enum: ["unpaid", "partial", "paid", "overpaid", "waived", "carried-forward"],
       default: "unpaid",
       index: true,
     },
@@ -103,26 +138,33 @@ const studentBillSchema = new mongoose.Schema(
     payments: [paymentSchema],
     activity: [activitySchema],
     lastPaymentAt: Date,
+    reminders: [reminderSchema],
+    lastReminderAt: Date,
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );
 
-// Derives every money field from items/discount/payments so totals can't
+// Derives every money field from items/arrears/discount/payments so totals can't
 // drift from the ledger. Exported so insertMany (which skips save hooks)
 // can compute the same values up front.
 export const roundMoney = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
 export function computeBillTotals(bill) {
-  const grossAmount = roundMoney((bill.items || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
-  const discountAmount = Math.min(roundMoney(bill.discount?.amount), grossAmount);
+  const feesAmount = roundMoney((bill.items || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
+  const arrearsAmount = roundMoney((bill.arrears || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0));
+  const grossAmount = roundMoney(feesAmount + arrearsAmount);
+  // Discounts apply to this term's fees only, never to brought-forward debt.
+  const discountAmount = Math.min(roundMoney(bill.discount?.amount), feesAmount);
   const netAmount = roundMoney(grossAmount - discountAmount);
   const activePayments = (bill.payments || []).filter((p) => !p.voided);
   const amountPaid = roundMoney(activePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0));
-  const balance = bill.waived ? 0 : roundMoney(netAmount - amountPaid);
+  const carried = roundMoney(bill.carriedForward?.amount);
+  const balance = bill.waived ? 0 : roundMoney(netAmount - amountPaid - carried);
 
   let status;
   if (bill.waived) status = "waived";
+  else if (carried > 0 && balance === 0) status = "carried-forward";
   else if (balance < 0) status = "overpaid";
   else if (balance === 0) status = "paid";
   else if (amountPaid > 0) status = "partial";
@@ -133,19 +175,21 @@ export function computeBillTotals(bill) {
     null
   );
 
-  return { grossAmount, netAmount, amountPaid, balance, status, lastPaymentAt };
+  return { feesAmount, arrearsAmount, grossAmount, netAmount, amountPaid, balance, status, lastPaymentAt };
 }
 
 studentBillSchema.pre("save", function (next) {
   const totals = computeBillTotals(this);
+  this.feesAmount = totals.feesAmount;
+  this.arrearsAmount = totals.arrearsAmount;
   this.grossAmount = totals.grossAmount;
   this.netAmount = totals.netAmount;
   this.amountPaid = totals.amountPaid;
   this.balance = totals.balance;
   this.status = totals.status;
   this.lastPaymentAt = totals.lastPaymentAt || undefined;
-  if (this.discount && this.discount.amount > totals.grossAmount) {
-    this.discount.amount = totals.grossAmount;
+  if (this.discount && this.discount.amount > totals.feesAmount) {
+    this.discount.amount = totals.feesAmount;
   }
   next();
 });
@@ -153,6 +197,7 @@ studentBillSchema.pre("save", function (next) {
 studentBillSchema.index({ student: 1, academicSession: 1, term: 1 }, { unique: true });
 studentBillSchema.index({ school: 1, academicSession: 1, term: 1, class: 1 });
 studentBillSchema.index({ "payments.receiptNo": 1 });
+studentBillSchema.index({ student: 1, balance: 1 });
 
 export default mongoose.models.StudentBill ||
   mongoose.model("StudentBill", studentBillSchema);

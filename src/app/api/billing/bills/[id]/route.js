@@ -2,11 +2,13 @@
  * /api/billing/bills/[id]
  */
 
-import StudentBill from "@/app/server/models/StudentBill";
+import StudentBill, { computeBillTotals } from "@/app/server/models/StudentBill";
 import {
   BILL_STUDENT_FIELDS,
   canManageFees,
+  carriedForwardMessage,
   checkSchoolAccess,
+  isCarriedForward,
   isValidId,
   jsonError,
   toAmount,
@@ -20,6 +22,7 @@ const populateBill = (query) =>
     .populate("payments.recordedBy", "firstName lastName")
     .populate("payments.voidedBy", "firstName lastName")
     .populate("activity.by", "firstName lastName")
+    .populate("reminders.sentBy", "firstName lastName")
     .populate("updatedBy", "firstName lastName");
 
 /**
@@ -42,7 +45,7 @@ export async function GET(request, { params }) {
     if (denied) return jsonError(denied.error, denied.status);
 
     const history = await StudentBill.find({ student: bill.student?._id || bill.student })
-      .select("academicSession term class netAmount amountPaid balance status waived")
+      .select("academicSession term class netAmount arrearsAmount amountPaid balance status waived carriedForward")
       .populate("class", "name")
       .sort({ academicSession: -1, term: -1 })
       .lean();
@@ -84,14 +87,21 @@ export async function PATCH(request, { params }) {
     const denied = await checkSchoolAccess(auth.user, bill.school, { requireFeeManager: body.action !== "update" });
     if (denied) return jsonError(denied.error, denied.status);
 
+    // A carried-forward bill is closed: its balance now lives on a later
+    // bill, so money changes here would make the two disagree.
+    if (body.action !== "update" && isCarriedForward(bill)) {
+      return jsonError(carriedForwardMessage(bill), 400);
+    }
+
     const userId = auth.user._id;
     const reason = (body.reason || "").toString().trim().slice(0, 300);
 
     switch (body.action) {
       case "discount": {
         const amount = toAmount(body.amount);
+        const { feesAmount } = computeBillTotals(bill);
         if (!Number.isFinite(amount) || amount < 0) return jsonError("Enter a valid discount amount", 400);
-        if (amount > bill.grossAmount) return jsonError("Discount cannot exceed the total fees", 400);
+        if (amount > feesAmount) return jsonError("Discount cannot exceed this term's fees", 400);
         if (amount > 0 && !reason) return jsonError("A reason is required for a discount", 400);
         bill.discount = { amount, reason: amount > 0 ? reason : "" };
         bill.activity.push({

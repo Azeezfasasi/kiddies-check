@@ -4,7 +4,7 @@
 
 import FeeStructure from "@/app/server/models/FeeStructure";
 import StudentBill from "@/app/server/models/StudentBill";
-import { checkSchoolAccess, isValidId, jsonError, verifyBillingUser } from "@/app/server/lib/billing";
+import { checkSchoolAccess, isValidId, jsonError, releaseArrears, verifyBillingUser } from "@/app/server/lib/billing";
 
 /**
  * DELETE /api/billing/fee-structures/[id]
@@ -35,6 +35,21 @@ export async function DELETE(request, { params }) {
         409
       );
     }
+
+    const billsCarried = await StudentBill.countDocuments({
+      feeStructure: structure._id,
+      "carriedForward.amount": { $gt: 0 },
+    });
+    if (billsCarried > 0) {
+      return jsonError(
+        `${billsCarried} bill(s) in this class have had their balance carried into a later term, so they can't be removed.`,
+        409
+      );
+    }
+
+    // Arrears these bills pulled in go back to the bills they came from.
+    const bills = await StudentBill.find({ feeStructure: structure._id, "arrears.0": { $exists: true } });
+    await releaseArrears(bills, auth.user._id);
 
     const { deletedCount } = await StudentBill.deleteMany({ feeStructure: structure._id });
     await structure.deleteOne();

@@ -3,8 +3,11 @@
  */
 
 import StudentBill from "@/app/server/models/StudentBill";
+import { sendReceiptEmails } from "@/app/server/lib/billingEmails";
 import {
+  carriedForwardMessage,
   checkSchoolAccess,
+  isCarriedForward,
   generateReceiptNo,
   isValidId,
   jsonError,
@@ -16,8 +19,9 @@ import {
 /**
  * POST /api/billing/bills/[id]/payments
  * Records a manual payment (cash, transfer, POS...). Body:
- * { amount, method, reference, paidAt, note } or { payFullBalance: true, ... }
- * Payments larger than the outstanding balance are rejected.
+ * { amount, method, reference, paidAt, note, notifyParent } or { payFullBalance: true, ... }
+ * Payments larger than the outstanding balance are rejected. Unless
+ * notifyParent is false, the receipt is emailed to the parent/guardian.
  */
 export async function POST(request, { params }) {
   try {
@@ -33,6 +37,7 @@ export async function POST(request, { params }) {
     const denied = await checkSchoolAccess(auth.user, bill.school);
     if (denied) return jsonError(denied.error, denied.status);
 
+    if (isCarriedForward(bill)) return jsonError(carriedForwardMessage(bill), 400);
     if (bill.waived) return jsonError("Fees for this student have been waived", 400);
     if (bill.balance <= 0) return jsonError("This bill is already fully paid", 400);
 
@@ -57,10 +62,18 @@ export async function POST(request, { params }) {
     await bill.save();
 
     const payment = bill.payments[bill.payments.length - 1];
+
+    let email = null;
+    if (body.notifyParent !== false) {
+      [email] = await sendReceiptEmails([{ bill, payment }]);
+      if (email.emailedTo.length) payment.receiptEmailedTo = email.emailedTo;
+    }
+
     return Response.json({
       success: true,
       message: `Payment of ${amount} recorded. Receipt ${payment.receiptNo}.`,
       payment,
+      email,
       bill: {
         _id: bill._id,
         amountPaid: bill.amountPaid,

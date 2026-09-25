@@ -7,6 +7,7 @@ import Class from "@/app/server/models/Class";
 import Student from "@/app/server/models/Student";
 import FeeStructure from "@/app/server/models/FeeStructure";
 import StudentBill from "@/app/server/models/StudentBill";
+import { feeRecipients } from "@/app/server/lib/billingEmails";
 import {
   TERMS,
   BILL_STUDENT_FIELDS,
@@ -42,7 +43,11 @@ export async function GET(request) {
       FeeStructure.find({ school: schoolId, academicSession, term }).select("class totalAmount dueDate").lean(),
       StudentBill.find({ school: schoolId, academicSession, term })
         .select("-activity")
-        .populate("student", BILL_STUDENT_FIELDS)
+        .populate({
+          path: "student",
+          select: `${BILL_STUDENT_FIELDS} parent`,
+          populate: { path: "parent", select: "firstName lastName email" },
+        })
         .populate("class", "name")
         .populate("payments.recordedBy", "firstName lastName")
         .sort({ createdAt: 1 })
@@ -65,7 +70,9 @@ export async function GET(request) {
       canManageFees: canManageFees(auth.user),
       classes,
       structures,
-      bills: bills.filter((b) => b.student),
+      bills: bills
+        .filter((b) => b.student)
+        .map((b) => ({ ...b, canEmail: feeRecipients(b.student).length > 0 })),
       unbilledStudents,
     });
   } catch (error) {

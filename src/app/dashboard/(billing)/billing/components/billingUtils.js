@@ -34,6 +34,7 @@ export const STATUS_META = {
   unpaid: { label: "Unpaid", className: "bg-red-100 text-red-700 border-red-200" },
   overpaid: { label: "In Credit", className: "bg-sky-100 text-sky-700 border-sky-200" },
   waived: { label: "Waived", className: "bg-gray-100 text-gray-600 border-gray-200" },
+  "carried-forward": { label: "Carried Forward", className: "bg-violet-100 text-violet-700 border-violet-200" },
   overdue: { label: "Overdue", className: "bg-red-600 text-white border-red-600" },
 };
 
@@ -52,6 +53,20 @@ export const toInputDate = (value) => (value ? new Date(value).toISOString().sli
 
 export const studentName = (student) =>
   student ? `${student.firstName || ""} ${student.lastName || ""}`.trim() : "Unknown student";
+
+export const isCarriedForward = (bill) => (bill?.carriedForward?.amount || 0) > 0;
+
+// Bills saved before arrears existed have no feesAmount stored.
+export const feesOnly = (bill) => bill.feesAmount ?? bill.grossAmount - (bill.arrearsAmount || 0);
+
+export const timeAgo = (value) => {
+  if (!value) return "";
+  const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+  if (minutes < 60) return `${Math.max(minutes, 1)} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return formatDate(value);
+};
 
 export const isOverdue = (bill) =>
   !!bill.dueDate && bill.balance > 0 && !bill.waived && new Date(bill.dueDate) < new Date(new Date().toDateString());
@@ -159,7 +174,8 @@ export function printReceipt({ schoolName, bill, payment, balanceAfter }) {
   <table>${rows.map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td></tr>`).join("")}</table>
   <div class="amount"><span>Amount Paid</span><strong>${escapeHtml(formatCurrency(payment.amount))}</strong></div>
   <div class="totals">
-    <div><span>Total fees for term</span><span>${escapeHtml(formatCurrency(bill.netAmount))}</span></div>
+    ${bill.arrearsAmount > 0 ? `<div><span>Balance brought forward</span><span>${escapeHtml(formatCurrency(bill.arrearsAmount))}</span></div>` : ""}
+    <div><span>Total due for term</span><span>${escapeHtml(formatCurrency(bill.netAmount))}</span></div>
     ${balanceAfter !== undefined ? `<div><span>Outstanding balance</span><span>${escapeHtml(formatCurrency(Math.max(balanceAfter, 0)))}</span></div>` : ""}
   </div>
   ${payment.note ? `<p style="font-size:13px;color:#4b5563;margin-top:16px">Note: ${escapeHtml(payment.note)}</p>` : ""}

@@ -115,6 +115,7 @@ export function parsePaymentInput(body) {
 
 function buildBillFromStructure(structure, studentId, userId) {
   const bill = {
+    _id: new mongoose.Types.ObjectId(),
     school: structure.school,
     student: studentId,
     class: structure.class,
@@ -175,8 +176,113 @@ export async function syncMissingBills(schoolId, academicSession, term, userId) 
     // unique index rejects the duplicates and the rest still insert.
     if (error.code !== 11000 && !error.writeErrors?.every((e) => e.code === 11000)) throw error;
   }
-  return docs.length;
+
+  // Only the bills this call actually inserted pull in earlier arrears, so
+  // a concurrent duplicate can never carry the same balance twice.
+  const inserted = await StudentBill.find({ _id: { $in: docs.map((d) => d._id) } });
+  await carryBalancesInto(inserted, userId);
+  return inserted.length;
 }
+
+const TERM_ORDER = { first: 0, second: 1, third: 2 };
+
+// Sessions are "YYYY/YYYY" strings, so they compare correctly as text.
+export const isEarlierTerm = (session, term, thanSession, thanTerm) =>
+  session < thanSession || (session === thanSession && TERM_ORDER[term] < TERM_ORDER[thanTerm]);
+
+export const termLabel = (term, session) =>
+  `${term ? term.charAt(0).toUpperCase() + term.slice(1) : ""} Term ${session || ""}`.trim();
+
+/**
+ * Moves each student's unpaid balances from earlier terms into the given
+ * bills as "brought forward" arrears. The earlier bill is marked as carried
+ * forward, which zeroes its balance, so the debt only ever lives on one bill.
+ * Waived target bills are skipped so arrears aren't silently forgiven.
+ */
+export async function carryBalancesInto(bills, userId) {
+  const targets = bills.filter((b) => !b.waived);
+  if (targets.length === 0) return { carried: 0, amount: 0 };
+
+  const previous = await StudentBill.find({
+    student: { $in: targets.map((b) => b.student) },
+    _id: { $nin: targets.map((b) => b._id) },
+    balance: { $gt: 0 },
+    waived: { $ne: true },
+    "carriedForward.amount": { $not: { $gt: 0 } },
+  });
+
+  const byStudent = new Map();
+  for (const prev of previous) {
+    const key = prev.student.toString();
+    if (!byStudent.has(key)) byStudent.set(key, []);
+    byStudent.get(key).push(prev);
+  }
+
+  let carried = 0;
+  let amount = 0;
+  for (const bill of targets) {
+    const earlier = (byStudent.get(bill.student.toString()) || [])
+      .filter((p) => isEarlierTerm(p.academicSession, p.term, bill.academicSession, bill.term))
+      .sort((a, b) => (isEarlierTerm(a.academicSession, a.term, b.academicSession, b.term) ? -1 : 1));
+    if (earlier.length === 0) continue;
+
+    for (const prev of earlier) {
+      bill.arrears.push({ bill: prev._id, academicSession: prev.academicSession, term: prev.term, amount: prev.balance });
+      bill.activity.push({
+        action: "arrears-added",
+        description: `Outstanding balance of ${prev.balance} brought forward from ${termLabel(prev.term, prev.academicSession)}`,
+        by: userId,
+      });
+    }
+    bill.updatedBy = userId;
+    // Save the new bill first: if marking the old bills then fails, the debt
+    // shows twice (visible and fixable) rather than disappearing.
+    await bill.save();
+
+    for (const prev of earlier) {
+      amount += prev.balance;
+      prev.carriedForward = {
+        amount: prev.balance,
+        toBill: bill._id,
+        academicSession: bill.academicSession,
+        term: bill.term,
+        at: new Date(),
+      };
+      prev.activity.push({
+        action: "carried-forward",
+        description: `Outstanding balance of ${prev.balance} carried forward to ${termLabel(bill.term, bill.academicSession)}`,
+        by: userId,
+      });
+      prev.updatedBy = userId;
+      await prev.save();
+    }
+    carried++;
+  }
+  return { carried, amount };
+}
+
+// Reverses carryBalancesInto for bills that are about to be deleted, so the
+// balances return to the bills they came from.
+export async function releaseArrears(bills, userId) {
+  for (const bill of bills) {
+    for (const entry of bill.arrears || []) {
+      const source = await StudentBill.findById(entry.bill);
+      if (!source || source.carriedForward?.toBill?.toString() !== bill._id.toString()) continue;
+      source.carriedForward = { amount: 0 };
+      source.activity.push({
+        action: "carry-reversed",
+        description: `Carried-forward balance returned because the ${termLabel(bill.term, bill.academicSession)} bill was removed`,
+        by: userId,
+      });
+      await source.save();
+    }
+  }
+}
+
+export const isCarriedForward = (bill) => (bill.carriedForward?.amount || 0) > 0;
+
+export const carriedForwardMessage = (bill) =>
+  `This balance was carried forward to the ${termLabel(bill.carriedForward.term, bill.carriedForward.academicSession)} bill. Make changes there instead.`;
 
 // Pushes an edited fee structure onto the bills already generated from it,
 // keeping each bill's discount and payments intact.
@@ -192,7 +298,7 @@ export async function applyStructureToBills(structure, userId) {
     if (oldItemsKey === itemsKey && !dueChanged) continue;
 
     if (oldItemsKey !== itemsKey) {
-      const oldTotal = bill.grossAmount;
+      const oldTotal = bill.feesAmount;
       bill.items = newItems;
       bill.activity.push({
         action: "fees-updated",
