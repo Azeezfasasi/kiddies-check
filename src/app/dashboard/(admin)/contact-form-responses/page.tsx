@@ -2,18 +2,13 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import { Trash2, Eye, Reply, Search, Filter, ChevronLeft, ChevronRight, X } from 'lucide-react'
-// import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Commet } from "react-loading-indicators";
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { withFeature } from '@/utils/roles';
 
-// BUG: `const { user } = useAuth()` is commented out below, so `user` does not
-// exist at runtime and replying / changing a response's status throws
-// "user is not defined". Declared here for the type checker only; it creates
-// nothing at runtime, so behaviour is unchanged by the TypeScript conversion.
-declare const user: { _id?: string } | null;
-
 const ContactFormResponses = () => {
+	const { user } = useAuth();
 		useEffect(() => {
 			loadResponses();
 			// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -53,11 +48,6 @@ const ContactFormResponses = () => {
 	const [replyEmail, setReplyEmail] = useState('')
 	const [newStatus, setNewStatus] = useState('')
 	const responsesPerPage = 10;
-	// If you use AuthContext, import and use it here:
-	// import { useAuth } from '../../../context/AuthContext';
-	// const { user } = useAuth();
-	// For now, set user to null to avoid errors if not using AuthContext
-	// const user = null;
 	// You must define loadResponses and useEffect for fetching data
 	// Add your loadResponses and useEffect here if not present
 	const applyFilters = useCallback((data, search, status) => {
