@@ -10,6 +10,7 @@ import LessonObjectiveRating from '@/app/server/models/LessonObjectiveRating';
 import AcademicObjectiveRating from '@/app/server/models/AcademicObjectiveRating';
 import PupilEffort from '@/app/server/models/PupilEffort';
 import TeacherRating from '@/app/server/models/TeacherRating';
+import SchoolMember from '@/app/server/models/SchoolMember';
 import jwt from 'jsonwebtoken';
 import { legacy, type LegacyUserFields } from "@/types/legacy";
 
@@ -162,6 +163,16 @@ export async function GET(req: NextRequest) {
       }
     };
 
+    // Schools this user belongs to: their primary school plus any active
+    // memberships. Non-admin context is limited to these schools.
+    const getUserSchoolIds = async () => {
+      const ids = new Set<string>();
+      if (user.schoolId) ids.add(user.schoolId.toString());
+      const memberships = await SchoolMember.find({ user: user._id, status: 'active' }).select('school').lean();
+      for (const m of memberships) if (m.school) ids.add(m.school.toString());
+      return [...ids];
+    };
+
     // Fetch data based on role
     if (user.role === 'admin') {
       // Admin can see EVERYTHING with performance data
@@ -208,8 +219,9 @@ export async function GET(req: NextRequest) {
       contextData.summary = `Admin Dashboard - ${allStudents.length} students, ${usersByRole.teachers.length} teachers, ${usersByRole.parents.length} parents`;
     } 
     else if (user.role === 'teacher') {
-      // Teachers can see all students with their performance
-      const allStudents = await Student.find({})
+      // Teachers see students of their own school(s) only
+      const schoolIds = await getUserSchoolIds();
+      const allStudents = await Student.find({ school: { $in: schoolIds } })
         .select('firstName lastName class school isActive')
         .limit(100)
         .lean();
@@ -223,12 +235,15 @@ export async function GET(req: NextRequest) {
       );
 
       contextData.students = studentsWithPerformance;
-      contextData.school = legacy<LegacyUserFields>(user).school || {};
+      contextData.school = schoolIds.length
+        ? (await School.findById(schoolIds[0]).select('name location').lean()) || {}
+        : {};
       contextData.summary = `${allStudents.length} students with performance data available`;
     } 
     else if (user.role === 'school-leader') {
-      // School leaders can see all students with performance
-      const allStudents = await Student.find({})
+      // School leaders see their own school's students, staff and parents only
+      const schoolIds = await getUserSchoolIds();
+      const allStudents = await Student.find({ school: { $in: schoolIds } })
         .select('firstName lastName class school isActive')
         .limit(150)
         .lean();
@@ -243,18 +258,35 @@ export async function GET(req: NextRequest) {
 
       contextData.students = studentsWithPerformance;
 
-      // BUG (data exposure): User has no `school` field, so this filter is
-      // `{ school: undefined }`, which the driver sends as `{ school: null }` and
-      // matches EVERY user on the platform, not just this school's staff/parents.
-      const schoolUsers = await User.find({ school: legacy<LegacyUserFields>(user).school }).select('_id name role email').lean();
+      // Staff and parents come from this school's membership records.
+      const members = await SchoolMember.find({
+        school: { $in: schoolIds },
+        role: { $in: ['teacher', 'parent'] },
+        status: 'active',
+      })
+        .populate<{ user: { _id: unknown; firstName?: string; lastName?: string; role?: string; email?: string } | null }>(
+          'user',
+          '_id firstName lastName role email'
+        )
+        .lean();
+      const schoolUsers = members
+        .filter((m) => m.user)
+        .map((m) => ({
+          _id: m.user._id,
+          name: `${m.user.firstName || ''} ${m.user.lastName || ''}`.trim(),
+          role: m.role,
+          email: m.user.email,
+        }));
       contextData.teachers = schoolUsers.filter(u => u.role === 'teacher');
       contextData.parents = schoolUsers.filter(u => u.role === 'parent');
-      contextData.school = { name: legacy<LegacyUserFields>(user).school };
-      contextData.summary = `${legacy<LegacyUserFields>(user).school} - ${allStudents.length} students with performance tracking`;
+
+      const school = schoolIds.length ? await School.findById(schoolIds[0]).select('name location').lean() : null;
+      contextData.school = school || {};
+      contextData.summary = `${school?.name || 'Your school'} - ${allStudents.length} students with performance tracking`;
     } 
     else if (user.role === 'parent') {
-      // Parents can see all students but AI will filter to their child
-      const allStudents = await Student.find({})
+      // Parents see their own children only
+      const allStudents = await Student.find({ parent: user._id })
         .select('firstName lastName class school email enrollmentNo')
         .limit(100)
         .lean();
