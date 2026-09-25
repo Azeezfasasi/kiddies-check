@@ -1,0 +1,145 @@
+import type { NextRequest } from "next/server";
+import Subject from "@/app/server/models/Subject";
+import Class from "@/app/server/models/Class";
+import User from "@/app/server/models/User";
+import { connectDB } from "@/utils/db";
+import { Types } from "mongoose";
+import { isAcademicAdmin } from "@/utils/roles";
+
+export async function POST(req: NextRequest) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const { schoolId, name, code, description, classes, teacher, creditHours, curriculum, assessmentType } =
+      await req.json();
+
+    if (!userId || !schoolId) {
+      return Response.json({ error: "User and school information required" }, { status: 401 });
+    }
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
+    // Verify user has access to this school
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+    
+    // Allow admin + learning-specialist full access to any school
+    // Teachers are allowed only if they match the requested school (handled by hasAccess below)
+    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
+      const hasSchoolAccess = 
+        (user?.schoolId && user.schoolId.toString() === schoolId) || 
+        (user?.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
+      
+      if (!hasSchoolAccess) {
+        return Response.json({ error: "Access denied" }, { status: 403 });
+      }
+    }
+
+    // Check if subject already exists
+    const existing = await Subject.findOne({ school: schoolId, name });
+    if (existing) {
+      return Response.json({ error: "Subject with this name already exists" }, { status: 400 });
+    }
+
+    const newSubject = await Subject.create({
+      school: schoolId,
+      name,
+      code: code || "",
+      description,
+      classes: classes || [],
+      teacher: teacher || userId,
+      creditHours: creditHours || 0,
+      curriculum: curriculum || "",
+      assessmentType: assessmentType || "formative",
+      createdBy: userId,
+    });
+
+    await newSubject.populate("teacher", "firstName lastName email");
+
+    return Response.json(
+      { message: "Subject created successfully", subject: newSubject },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("[Subjects Create Error]", error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const userId = req.headers.get("x-user-id");
+    const schoolId = req.nextUrl.searchParams.get("schoolId");
+    const classId = req.nextUrl.searchParams.get("classId");
+
+    if (!userId || !schoolId) {
+      return Response.json({ error: "User and school information required" }, { status: 401 });
+    }
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(schoolId)) {
+      return Response.json({ error: "Invalid ID format" }, { status: 400 });
+    }
+
+    // Connect to database FIRST, before any queries
+    await connectDB();
+
+    // Verify user has access to this school
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+    
+    // Allow admin and learning-specialist full access to any school
+    if (!isAcademicAdmin(user.role)) {
+      const hasAccess = 
+        (user.schoolId && user.schoolId.toString() === schoolId) || 
+        (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));
+      
+      if (!hasAccess) {
+        return Response.json({ error: "Access denied" }, { status: 403 });
+      }
+    }
+
+    await connectDB();
+
+    const query: Record<string, unknown> = { school: schoolId };
+    const isActiveParam = req.nextUrl.searchParams.get("isActive");
+    if (isActiveParam !== null) {
+      query.isActive = isActiveParam === "true";
+    } else {
+      query.isActive = true;
+    }
+
+    const subjects = await Subject.find(query)
+      .populate("teacher", "firstName lastName email")
+      .sort({ name: 1 });
+
+    // Filter by class if provided. Class<->Subject is tracked on both sides of the
+    // relationship (Subject.classes and Class.subjects) depending on which screen assigned
+    // it, and the two aren't kept in sync — so a subject only linked via the class's own
+    // "subjects" list (the class edit form) would otherwise be missed here.
+    let filtered = subjects;
+    if (classId) {
+      const classDoc = await Class.findById(classId).select("subjects");
+      const classSubjectIds = new Set((classDoc?.subjects || []).map((subjectId) => subjectId.toString()));
+      filtered = subjects.filter(
+        (s) => s.classes.some((c) => c.toString() === classId) || classSubjectIds.has(s._id.toString())
+      );
+    }
+
+    return Response.json({ subjects: filtered }, { status: 200 });
+  } catch (error) {
+    console.error("[Subjects Get Error]", error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}

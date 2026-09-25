@@ -1,0 +1,1589 @@
+import { NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import User from "../models/User";
+import School from "../models/School";
+import Student from "../models/Student";
+import SchoolMember from "../models/SchoolMember";
+import LoginLog from "../models/LoginLog";
+import { connectDB } from "../db/connect";
+import nodemailer from "nodemailer";
+import { sendOtpEmail } from "../utils/emailService";
+import emailTemplates from "../templates/emailTemplates";
+import { subscribeToNewsletter } from "./newsletterController";
+import { ALL_ROLES, can, hasAllSchoolAccess, isPlatformRole } from "@/utils/roles";
+import type { Loose } from "@/types/loose";
+
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// Brevo API endpoint and key
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || "info@kiddiescheck.org";
+const SENDER_NAME = process.env.BREVO_SENDER_NAME || "Kiddies Check Team";
+
+// Helper function to send emails via Brevo
+const sendEmailViaBrevo = async (toEmail, subject, htmlContent) => {
+  if (!BREVO_API_KEY) {
+    console.error("BREVO_API_KEY not configured");
+    throw new Error("Email service not configured");
+  }
+
+  const payload = {
+    sender: {
+      name: SENDER_NAME,
+      email: SENDER_EMAIL,
+    },
+    to: [
+      {
+        email: toEmail,
+      },
+    ],
+    subject: subject,
+    htmlContent: htmlContent,
+  };
+
+  try {
+    const response = await fetch(BREVO_API_URL, {
+      method: "POST",
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Brevo API error:", errorData);
+      throw new Error(`Brevo API error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error sending email via Brevo:", error.message);
+    throw error;
+  }
+};
+
+// Generate JWT Token
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
+
+// Generate a strong random password (used when an admin resets a
+// password without supplying one themselves)
+const generateSecurePassword = (length = 12) => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%";
+  const bytes = crypto.randomBytes(length);
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+};
+
+// 1. REGISTER - Create new user account
+export const register = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { firstName, lastName, email, phone, role, password, confirmPassword, school, location, model, numberOfTeachers, numberOfStudents, schoolLogo, schoolType, schoolId, children } = body;
+
+    // Basic validation - required for all users
+    if (!firstName || !lastName || !email || !phone || !role || !password) {
+      return NextResponse.json(
+        { success: false, message: "First name, last name, email, phone, role, and password are required" },
+        { status: 400 }
+      );
+    }
+
+    // School field validation - only required for school-leaders
+    if (role === 'school-leader') {
+      if (!school || !location || !model || !numberOfTeachers || !numberOfStudents || !schoolLogo) {
+        return NextResponse.json(
+          { success: false, message: "For school leaders, school name, location, model, number of teachers, number of students, and school logo are required" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "Passwords do not match" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, message: "Email already registered" },
+        { status: 409 }
+      );
+    }
+
+    let schoolRecord = null;
+
+    // Create or find School only for school-leaders
+    if (role === 'school-leader') {
+      // Check for existing school by name or email to avoid duplicates
+      schoolRecord = await School.findOne({ 
+        $or: [
+          { name: school },
+          { email: email }
+        ] 
+      });
+      if (!schoolRecord) {
+        schoolRecord = new School({
+          name: school,
+          email: email, // Use school email, can be updated later
+          location: location,
+          model: model,
+          schoolType: schoolType,
+          numberOfTeachers: parseInt(numberOfTeachers) || 0,
+          numberOfStudents: parseInt(numberOfStudents) || 0,
+          logo: schoolLogo,
+          approvalStatus: 'pending', // Requires admin approval before showing in registration
+          isActive: true,
+        });
+        await schoolRecord.save();
+      } else {
+        // Update existing school with new info if provided
+        schoolRecord.numberOfTeachers = parseInt(numberOfTeachers) || schoolRecord.numberOfTeachers;
+        schoolRecord.numberOfStudents = parseInt(numberOfStudents) || schoolRecord.numberOfStudents;
+        if (schoolLogo) schoolRecord.logo = schoolLogo;
+        if (schoolType) schoolRecord.schoolType = schoolType;
+        await schoolRecord.save();
+      }
+    }
+
+    // Create user
+    const userData: Loose = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      role,
+      password,
+      isEmailVerified: false,
+    };
+
+    // Only add school-related fields for school-leaders
+    if (role === 'school-leader' && schoolRecord) {
+      userData.schoolId = schoolRecord._id;  // Reference to School model
+      userData.schoolName = school;  // Keep for backward compatibility
+      userData.location = location;
+      userData.model = model;
+      userData.numberOfTeachers = parseInt(numberOfTeachers);
+      userData.numberOfStudents = parseInt(numberOfStudents);
+      userData.schoolLogo = schoolLogo;
+      userData.schoolType = schoolType;
+    } else if (role === 'parent' || role === 'teacher') {
+      // For teachers and parents, store schoolType and schoolId
+      if (schoolType) {
+        userData.schoolType = schoolType;
+      }
+      if (schoolId) {
+        userData.schoolId = schoolId;
+      }
+    } else if (schoolType) {
+      // For other roles, also store schoolType if provided
+      userData.schoolType = schoolType;
+    }
+
+    const user = new User(userData);
+    await user.save();
+
+    // Auto-subscribe every new user to the newsletter
+    try {
+      await subscribeToNewsletter({ email: user.email, firstName: user.firstName, lastName: user.lastName });
+    } catch (newsletterError) {
+      console.error("Error auto-subscribing user to newsletter:", newsletterError);
+      // Don't fail registration if newsletter subscription fails
+    }
+
+    // Set as school principal if role is school-leader
+    if (role === 'school-leader' && schoolRecord) {
+      schoolRecord.principal = user._id;
+      await schoolRecord.save();
+    }
+
+    // Create SchoolMember record for teachers and parents who register with a schoolId
+    if ((role === 'teacher' || role === 'parent') && schoolId) {
+      try {
+        const existingMember = await SchoolMember.findOne({
+          school: schoolId,
+          user: user._id,
+        });
+
+        if (!existingMember) {
+          const schoolMember = new SchoolMember({
+            school: schoolId,
+            user: user._id,
+            role: role,
+            status: 'active', // Auto-activate since they registered themselves
+            permissions: [],
+          });
+          await schoolMember.save();
+          console.log(`Created SchoolMember for ${role}:`, user._id, "in school:", schoolId);
+        }
+      } catch (memberError) {
+        console.error("Error creating SchoolMember:", memberError);
+        // Don't fail registration if SchoolMember creation fails
+      }
+    }
+
+    // Generate and save OTP
+    const otp = user.generateRegistrationOTP();
+    await user.save({ validateBeforeSave: false });
+
+    // Send OTP email
+    try {
+      const schoolName = role === 'school-leader' ? school : 'Kiddies Check';
+      await sendOtpEmail(email, firstName, otp, schoolName);
+    } catch (emailError) {
+      console.error("Error sending OTP email:", emailError.message);
+      // Continue with registration even if email fails
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Registration successful. OTP has been sent to your email. Please verify it to continue.",
+        email,
+        schoolId: role === 'school-leader' ? schoolRecord._id : null,
+        requiresOtpVerification: true,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Register error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Registration failed",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 2. LOGIN - Authenticate user
+export const login = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { email, password } = body;
+
+    // Validation
+    if (!email || !password) {
+      return NextResponse.json(
+        { success: false, message: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    // Find user and include password
+    const user = await User.findByEmail(email).select("+password").populate("schoolId");
+
+    if (!user) {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          email: email,
+          status: 'failed',
+          failureReason: 'User not found',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
+      return NextResponse.json(
+        { success: false, message: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // Check if account is locked
+    if (user.isAccountLocked()) {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: (user.schoolId as unknown as { name?: string } | null)?.name, // populated
+          status: 'failed',
+          failureReason: 'Account locked due to multiple failed login attempts',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Account locked. Try again later.",
+        },
+        { status: 423 }
+      );
+    }
+
+    // Check if account is active
+    if (!user.isActive || user.accountStatus !== "active") {
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: (user.schoolId as unknown as { name?: string } | null)?.name, // populated
+          status: 'failed',
+          failureReason: 'Account is disabled or suspended',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Account is disabled or suspended",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check password
+    const isPasswordMatch = await user.matchPassword(password);
+
+    if (!isPasswordMatch) {
+      await user.incLoginAttempts();
+      
+      // Log failed login attempt
+      try {
+        await LoginLog.create({
+          user: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userRole: user.role,
+          school: user.schoolId,
+          schoolName: (user.schoolId as unknown as { name?: string } | null)?.name, // populated
+          status: 'failed',
+          failureReason: 'Invalid password',
+        });
+      } catch (logError) {
+        console.warn('[Login Log Error]', logError);
+      }
+      
+      return NextResponse.json(
+        { success: false, message: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // Reset login attempts on successful login
+    if (user.loginAttempts > 0) {
+      await user.resetLoginAttempts();
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false }); // avoid full validation on partial login update (phone may be empty for legacy users)
+
+    // Generate token
+    const token = generateToken(user._id);
+
+    // Get schoolId based on user role
+    let schoolId = user.schoolId?._id || user.schoolId;
+    
+    // For parents, get schoolId from their assigned students
+    if (user.role === 'parent' && !schoolId) {
+      const assignedStudent = await Student.findOne({ parent: user._id, isActive: true });
+      if (assignedStudent) {
+        schoolId = assignedStudent.school;
+      }
+    }
+    
+    // For teachers, first check User.schoolId, then try SchoolMember
+    if (user.role === 'teacher' && !schoolId) {
+      console.log("Fetching teacher school from SchoolMember for user:", user._id);
+      const schoolMember = await SchoolMember.findOne({
+        user: user._id,
+        role: 'teacher',
+        status: 'active'
+      });
+      console.log("SchoolMember result:", schoolMember);
+      if (schoolMember) {
+        schoolId = schoolMember.school;
+        console.log("Teacher schoolId set to:", schoolId);
+      }
+    }
+    
+    // For learning-specialist, get schoolId from SchoolMember
+    if (user.role === 'learning-specialist' && !schoolId) {
+      const schoolMember = await SchoolMember.findOne({
+        user: user._id,
+        role: 'learning-specialist',
+        status: 'active'
+      });
+      if (schoolMember) {
+        schoolId = schoolMember.school;
+      }
+    }
+
+    // Platform support roles aren't tied to one school. Start them on the
+    // first school so school-scoped pages work; they switch from the header.
+    if (isPlatformRole(user.role) && hasAllSchoolAccess(user.role) && !schoolId) {
+      const firstSchool = await School.findOne({ isActive: true }).sort({ name: 1 }).select("_id");
+      if (firstSchool) schoolId = firstSchool._id;
+    }
+
+    // If teacher/parent has schoolId but no SchoolMember, create one (for backward compatibility)
+    if ((user.role === 'teacher' || user.role === 'parent') && schoolId) {
+      try {
+        const existingMember = await SchoolMember.findOne({
+          school: schoolId,
+          user: user._id,
+        });
+        if (!existingMember) {
+          const schoolMember = new SchoolMember({
+            school: schoolId,
+            user: user._id,
+            role: user.role,
+            status: 'active',
+            permissions: [],
+          });
+          await schoolMember.save();
+          console.log(`Auto-created SchoolMember for ${user.role} on login:`, user._id);
+        }
+      } catch (memberError) {
+        console.error("Error creating SchoolMember on login:", memberError);
+        // Don't fail login if this fails
+      }
+    }
+
+    // Return user info with approval status
+    const userProfile = user.getPublicProfile();
+
+    // Log successful login
+    try {
+      await LoginLog.create({
+        user: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userRole: user.role,
+        school: user.schoolId?._id || user.schoolId,
+        schoolName: (user.schoolId as unknown as { name?: string } | null)?.name, // populated
+        status: 'success',
+      });
+    } catch (logError) {
+      console.warn('[Login Log Error]', logError);
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Login successful",
+        token,
+        userId: user._id,
+        user: {
+          ...userProfile,
+          _id: user._id,
+          schoolId: schoolId,
+          schoolName: (user.schoolId as unknown as { name?: string } | null)?.name, // populated
+          role: user.role,
+        },
+        schoolId: schoolId,
+        approvalStatus: user.approvalStatus,
+        canAccessDashboard: user.approvalStatus === 'approved',
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Login failed",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// ADMIN: CREATE USER WITH ROLE ASSIGNMENT
+export const createUserByAdmin = async (req) => {
+  try {
+    await connectDB();
+
+    // Only allow admins/super-admins and user managers (IT Support)
+    if (!req.user || !(["admin", "super-admin"].includes(req.user.role) || can(req.user.role, "users", "edit"))) {
+      return NextResponse.json(
+        { success: false, message: "Forbidden: Admins only" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+    const { firstName, lastName, email, password, confirmPassword, role } = body;
+
+    // Validation
+    if (!firstName || !lastName || !email || !password || !role) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 400 }
+      );
+    }
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "Passwords do not match" },
+        { status: 400 }
+      );
+    }
+    if (!ALL_ROLES.includes(role)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid role" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, message: "Email already registered" },
+        { status: 409 }
+      );
+    }
+
+    // Create user with role
+    const user = new User({
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      isEmailVerified: true, // Admin-created users are auto-verified
+      createdBy: req.user.id,
+    });
+    await user.save();
+
+    // Auto-subscribe every new user to the newsletter
+    try {
+      await subscribeToNewsletter({ email: user.email, firstName: user.firstName, lastName: user.lastName });
+    } catch (newsletterError) {
+      console.error("Error auto-subscribing user to newsletter:", newsletterError);
+      // Don't fail user creation if newsletter subscription fails
+    }
+
+    // Generate token for user (optional, not returned to admin)
+    // const token = generateToken(user._id);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User created successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Admin create user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to create user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 3. VERIFY EMAIL - Confirm email address
+export const verifyEmail = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { token } = body;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: "Verification token is required" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // Find user with token
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Invalid or expired verification token" },
+        { status: 400 }
+      );
+    }
+
+    // Mark email as verified
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Email verified successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Email verification error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Email verification failed",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 4. FORGOT PASSWORD - Send password reset email
+export const forgotPassword = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { email } = body;
+
+    if (!email) {
+      return NextResponse.json(
+        { success: false, message: "Email is required" },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findByEmail(email);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Generate reset token
+    const resetToken = user.getPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    // Send reset email via Brevo
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .button { display: inline-block; background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-top: 15px; font-weight: bold; }
+            .footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+            .warning { background: #fef3c7; padding: 10px 15px; border-radius: 5px; margin-top: 15px; color: #92400e; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>Reset Your Password</h2>
+            </div>
+            <div class="content">
+              <p>Hello ${user.firstName},</p>
+              <p>We received a request to reset your password for your Kiddies Check account.</p>
+              <p>Click the button below to reset your password:</p>
+              <a href="${resetLink}" class="button">Reset Password</a>
+              <div class="warning">
+                <strong>This link expires in 1 hour</strong><br>
+                If you didn't request this password reset, please ignore this email or contact support immediately.
+              </div>
+              <p>Or copy and paste this link in your browser:<br><small>${resetLink}</small></p>
+              <hr>
+              <p><small>Best regards,<br>Kiddies Check Team</small></p>
+            </div>
+            <div class="footer">
+              <p>© 2026 Kiddies Check. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      await sendEmailViaBrevo(email, "Password Reset - Kiddies Check", htmlContent);
+      console.log(`Password reset email sent to ${email}`);
+    } catch (mailError) {
+      console.error("Failed to send password reset email:", mailError.message);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Failed to send reset email. Please try again later.",
+          error: mailError.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Password reset email sent. Check your inbox.",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to process password reset request",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 5. RESET PASSWORD - Update password with reset token
+export const resetPassword = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { token, password, confirmPassword } = body;
+
+    if (!token || !password || !confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    if (password !== confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "Passwords do not match" },
+        { status: 400 }
+      );
+    }
+
+    // Hash the token
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    // Find user with token
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Invalid or expired reset token" },
+        { status: 400 }
+      );
+    }
+
+    // Update password
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    // Generate new token
+    const newToken = generateToken(user._id);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Password reset successful",
+        token: newToken,
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Password reset failed",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 6. UPDATE PASSWORD - Change password (authenticated user)
+export const updatePassword = async (req) => {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+    const { currentPassword, newPassword, confirmPassword } = body;
+    const userId = req.user?.id;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    if (newPassword !== confirmPassword) {
+      return NextResponse.json(
+        { success: false, message: "New passwords do not match" },
+        { status: 400 }
+      );
+    }
+
+    // Find user with password
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Verify current password
+    const isPasswordMatch = await user.matchPassword(currentPassword);
+
+    if (!isPasswordMatch) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Current password is incorrect",
+        },
+        { status: 401 }
+      );
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Password updated successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Update password error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update password",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 7. GET USER PROFILE - Fetch authenticated user data
+export const getUserProfile = async (req) => {
+  try {
+    await connectDB();
+
+    const userId = req.user?.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get profile error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch profile",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 8. UPDATE USER PROFILE - Update own user details
+export const updateUserProfile = async (req) => {
+  try {
+    await connectDB();
+
+    const userId = req.user?.id;
+    const body = await req.json();
+    const { 
+      firstName, 
+      lastName, 
+      phone, 
+      company, 
+      department, 
+      position, 
+      avatar,
+      school,
+      location,
+      model,
+      numberOfTeachers,
+      numberOfStudents,
+      schoolLogo
+    } = body;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Update fields
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (phone) user.phone = phone;
+    if (company) user.company = company;
+    if (department) user.department = department;
+    if (position) user.position = position;
+    if (avatar) user.avatar = avatar;
+    
+    // Update school-related fields (for school-leaders)
+    if (school) user.schoolName = school;
+    if (location) user.location = location;
+    if (model) user.model = model;
+    if (numberOfTeachers !== undefined && numberOfTeachers !== '') user.numberOfTeachers = numberOfTeachers;
+    if (numberOfStudents !== undefined && numberOfStudents !== '') user.numberOfStudents = numberOfStudents;
+    if (schoolLogo) user.schoolLogo = schoolLogo;
+
+    user.updatedAt = new Date();
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Profile updated successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Update profile error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update profile",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 9. ADMIN: GET ALL USERS - List all users
+export const getAllUsers = async (req) => {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(req.url);
+    const role = searchParams.get("role");
+    const isActive = searchParams.get("isActive");
+    const search = searchParams.get("search");
+    const schoolId = searchParams.get("schoolId");
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+
+    const filter: Loose = { accountStatus: { $ne: "deleted" } }; // Exclude deleted users
+    if (schoolId) {
+      const schoolMembers = await SchoolMember.find({ school: schoolId, status: "active" }).select("user");
+      filter.$or = [
+        { schoolId },
+        { _id: { $in: schoolMembers.map((member) => member.user) } },
+      ];
+    }
+    if (role) filter.role = role;
+    if (isActive !== null) filter.isActive = isActive === "true";
+    if (search) {
+      const regex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      const searchFilter = [{ firstName: regex }, { lastName: regex }, { email: regex }];
+      filter.$and = [...(filter.$and || []), { $or: searchFilter }];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const users = await User.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const total = await User.countDocuments(filter);
+
+    return NextResponse.json(
+      {
+        success: true,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        users: users.map((u) => u.getPublicProfile()),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get all users error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch users",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 10. ADMIN: GET USER BY ID - Get specific user details
+export const getUserById = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 11. ADMIN: UPDATE USER BY ID - Admin edit user details
+export const updateUserById = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+    const body = await req.json();
+    const updates = { ...body };
+
+    // Prevent updating sensitive fields through this endpoint
+    delete updates.password;
+    delete updates.email;
+
+    const user = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User updated successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Update user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 12. ADMIN: CHANGE USER ROLE - Update user role and permissions
+export const changeUserRole = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+    const body = await req.json();
+    const { role, permissions } = body;
+
+    if (!role || !ALL_ROLES.includes(role)) {
+      return NextResponse.json(
+        { success: false, message: `Invalid role. Must be one of: ${ALL_ROLES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    user.role = role;
+    if (permissions && Array.isArray(permissions)) {
+      user.permissions = permissions;
+    }
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User role updated successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Change role error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to change role",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 13. ADMIN: DISABLE/ENABLE USER - Toggle user active status
+export const toggleUserStatus = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+    let isActive;
+
+    // Try to parse body for explicit isActive, otherwise toggle
+    try {
+      const body = await req.json();
+      isActive = body.isActive;
+    } catch {
+      isActive = undefined;
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // If isActive is provided and is boolean, use it; otherwise toggle
+    if (typeof isActive === "boolean") {
+      user.isActive = isActive;
+    } else {
+      user.isActive = !user.isActive;
+    }
+
+    user.accountStatus = user.isActive ? "active" : "suspended";
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: `User ${user.isActive ? "enabled" : "disabled"} successfully`,
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Toggle status error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to toggle user status",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 14. ADMIN: RESET USER PASSWORD - Admin reset password for user
+export const adminResetPassword = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+    const body = await req.json();
+    const { newPassword: providedPassword } = body || {};
+
+    if (providedPassword && providedPassword.length < 6) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Password must be at least 6 characters",
+        },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Auto-generate a strong password when the admin doesn't supply one
+    const newPassword = providedPassword || generateSecurePassword();
+
+    user.password = newPassword;
+    user.updatedBy = adminId;
+    user.notes = user.notes ? user.notes + "\n" : "";
+    user.notes += `Password reset by admin on ${new Date().toISOString()}`;
+    await user.save();
+
+    // Send notification email via Brevo (the SMTP transporter above isn't configured)
+    let emailSent = false;
+    let emailError = null;
+    try {
+      await sendEmailViaBrevo(
+        user.email,
+        "Your Kiddies Check Password Has Been Changed",
+        emailTemplates.adminPasswordReset(user.firstName, newPassword)
+      );
+      emailSent = true;
+    } catch (mailError) {
+      console.error("Password reset email failed:", mailError.message);
+      emailError = mailError.message;
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: emailSent
+          ? "Password updated and emailed to the user"
+          : "Password updated, but the notification email failed to send",
+        temporaryPassword: newPassword,
+        emailSent,
+        emailError: emailSent ? undefined : emailError,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Admin reset password error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to reset password",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 15. DELETE USER - Admin delete user account
+export const deleteUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete - mark as deleted
+    user.accountStatus = "deleted";
+    user.isActive = false;
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User deleted successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to delete user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 16. GET DELETED USERS - Fetch all deleted users (admin only)
+export const getDeletedUsers = async (req) => {
+  try {
+    await connectDB();
+
+    const { searchParams } = new URL(req.url);
+    const role = searchParams.get("role");
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const search = searchParams.get("search");
+
+    const filter: Loose = { accountStatus: "deleted" }; // Only deleted users
+    if (role) filter.role = role;
+    
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const users = await User.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ updatedAt: -1 });
+
+    const total = await User.countDocuments(filter);
+
+    return NextResponse.json(
+      {
+        success: true,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        users: users.map((u) => u.getPublicProfile()),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Get deleted users error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to fetch deleted users",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 17. REACTIVATE USER - Re-activate a deleted user
+export const reactivateUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const adminId = req.user?.id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.accountStatus !== "deleted") {
+      return NextResponse.json(
+        { success: false, message: "User is not deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Re-activate the user
+    user.accountStatus = "active";
+    user.isActive = true;
+    user.updatedBy = adminId;
+    await user.save();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User re-activated successfully",
+        user: user.getPublicProfile(),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Reactivate user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to re-activate user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 18. PERMANENTLY DELETE USER - Remove user from database completely
+export const permanentlyDeleteUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.accountStatus !== "deleted") {
+      return NextResponse.json(
+        { success: false, message: "Only deleted users can be permanently deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Permanently delete the user from database
+    await User.findByIdAndDelete(userId);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "User permanently deleted from database",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Permanently delete user error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to permanently delete user",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
+
+// 19. LOGOUT - Clear session/logout
+export const logout = async (req) => {
+  try {
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Logout successful",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Logout error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Logout failed",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+};
