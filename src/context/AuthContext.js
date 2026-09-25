@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("schoolId");
     localStorage.removeItem("userId");
+    localStorage.removeItem("userRole");
   }, []);
 
   // Load token from localStorage on mount and fetch profile

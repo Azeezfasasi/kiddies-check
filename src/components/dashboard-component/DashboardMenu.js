@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText  } from 'lucide-react';
+import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText, Wallet  } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
 
 function Icon({ name }) {
@@ -76,6 +76,10 @@ function Icon({ name }) {
       return (
         <Calendar className="w-5 h-5" />
       )
+    case 'billing':
+      return (
+        <Wallet className="w-5 h-5" />
+      )
     case 'Report Cards':
       return (
         <BookOpenText className="w-5 h-5" />
@@ -113,6 +117,17 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
     { href: '/dashboard/manage-schools', label: 'Manage Schools', icon: 'school', roles: ['admin'] },
     { href: '/dashboard/academic-calendar', label: 'Academic Calendar', icon: 'calendar', roles: ['admin'] },
     { href: '/dashboard/grade-promotion', label: 'Grade Promotion', icon: 'graduation', roles: ['admin', 'learning-specialist', 'school-leader'] },
+    {
+      href: '/dashboard/billing-menu',
+      label: 'Billing',
+      icon: 'billing',
+      roles: ['admin', 'school-leader', 'learning-specialist'],
+      children: [
+        { href: '/dashboard/billing', label: 'Student Bills', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/billing/fee-setup', label: 'Fee Setup', roles: ['admin', 'school-leader', 'learning-specialist'] },
+        { href: '/dashboard/billing/payments', label: 'Payment History', roles: ['admin', 'school-leader', 'learning-specialist'] },
+      ]
+    },
     {
       href: '/dashboard/schools',
       label: 'School Manager',
