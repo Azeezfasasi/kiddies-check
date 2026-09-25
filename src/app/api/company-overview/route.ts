@@ -7,6 +7,7 @@ import {
   updateMission,
   updateCoreValues,
 } from '@/app/server/controllers/companyOverviewController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 export async function GET() {
   const result = await getCompanyOverview();
@@ -14,6 +15,8 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const denied = await requireAccess(request, "site-content");
+  if (denied) return denied;
   try {
     const body = await request.json();
 

@@ -6,6 +6,7 @@ import {
   deleteService,
   reorderServices,
 } from "../../server/controllers/servicesController";
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 // GET all services
 export async function GET() {
@@ -22,6 +23,8 @@ export async function GET() {
 
 // POST new service
 export async function POST(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const serviceData = await req.json();
 
@@ -44,6 +47,8 @@ export async function POST(req: NextRequest) {
 
 // PUT for updating or reordering
 export async function PUT(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
 
@@ -73,6 +78,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a service
 export async function DELETE(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const serviceId = searchParams.get('id');

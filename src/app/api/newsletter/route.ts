@@ -22,17 +22,12 @@ import {
   syncUsersToNewsletter,
   sendTestEmail,
 } from '@/app/server/controllers/newsletterController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
-// Middleware to check admin role
-const requireAdmin = (req) => {
-  // This should be implemented with your auth system
-  // For now, we'll check for admin role in session/JWT
-  const adminRole = req.headers.get('x-user-role');
-  if (adminRole !== 'admin') {
-    return false;
-  }
-  return true;
-};
+// Newsletter management: a signed-in admin / learning specialist, or a
+// platform role granted the newsletter feature. (Previously this trusted an
+// x-user-role header sent by the browser.)
+const requireAdmin = async (req) => (await requireAccess(req, "newsletter")) === null;
 
 // Get user ID from request (adjust based on your auth system)
 const getUserId = (req) => {
@@ -51,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=subscribers
     if (action === 'subscribers') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -79,6 +74,12 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=subscriber&email=user@example.com
     if (action === 'subscriber') {
+      if (!(await requireAdmin(request))) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
       const email = url.searchParams.get('email');
 
       if (!email) {
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=campaigns
     if (action === 'campaigns') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=statistics
     if (action === 'statistics') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=templates
     if (action === 'templates') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=create-campaign
     if (action === 'create-campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -207,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=send-campaign
     if (action === 'send-campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=send-test
     if (action === 'send-test') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -252,7 +253,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=schedule-campaign
     if (action === 'schedule-campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -275,7 +276,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=create-template
     if (action === 'create-template') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -289,7 +290,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=bulk-import
     if (action === 'bulk-import') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -311,7 +312,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=sync-users
     if (action === 'sync-users') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -324,7 +325,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=bulk-update
     if (action === 'bulk-update') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -346,7 +347,7 @@ export async function POST(request: NextRequest) {
 
     // POST /api/newsletter?action=bulk-delete
     if (action === 'bulk-delete') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -387,7 +388,7 @@ export async function PUT(request: NextRequest) {
 
     // PUT /api/newsletter?action=update-subscriber
     if (action === 'update-subscriber') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -409,7 +410,7 @@ export async function PUT(request: NextRequest) {
 
     // PUT /api/newsletter?action=edit-campaign
     if (action === 'edit-campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -451,7 +452,7 @@ export async function DELETE(request: NextRequest) {
 
     // DELETE /api/newsletter?action=delete-subscriber
     if (action === 'delete-subscriber') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -473,7 +474,7 @@ export async function DELETE(request: NextRequest) {
 
     // DELETE /api/newsletter?action=delete-campaign
     if (action === 'delete-campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }

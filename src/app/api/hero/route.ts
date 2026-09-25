@@ -8,6 +8,7 @@ import {
   getHeroContent, 
   updateHeroContent 
 } from "../../server/controllers/heroController";
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 // GET all slides
 export async function GET() {
@@ -24,6 +25,8 @@ export async function GET() {
 
 // POST new slide
 export async function POST(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const slideData = await req.json();
     
@@ -47,6 +50,8 @@ export async function POST(req: NextRequest) {
 
 // PUT for updating or reordering
 export async function PUT(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
     
@@ -76,6 +81,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE a slide
 export async function DELETE(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const slideId = searchParams.get('id');

@@ -1,6 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { installAuthFetch } from "@/lib/authFetch";
+
+// Send the signed-in user's token with same-origin /api/ requests, so the
+// server can check permissions (no-op during server rendering).
+installAuthFetch();
 
 /** The signed-in user as returned by /api/auth/profile, login and register. */
 export interface AuthUser {

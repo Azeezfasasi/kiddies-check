@@ -8,6 +8,7 @@ import {
   reorderReasons,
   updateCTAContent,
 } from "../../server/controllers/whyRayobController";
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 // GET all content
 export async function GET() {
@@ -26,6 +27,8 @@ export async function GET() {
 
 // POST new reason
 export async function POST(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
 
@@ -65,6 +68,8 @@ export async function POST(req: NextRequest) {
 
 // PUT for updating
 export async function PUT(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
 
@@ -92,6 +97,8 @@ export async function PUT(req: NextRequest) {
 
 // DELETE reason
 export async function DELETE(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
     const reasonId = body.reasonId;

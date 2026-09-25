@@ -8,6 +8,7 @@ import {
   deleteImage,
   addImagesToGallery,
 } from '@/app/server/controllers/galleryController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -49,6 +50,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAccess(req, "gallery");
+  if (denied) return denied;
   try {
     await connectDB();
 
@@ -103,6 +106,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAccess(req, "gallery");
+  if (denied) return denied;
   try {
     await connectDB();
 

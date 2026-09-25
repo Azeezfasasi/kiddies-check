@@ -7,6 +7,7 @@ import {
   updateSliderMessage,
 } from "../../server/controllers/sliderMessageController";
 import { authenticate } from "../../server/middleware/auth";
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 // GET /api/slider-message
 // Public: returns active messages
@@ -17,7 +18,9 @@ export async function GET(req: NextRequest) {
     const all = searchParams.get("all");
 
     if (all === "true") {
-      // Admin-only: check auth
+      // Includes inactive messages: content managers only
+      const denied = await requireAccess(req, "site-content");
+      if (denied) return denied;
       return authenticate(req, async (user) => {
         const messages = await getAllSliderMessages();
         return NextResponse.json({ success: true, messages });
@@ -39,6 +42,8 @@ export async function GET(req: NextRequest) {
 // POST /api/slider-message
 // Admin only - create new message
 export async function POST(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     return authenticate(req, async (user) => {
       const body = await req.json();
@@ -68,6 +73,8 @@ export async function POST(req: NextRequest) {
 // PUT /api/slider-message
 // Admin only - update a message or reorder
 export async function PUT(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     return authenticate(req, async (user) => {
       const body = await req.json();

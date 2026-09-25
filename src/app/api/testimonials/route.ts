@@ -6,6 +6,7 @@ import {
   deleteTestimonial,
   reorderTestimonials,
 } from '@/app/server/controllers/testimonialController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 export async function GET() {
   const result = await getTestimonials();
@@ -13,6 +14,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const denied = await requireAccess(request, "site-content");
+  if (denied) return denied;
   try {
     const body = await request.json();
     const result = await createTestimonial(body);
@@ -26,6 +29,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const denied = await requireAccess(request, "site-content");
+  if (denied) return denied;
   try {
     const body = await request.json();
 
@@ -52,6 +57,8 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await requireAccess(request, "site-content");
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const testimonialId = searchParams.get('id');

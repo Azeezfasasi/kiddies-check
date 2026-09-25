@@ -10,15 +10,12 @@ import {
   deleteCampaign,
   pauseCampaign,
 } from '@/app/server/controllers/newsletterController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
-// Middleware to check admin role
-const requireAdmin = (req) => {
-  const adminRole = req.headers.get('x-user-role');
-  if (adminRole !== 'admin') {
-    return false;
-  }
-  return true;
-};
+// Newsletter management: a signed-in admin / learning specialist, or a
+// platform role granted the newsletter feature. (Previously this trusted an
+// x-user-role header sent by the browser.)
+const requireAdmin = async (req) => (await requireAccess(req, "newsletter")) === null;
 
 const getUserId = (req) => {
   return req.headers.get('x-user-id') || 'anonymous';
@@ -33,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // GET /api/newsletter/[id]?type=campaign&action=analytics
     if (type === 'campaign' && action === 'analytics') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -46,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // GET /api/newsletter/[id]?type=campaign
     if (type === 'campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -87,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // PUT /api/newsletter/[id]?type=subscriber
     if (type === 'subscriber') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -100,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // PUT /api/newsletter/[id]?type=campaign
     if (type === 'campaign') {
-      if (!requireAdmin(request)) {
+      if (!(await requireAdmin(request))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -139,7 +136,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const url = new URL(request.url);
     const type = url.searchParams.get('type') || 'campaign';
 
-    if (!requireAdmin(request)) {
+    if (!(await requireAdmin(request))) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }

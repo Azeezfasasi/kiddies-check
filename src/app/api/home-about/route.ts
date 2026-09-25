@@ -6,6 +6,7 @@ import {
   updateParagraph,
   deleteParagraph,
 } from "../../server/controllers/homeAboutController";
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 // GET HomeAbout content
 export async function GET() {
@@ -22,6 +23,8 @@ export async function GET() {
 
 // PUT - Update main content or handle paragraph operations
 export async function PUT(req: NextRequest) {
+  const denied = await requireAccess(req, "site-content");
+  if (denied) return denied;
   try {
     const body = await req.json();
 

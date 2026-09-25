@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { v2 as cloudinary } from 'cloudinary';
+import { requireLogin } from "@/app/server/lib/requireAccess";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -49,6 +50,8 @@ async function uploadWithRetry(fileData, folderName, maxRetries = 3) {
  * Upload image to Cloudinary
  */
 export async function POST(req: NextRequest) {
+  const denied = await requireLogin(req);
+  if (denied) return denied;
   try {
     const { fileData, folderName = 'rayob/gallery' } = await req.json();
 
@@ -91,6 +94,8 @@ export async function POST(req: NextRequest) {
  * Delete image from Cloudinary
  */
 export async function DELETE(req: NextRequest) {
+  const denied = await requireLogin(req);
+  if (denied) return denied;
   try {
     const { publicId } = await req.json();
 

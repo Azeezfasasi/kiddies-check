@@ -4,6 +4,7 @@ import {
   createGallery,
   getAllGalleries,
 } from '@/app/server/controllers/galleryController';
+import { requireAccess } from "@/app/server/lib/requireAccess";
 
 export async function GET(req: NextRequest) {
   try {
@@ -61,6 +62,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireAccess(req, "gallery");
+  if (denied) return denied;
   try {
     await connectDB();
 
