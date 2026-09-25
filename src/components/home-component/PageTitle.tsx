@@ -28,13 +28,8 @@ export default function PageTitle({ title, subtitle, breadcrumbs, link, label }:
           <nav className="mt-4 text-sm text-gray-400">  
             {breadcrumbs.map((crumb, index) => (
               <span key={index}>
-                {crumb.link ? (
-                  <Link
-                    // BUG: next/link takes `href`, not `to` (a React Router prop), so this
-                    // breadcrumb has no destination. Kept as-is during the TS conversion.
-                    {...({ to: crumb.link } as unknown as { href: string })}
-                    className="hover:underline"
-                  >
+                {crumb.href || crumb.link ? (
+                  <Link href={crumb.href || crumb.link} className="hover:underline">
                     {crumb.label}
                   </Link>
                 ) : (
