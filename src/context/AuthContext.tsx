@@ -70,8 +70,8 @@ export interface AuthContextValue {
   isSchoolLeader: boolean;
   isTeacher: boolean;
   isParent: boolean;
-  /** Never provided by AuthProvider; always undefined. */
-  updateUserData?: (user: AuthUser) => void;
+  /** Merges updated profile fields into the signed-in user (e.g. after a profile save). */
+  updateUserData: (updates: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -267,6 +267,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // (logout is defined above with useCallback)
 
+  // Merge rather than replace, so fields the caller didn't send (role, _id)
+  // are kept.
+  const updateUserData = useCallback((updates: Partial<AuthUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+  }, []);
+
   const updateProfile = async (updates: ProfileUpdates): Promise<AuthResult> => {
     try {
       const response = await fetch("/api/auth/profile", {
@@ -311,6 +317,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     register,
     logout,
     updateProfile,
+    updateUserData,
     isAuthenticated: !!token,
     isAdmin: user?.role === "admin",
     isLearningSpecialist: user?.role === "learning-specialist",

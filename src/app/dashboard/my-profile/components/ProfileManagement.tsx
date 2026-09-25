@@ -274,8 +274,6 @@ export default function ProfileManagement() {
             setSchoolLogoPreview(updatedUser.schoolLogo);
           }
           
-          // BUG: AuthProvider never provides updateUserData, so this throws
-          // "updateUserData is not a function" after a successful save. Kept as-is.
           updateUserData(updatedUser);
         }
 
