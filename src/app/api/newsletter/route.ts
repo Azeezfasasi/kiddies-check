@@ -27,7 +27,7 @@ import { requireAccess } from "@/app/server/lib/requireAccess";
 // Newsletter management: a signed-in admin / learning specialist, or a
 // platform role granted the newsletter feature. (Previously this trusted an
 // x-user-role header sent by the browser.)
-const requireAdmin = async (req) => (await requireAccess(req, "newsletter")) === null;
+const requireAdmin = async (req, level: "view" | "edit" = "edit") => (await requireAccess(req, "newsletter", { level })) === null;
 
 // Get user ID from request (adjust based on your auth system)
 const getUserId = (req) => {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=subscribers
     if (action === 'subscribers') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=subscriber&email=user@example.com
     if (action === 'subscriber') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=campaigns
     if (action === 'campaigns') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=statistics
     if (action === 'statistics') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     // GET /api/newsletter?action=templates
     if (action === 'templates') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }

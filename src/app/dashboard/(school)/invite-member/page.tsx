@@ -201,7 +201,8 @@ export default function InviteMemberPage() {
         toast.success('Member removed');
         fetchMembers();
       } else {
-        toast.error('Failed to remove member');
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to remove member');
       }
     } catch (err) {
       toast.error('Failed to remove member');
@@ -224,7 +225,8 @@ export default function InviteMemberPage() {
         setEditingId(null);
         fetchMembers();
       } else {
-        toast.error('Failed to update member');
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update member');
       }
     } catch (err) {
       toast.error('Failed to update member');

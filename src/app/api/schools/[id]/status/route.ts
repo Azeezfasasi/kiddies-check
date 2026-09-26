@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Verify admin or learning specialist access
       if (user.role !== "admin" && user.role !== "learning-specialist" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
-          { error: "Access denied" },
+          { error: "Access denied: You are not authorized to access this" },
           { status: 403 }
         );
       }

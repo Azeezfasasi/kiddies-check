@@ -40,8 +40,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, exam.school.toString()))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+    if (!user || !(await canAccessSchool(user, exam.school.toString(), "view"))) {
+      return NextResponse.json({ success: false, message: "Access denied: You are not authorized to access this exam" }, { status: 403 });
     }
 
     const questions = await ExamQuestion.find({ exam: id }).sort({ order: 1 });
@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const user = await User.findById(userId);
     if (!user || !(await canAccessSchool(user, exam.school.toString()))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Access denied: You are not authorized to access this exam" }, { status: 403 });
     }
 
     if (exam.status !== "draft") {
@@ -132,7 +132,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const user = await User.findById(userId);
     if (!user || !(await canAccessSchool(user, exam.school.toString()))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Access denied: You are not authorized to access this exam" }, { status: 403 });
     }
 
     const attemptCount = await ExamAttempt.countDocuments({ exam: id });

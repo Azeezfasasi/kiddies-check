@@ -15,7 +15,7 @@ import { requireAccess } from "@/app/server/lib/requireAccess";
 // Newsletter management: a signed-in admin / learning specialist, or a
 // platform role granted the newsletter feature. (Previously this trusted an
 // x-user-role header sent by the browser.)
-const requireAdmin = async (req) => (await requireAccess(req, "newsletter")) === null;
+const requireAdmin = async (req, level: "view" | "edit" = "edit") => (await requireAccess(req, "newsletter", { level })) === null;
 
 const getUserId = (req) => {
   return req.headers.get('x-user-id') || 'anonymous';
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // GET /api/newsletter/[id]?type=campaign&action=analytics
     if (type === 'campaign' && action === 'analytics') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // GET /api/newsletter/[id]?type=campaign
     if (type === 'campaign') {
-      if (!(await requireAdmin(request))) {
+      if (!(await requireAdmin(request, "view"))) {
         return NextResponse.json(
           { success: false, error: 'Unauthorized' },
           { status: 401 }

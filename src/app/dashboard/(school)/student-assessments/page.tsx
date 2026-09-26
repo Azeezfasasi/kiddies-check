@@ -6,6 +6,7 @@ import { Plus, Edit2, Trash2, AlertCircle, Loader, TrendingUp, TrendingDown, Min
 import toast from "react-hot-toast";
 import AssessmentModal from "@/app/components/AssessmentModal";
 import TrendChart from "@/app/components/TrendChart";
+import { useAuth } from "@/context/AuthContext";
 
 export default function StudentAssessmentsPage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function StudentAssessmentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -211,6 +213,7 @@ export default function StudentAssessmentsPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Student Assessments</h1>
             <p className="text-gray-600 mt-2">Record and track student performance over time</p>
           </div>
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <button
             onClick={handleAddAssessment}
             className="flex justify-center items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
@@ -218,6 +221,7 @@ export default function StudentAssessmentsPage() {
             <Plus className="w-5 h-5" />
             Record Assessment
           </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -347,6 +351,7 @@ export default function StudentAssessmentsPage() {
                             </div>
                           </button>
                         </div>
+                        {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                         <div className="flex gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleEditAssessment(assessment)}
@@ -361,6 +366,7 @@ export default function StudentAssessmentsPage() {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
+                        )}
                       </div>
 
                       {/* Score Display */}

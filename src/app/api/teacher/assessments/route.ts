@@ -190,7 +190,7 @@ export async function GET(req: NextRequest) {
 
     // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
     const hasSchoolAccess =
-      isAcademicAdmin(user.role) ||
+      isAcademicAdmin(user.role, "view") ||
       (user.schoolId && user.schoolId.toString() === schoolId) ||
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId)) ||
       (await SchoolMember.findOne({

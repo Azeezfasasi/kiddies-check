@@ -4,8 +4,17 @@ import { useState, useRef, useEffect } from 'react';
 import { Upload, X, Loader, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/context/AuthContext';
 
-export default function NotebookUploadModal({ studentId, studentName, schoolId, userId, onClose, onUploadSuccess }) {
+export default function NotebookUploadModal({
+  studentId,
+  studentName,
+  schoolId,
+  userId,
+  isViewer = false,
+  onClose,
+  onUploadSuccess,
+}) {
   const [files, setFiles] = useState([]);
   const [captions, setCaptions] = useState({});
   const [uploading, setUploading] = useState(false);
@@ -15,6 +24,7 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
   const [dragStart, setDragStart] = useState(null);
   const fileInputRef = useRef(null);
   const imageContainerRef = useRef(null);
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   // Fetch existing notebook images
   const loadNotebookImages = async () => {
@@ -223,6 +233,11 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
     }
   };
 
+  // dont show this modal is user has viewer role access
+  if (isViewer) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -244,6 +259,7 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
 
         <div className="p-6 space-y-6">
           {/* Upload Section */}
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50">
             <div className="text-center">
               <Upload className="w-12 h-12 text-blue-600 mx-auto mb-3" />
@@ -315,6 +331,7 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
               </div>
             )}
           </div>
+          )}
 
           {/* Existing Images */}
           {notebookImages.length > 0 && (
@@ -356,6 +373,7 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
                           </span>
                         )}
                       </div>
+                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -366,6 +384,7 @@ export default function NotebookUploadModal({ studentId, studentName, schoolId, 
                         <Trash2 className="w-4 h-4" />
                         Delete
                       </button>
+                      )}
                     </div>
                   </div>
                 ))}

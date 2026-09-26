@@ -6,7 +6,7 @@ import { authorizeAccess, requireAccess } from "@/app/server/lib/requireAccess";
 const CONTACT_STATUSES = ["pending", "replied", "closed"];
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const denied = await requireAccess(req, "contact-responses");
+  const denied = await requireAccess(req, "contact-responses", { level: "view" });
   if (denied) return denied;
   // Get single contact form
   const params = await context.params;

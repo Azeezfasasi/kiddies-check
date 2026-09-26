@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!isAcademicAdmin(user.role)) {
+    if (!isAcademicAdmin(user.role, "view")) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
         (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId));

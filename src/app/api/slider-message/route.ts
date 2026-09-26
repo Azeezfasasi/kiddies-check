@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     if (all === "true") {
       // Includes inactive messages: content managers only
-      const denied = await requireAccess(req, "site-content");
+      const denied = await requireAccess(req, "site-content", { level: "view" });
       if (denied) return denied;
       return authenticate(req, async (user) => {
         const messages = await getAllSliderMessages();

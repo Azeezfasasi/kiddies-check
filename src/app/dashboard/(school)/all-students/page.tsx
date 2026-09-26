@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, AlertCircle, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard, BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader, Users, Eye, UserPlus, MessageSquare, QrCode, CreditCard, BookOpen, ChevronLeft, ChevronRight, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import StudentModal from "@/app/components/StudentModal";

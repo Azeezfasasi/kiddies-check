@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     //   (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     // );
     const hasAccess = user && (
-      isAcademicAdmin(user.role) ||
+      isAcademicAdmin(user.role, "view") ||
       (user.schoolId && user.schoolId.toString() === schoolId) || 
       (user.managedSchools && user.managedSchools.some(id => id.toString() === schoolId))
     );

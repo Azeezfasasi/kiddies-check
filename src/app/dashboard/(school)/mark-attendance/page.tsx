@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AttendanceScanner from "@/app/components/AttendanceScanner";
+import { useAuth } from "@/context/AuthContext";
 
 export default function MarkAttendancePage() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function MarkAttendancePage() {
     const today = new Date();
     return today.toISOString().split("T")[0];
   });
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   useEffect(() => {
     const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -605,6 +607,7 @@ export default function MarkAttendancePage() {
               <p className="text-sm text-gray-600 mb-5 font-medium">Select attendance status:</p>
 
               {/* Action Buttons */}
+              {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
               <div className="space-y-3">
                 <button
                   onClick={() => markAttendance("present")}
@@ -643,6 +646,7 @@ export default function MarkAttendancePage() {
                   Absent
                 </button>
               </div>
+              )}
 
               <button
                 onClick={() => setScannedStudent(null)}

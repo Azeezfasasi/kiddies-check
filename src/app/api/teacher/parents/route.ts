@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check school access for non-admin users
-    if (!isAcademicAdmin(user.role)) {
+    if (!isAcademicAdmin(user.role, "view")) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));

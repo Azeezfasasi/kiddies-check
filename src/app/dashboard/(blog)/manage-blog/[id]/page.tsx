@@ -564,7 +564,7 @@ function EditBlogContent() {
 									<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 										{formData.blogImagePreviews.map((preview, idx) => (
 											<div key={idx} className="relative group">
-												<img src={preview} alt={`Blog image ${idx + 1}`} className="w-full h-24 object-cover rounded-lg border border-gray-300" />
+												<Image width={100} height={100} src={preview} alt={`Blog image ${idx + 1}`} className="w-full h-24 object-cover rounded-lg border border-gray-300" />
 												<button
 													type="button"
 													onClick={() => removeBlogImage(idx)}
@@ -627,6 +627,25 @@ function EditBlogContent() {
 						</Link>
 					</div>
 				</form>
+				{/* Message Alert */}
+				{message && (
+					<div
+						className={`mb-6 p-4 rounded-lg ${
+							message.type === 'success'
+								? 'bg-green-50 border border-green-200 text-green-800'
+								: 'bg-red-50 border border-red-200 text-red-800'
+						}`}
+					>
+						{message.text}
+					</div>
+				)}
+
+				{/* Unsaved Changes Warning */}
+				{hasChanges && (
+					<div className="mb-6 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800">
+						You have unsaved changes. Remember to save before leaving this page.
+					</div>
+				)}
 			</div>
 		</div>
 		</ProtectedRoute>

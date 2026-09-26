@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, schoolId))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+    if (!user || !(await canAccessSchool(user, schoolId), "view")) {
+      return NextResponse.json({ success: false, message: "Access denied - you are not authorized to access this" }, { status: 403 });
     }
 
     const query: Record<string, unknown> = { school: schoolId };
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findById(userId);
     if (!user || !(await canAccessSchool(user, schoolId))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Access denied - you are not authorized to access this" }, { status: 403 });
     }
 
     const schoolClass = await Class.findOne({ _id: classId, school: schoolId });

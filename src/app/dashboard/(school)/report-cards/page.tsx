@@ -23,6 +23,7 @@ export default function ReportCardsPage() {
   const [deletingId, setDeletingId] = useState("");
   const [downloadCard, setDownloadCard] = useState(null);
   const [school, setSchool] = useState(null);
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   useEffect(() => {
     const storedSchoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -221,12 +222,14 @@ export default function ReportCardsPage() {
             <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Report Cards</h1>
             <p className="text-sm text-gray-600">Browse generated report cards and filter by student or class.</p>
           </div>
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <Link
             href="/dashboard/report-cards/create"
             className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
           >
             Create Report Card
           </Link>
+          )}
         </div>
 
         <div className="mb-6 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 sm:grid-cols-2 md:grid-cols-3">
@@ -312,7 +315,9 @@ export default function ReportCardsPage() {
                     <dd className="text-right text-gray-900">{card.academicYear}</dd>
                   </dl>
 
-                  <ActionButtons card={card} />
+                  {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+                    <ActionButtons card={card} />
+                  )}
 
                   {editingCardId === card._id && (
                     <div className="mt-3">
@@ -348,9 +353,11 @@ export default function ReportCardsPage() {
                           <td className="px-4 py-3">{card.term}</td>
                           <td className="px-4 py-3">{card.academicYear}</td>
                           <td className="px-4 py-3 capitalize">{card.status}</td>
+                          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                           <td className="px-4 py-3">
                             <ActionButtons card={card} />
                           </td>
+                          )}
                         </tr>
                         {editingCardId === card._id && (
                           <tr>

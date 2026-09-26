@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!isAcademicAdmin(user.role)) {
+    if (!isAcademicAdmin(user.role, "view")) {
       const hasAccess =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
         (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));

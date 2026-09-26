@@ -205,7 +205,7 @@ export default function ParentAssignmentModal({
               <p className="text-sm font-semibold text-gray-700 mb-2">Ready to Assign</p>
               <p className="text-sm text-gray-600">
                 {parentList.find(p => p._id === selectedParent) && `${parentList.find(p => p._id === selectedParent).firstName} ${parentList.find(p => p._id === selectedParent).lastName}`} {' '}
-                will be able to view this student's progress and feedback.
+                will be able to view this student&apos;s progress and feedback.
               </p>
             </div>
           )}

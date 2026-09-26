@@ -1,5 +1,5 @@
 "use client"
-import '../../app/../globals.css'
+import '@/globals.css';
 import React, { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import DashboardHeader from "@/components/dashboard-component/DashboardHeader"

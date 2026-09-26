@@ -3,7 +3,7 @@ import { createQuote, getAllQuotes } from "../../server/controllers/quoteControl
 import { requireAccess } from "@/app/server/lib/requireAccess";
 
 export async function GET(req: NextRequest) {
-  const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
+  const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"], level: "view" });
   if (denied) return denied;
   // List all quote requests
   return getAllQuotes(req);

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const hasAccess = await checkAccess(userId, schoolId);
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied: You are not authorized to access this" }, { status: 403 });
     }
 
     const templates = await LessonTemplate.find({ school: schoolId, isActive: true })
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const hasAccess = await checkAccess(userId, schoolId);
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied: You are not authorized to access this" }, { status: 403 });
     }
 
     const template = await LessonTemplate.create({
@@ -90,7 +90,7 @@ export async function PUT(req: NextRequest) {
 
     const hasAccess = await checkAccess(userId, schoolId);
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied: You are not authorized to access this" }, { status: 403 });
     }
 
     const template = await LessonTemplate.findOneAndUpdate(
@@ -137,7 +137,7 @@ export async function DELETE(req: NextRequest) {
 
     const hasAccess = await checkAccess(userId, schoolId);
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied: You are not authorized to access this" }, { status: 403 });
     }
 
     const template = await LessonTemplate.findOneAndUpdate(
