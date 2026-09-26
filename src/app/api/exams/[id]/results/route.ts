@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const user = await User.findById(userId);
     if (!user || !(await canAccessSchool(user, exam.school.toString(), "view"))) {
-      return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Access denied: You are not authorized to access this exam" }, { status: 403 });
     }
 
     const attempts = await ExamAttempt.find({ exam: id })

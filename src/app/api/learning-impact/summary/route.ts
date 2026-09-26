@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     const hasAccess = await checkAccess(userId, schoolId);
     if (!hasAccess) {
-      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+      return NextResponse.json({ error: "Access denied: You are not authorized to access this" }, { status: 403 });
     }
 
     const [

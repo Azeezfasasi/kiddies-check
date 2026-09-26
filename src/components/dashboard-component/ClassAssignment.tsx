@@ -53,7 +53,20 @@ export default function ClassAssignment() {
 
   if (!user) return <div>Please login to assign classes.</div>;
   if (!['admin','school-leader','learning-specialist'].includes(user.role) && !can(user.role, 'school-manager', 'edit')) {
-    return <div>Access denied. Only school leaders and learning specialists can assign teachers.</div>;
+    return (
+      <>
+        <div>
+          <h1 className="text-2xl font-bold mb-4">Class Assignment</h1>
+          <p className="text-sm text-gray-600">You do not have permission to assign classes. Only <span className="font-semibold">School Leaders</span> and <span className="font-semibold">Learning Specialists</span> can do so. Please contact your school administrator.</p>
+        </div>
+        <div className="mt-4 mx-auto flex items-center justify-center">
+          <svg className="animate-spin h-20 w-20 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+        </div>
+      </>
+    );
   }
 
   const handleAssign = async (classId, teacherId) => {

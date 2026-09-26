@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Send, Loader, MessageSquare, User, Calendar, AlertCircle, Plus } from "lucide-react";
+import { X, Send, Loader, MessageSquare, User, Calendar, Plus } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export default function StudentFeedbackPanel({
   studentId,
@@ -21,6 +22,7 @@ export default function StudentFeedbackPanel({
   const [expandedFeedback, setExpandedFeedback] = useState({});
   const [replyText, setReplyText] = useState({});
   const [submittingReply, setSubmittingReply] = useState({});
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   useEffect(() => {
     if (!feedbackLoading && initialFeedback.length === 0) {
@@ -173,6 +175,7 @@ export default function StudentFeedbackPanel({
 
         <div className="p-6 space-y-6">
           {/* Add Comment Button */}
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
           <button
             onClick={() => setShowCommentForm(!showCommentForm)}
             className="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-3 rounded-lg transition-colors font-medium border border-blue-200"
@@ -180,6 +183,7 @@ export default function StudentFeedbackPanel({
             <Plus className="w-5 h-5" />
             Add Your Comment
           </button>
+          )}
 
           {/* Comment Form */}
           {showCommentForm && (
@@ -341,6 +345,7 @@ export default function StudentFeedbackPanel({
                           rows={2}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                         />
+                        {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                         <button
                           onClick={() => handleReply(item._id)}
                           disabled={submittingReply[item._id] || !replyText[item._id]?.trim()}
@@ -350,6 +355,7 @@ export default function StudentFeedbackPanel({
                           <Send className="w-4 h-4" />
                           Reply
                         </button>
+                        )}
                       </div>
                     </div>
                   )}

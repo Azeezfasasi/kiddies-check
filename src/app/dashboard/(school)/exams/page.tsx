@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search, ExternalLink, Info } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/context/AuthContext";
 
 const statusStyles = {
   draft: "bg-gray-100 text-gray-700",
@@ -27,6 +28,7 @@ export default function ExamsPage() {
   const [busyId, setBusyId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
 
   const loadExams = useCallback(async (school, user, status, classId, search) => {
     setLoading(true);
@@ -148,16 +150,18 @@ export default function ExamsPage() {
             <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">CBT Exams</h1>
             <p className="text-sm text-gray-600">Create, publish and track objective exams.</p>
           </div>
-          <Link href="/dashboard/exams/create" className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto">
-            Create Exam
-          </Link>
+          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+            <Link href="/dashboard/exams/create" className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto">
+              Create Exam
+            </Link>
+          )}
         </div>
 
         <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
             <p className="text-sm text-blue-900">
-              Students take their exam at <span className="font-semibold">kiddiescheck.org/cbt</span> using the exam's access code. Share this link with students, then give them the access code once the exam is published.
+              Students take their exam at <span className="font-semibold">kiddiescheck.org/cbt</span> using the exam&apos;s access code. Share this link with students, then give them the access code once the exam is published.
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -237,7 +241,7 @@ export default function ExamsPage() {
                           </button>
                         </>
                       )}
-                      {exam.status === "published" && (
+                      {exam.status === "published" && (isAdmin || isSchoolLeader || isLearningSpecialist) && (
                         <button onClick={() => handleClose(exam)} disabled={busyId === exam._id} className="flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-60">
                           <XCircle className="w-4 h-4" /> Close
                         </button>

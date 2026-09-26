@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, } from "react";
 import Image from "next/image";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +12,6 @@ import {
   Loader2,
   X,
   Check,
-  Eye,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -131,7 +130,7 @@ const AddEditModal = React.memo(({
               </label>
               <select value={formData.schoolType} onChange={(e) => setFormData({ ...formData, schoolType: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 <option value="">Select type</option>
-                <option value="my-childs-school">My Child's School</option>
+                <option value="my-childs-school">My Child&apos;s School</option>
                 <option value="home-school">Home School</option>
               </select>
             </div>
@@ -203,7 +202,7 @@ const DeleteConfirmModal = React.memo(({ isOpen, onClose, onConfirm, schoolName 
             Delete School
           </h3>
           <p className="mt-2 text-sm text-center text-gray-500">
-            Are you sure you want to delete "{schoolName}"? This action cannot
+            Are you sure you want to delete &apos;{schoolName}&apos;? This action cannot
             be undone.
           </p>
         </div>
@@ -543,7 +542,7 @@ export default function SchoolManagement() {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
             >
               <option value="all">All School Types</option>
-              <option value="my-childs-school">My Child's School</option>
+              <option value="my-childs-school">My Child&apos;s School</option>
               <option value="home-school">Home School</option>
             </select>
 
