@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       // Also allow if user is an admin/learning-specialist/teacher with school management access
       const hasManagementAccess =
         user &&
-        ((isAcademicAdmin(user.role)) ||
+        ((isAcademicAdmin(user.role, "view")) ||
           (user.schoolId && user.schoolId.toString() === schoolId) ||
           (user.managedSchools &&
             user.managedSchools.some((id) => id.toString() === schoolId)));

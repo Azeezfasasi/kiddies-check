@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     
     // Allow admin and learning-specialist full access to any school
-    if (!isAcademicAdmin(user.role)) {
+    if (!isAcademicAdmin(user.role, "view")) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.equals(schoolId)) || 
         (user?.managedSchools && user.managedSchools.includes(schoolId as unknown as Types.ObjectId));

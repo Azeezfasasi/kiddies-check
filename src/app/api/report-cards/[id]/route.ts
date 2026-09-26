@@ -4,15 +4,15 @@ import ReportCard from "@/app/server/models/ReportCard";
 import Student from "@/app/server/models/Student";
 import Class from "@/app/server/models/Class";
 import User from "@/app/server/models/User";
-import { can, isAcademicAdmin, withFeature } from "@/utils/roles";
+import { can, isAcademicAdmin, withFeature, type AccessLevel } from "@/utils/roles";
 import type { PopulatedStudent } from "@/types/populated";
 
 const allowedRoles = withFeature(["admin", "learning-specialist", "school-leader", "teacher"], "report-cards");
 
-async function canAccessSchool(user, schoolId) {
+async function canAccessSchool(user, schoolId, level: AccessLevel = "edit") {
   if (!user) return false;
   if (allowedRoles.includes(user.role)) {
-    if (isAcademicAdmin(user.role) || can(user.role, "report-cards")) return true;
+    if (isAcademicAdmin(user.role, level) || can(user.role, "report-cards", level)) return true;
     if (user.schoolId && user.schoolId.toString() === schoolId) return true;
     if (user.managedSchools && user.managedSchools.some((id) => id.toString() === schoolId)) return true;
     return false;
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       if (!isOwnChild || reportCard.status !== "published") {
         return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
       }
-    } else if (!(await canAccessSchool(user, reportCard.school.toString()))) {
+    } else if (!(await canAccessSchool(user, reportCard.school.toString(), "view"))) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Only admin, school-leader, and learning-specialist can view prospective students
-    const hasAccess = can(user.role, 'prospective') ||
+    const hasAccess = can(user.role, 'prospective', 'view') ||
       (['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
         (user.role === 'admin' || user.schoolId?.equals(schoolId)));
 
@@ -188,7 +188,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Verify user has access to this school
-    const hasAccess = can(user.role, 'prospective') ||
+    const hasAccess = can(user.role, 'prospective', 'edit') ||
       (['admin', 'school-leader', 'learning-specialist'].includes(user.role) &&
         (user.role === 'admin' || user.schoolId?.equals(prospectiveStudent.school)));
 

@@ -4,15 +4,15 @@ import Assessment from "@/app/server/models/Assessment";
 import AcademicCalendar from "@/app/server/models/AcademicCalendar";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
-import { can, isAcademicAdmin, withFeature } from "@/utils/roles";
+import { can, isAcademicAdmin, withFeature, type AccessLevel } from "@/utils/roles";
 import type { PopulatedNamed } from "@/types/populated";
 
 const allowedRoles = withFeature(["admin", "learning-specialist", "school-leader", "teacher"], "report-cards");
 
-async function canAccessSchool(user, schoolId) {
+async function canAccessSchool(user, schoolId, level: AccessLevel = "edit") {
   if (!user) return false;
   if (allowedRoles.includes(user.role)) {
-    if (isAcademicAdmin(user.role) || can(user.role, "report-cards")) return true;
+    if (isAcademicAdmin(user.role, level) || can(user.role, "report-cards", level)) return true;
     if (user.schoolId && user.schoolId.toString() === schoolId) return true;
     if (user.managedSchools && user.managedSchools.some((id) => id.toString() === schoolId)) return true;
     return false;
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, schoolId))) {
+    if (!user || !(await canAccessSchool(user, schoolId, "view"))) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 

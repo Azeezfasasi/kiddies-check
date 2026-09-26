@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { LayoutDashboard, Briefcase, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText, Wallet  } from 'lucide-react';
+import { LayoutDashboard, NotepadText, Contact, TableProperties, Users, Mails, Images, FileStack, School, GraduationCap, UserRoundPen, UserRoundCogIcon, House, Info, Calendar, Delete, BookOpenText, Wallet  } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext'
 import { ALL_ROLES, withFeature } from '@/utils/roles'
 
@@ -91,13 +91,13 @@ function Icon({ name }) {
 }
 
 export default function DashboardMenu({ collapsed, mobileOpen = false, onClose = () => { } }) {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const pathname = usePathname() || ''
 
-  const handleLogout = () => {
-    logout();
-    onClose();
-  };
+  // const handleLogout = () => {
+  //   logout();
+  //   onClose();
+  // };
   const items = [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ALL_ROLES },
     {

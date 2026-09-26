@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Allow admin and learning-specialist full access to any school
-    let hasSchoolAccess = isAcademicAdmin(user.role);
+    let hasSchoolAccess = isAcademicAdmin(user.role, "view");
 
     // If not admin/learning-specialist, check schoolId or SchoolMember
     if (!hasSchoolAccess) {

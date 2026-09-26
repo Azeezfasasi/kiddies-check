@@ -15,7 +15,8 @@ export type PlatformRole =
   | "school-coordinator"
   | "service-desk"
   | "media-manager"
-  | "content-manager";
+  | "content-manager"
+  | "viewer";
 export type Role = OriginalRole | PlatformRole;
 
 export type Feature =
@@ -57,6 +58,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   "service-desk": "Service Desk",
   "media-manager": "Media Manager",
   "content-manager": "Content Manager",
+  viewer: "Viewer",
 };
 
 export const ORIGINAL_ROLES: OriginalRole[] = ["admin", "learning-specialist", "school-leader", "teacher", "parent"];
@@ -68,6 +70,7 @@ export const PLATFORM_ROLES: PlatformRole[] = [
   "service-desk",
   "media-manager",
   "content-manager",
+  "viewer"
 ];
 export const ALL_ROLES: Role[] = [...ORIGINAL_ROLES, ...PLATFORM_ROLES];
 
@@ -163,10 +166,28 @@ const PERMISSIONS: Record<PlatformRole, Partial<Record<Feature, number>>> = {
     newsletter: EDIT,
     "contact-responses": EDIT,
   },
+  viewer: {
+    blog: VIEW,
+    gallery: VIEW,
+    newsletter: VIEW,
+    "site-content": VIEW,
+    "contact-responses": VIEW,
+    registrations: VIEW,
+    schools: VIEW,
+    prospective: VIEW,
+    calendar: VIEW,
+    promotion: VIEW,
+    billing: VIEW,
+    "school-manager": VIEW,
+    academics: VIEW,
+    "report-cards": VIEW,
+    cbt: VIEW,
+    logs: VIEW,
+  },
 };
 
 // Platform roles that support every school and can use the school switcher.
-const ALL_SCHOOL_PLATFORM_ROLES: PlatformRole[] = ["support-staff", "it-support", "school-director", "school-coordinator", "service-desk"];
+const ALL_SCHOOL_PLATFORM_ROLES: PlatformRole[] = ["support-staff", "it-support", "school-director", "school-coordinator", "service-desk", "viewer"];
 
 /** Does a platform role have `feature` at `level` or above? Always false for original roles. */
 export const can = (role: RoleInput, feature: Feature, level: AccessLevel = "view"): boolean =>
@@ -187,8 +208,8 @@ export const withFeature = (roles: string[], feature: Feature, level: AccessLeve
  * meant in the class/student/subject/attendance routes, extended to the
  * platform roles that have the Learning Specialist and School Manager pages.
  */
-export const isAcademicAdmin = (role: RoleInput): boolean =>
-  role === "admin" || role === "learning-specialist" || can(role, "academics", "edit");
+export const isAcademicAdmin = (role: RoleInput, level: AccessLevel = "edit"): boolean =>
+  role === "admin" || role === "learning-specialist" || can(role, "academics", level);
 
 /** One of the platform support roles (not tied to a single school's membership). */
 export const isPlatformRole = (role: RoleInput): role is PlatformRole => PLATFORM_ROLES.includes(role as PlatformRole);

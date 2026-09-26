@@ -8,7 +8,7 @@ import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
 import { sendApprovalEmail, sendRejectionEmail } from '@/app/server/utils/emailService';
 import jwt from 'jsonwebtoken';
-import { can } from "@/utils/roles";
+import { can, type AccessLevel } from "@/utils/roles";
 import { legacy, type LegacyUserFields } from "@/types/legacy";
 import { getUserSchoolName } from "@/app/server/lib/userSchool";
 
@@ -24,14 +24,15 @@ const verifyAdminToken = (req) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     return decoded;
   } catch (error) {
+    console.error('Error verifying admin token:', error);
     return null;
   }
 };
 
 // Middleware to check if user is admin
-const isAdmin = async (userId) => {
+const isAdmin = async (userId, level: AccessLevel = "edit") => {
   const user = await User.findById(userId);
-  return user && (user.role === 'admin' || user.role === 'learning-specialist' || legacy<LegacyUserFields>(user).isAdmin === true || can(user.role, 'registrations', 'edit'));
+  return user && (user.role === 'admin' || user.role === 'learning-specialist' || legacy<LegacyUserFields>(user).isAdmin === true || can(user.role, 'registrations', level));
 };
 
 /**
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const adminCheck = await isAdmin(decoded.id);
+    const adminCheck = await isAdmin(decoded.id, "view");
     if (!adminCheck) {
       return Response.json(
         { success: false, message: 'Forbidden: Admin access required' },

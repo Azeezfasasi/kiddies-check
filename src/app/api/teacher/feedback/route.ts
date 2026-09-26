@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       // Find all students where this user is the parent
       const studentIds = await Student.find({ parent: userId, school: schoolId }).select('_id');
       query.student = { $in: studentIds.map(s => s._id) };
-    } else if (!isAcademicAdmin(user.role)) {
+    } else if (!isAcademicAdmin(user.role, "view")) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.toString() === schoolId) || 
         (user?.managedSchools && user.managedSchools.some(s => s.toString() === schoolId));

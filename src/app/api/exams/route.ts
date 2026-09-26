@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const user = await User.findById(userId);
-    if (!user || !(await canAccessSchool(user, schoolId))) {
+    if (!user || !(await canAccessSchool(user, schoolId), "view")) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 
