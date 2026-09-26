@@ -84,7 +84,7 @@ export const AI_TOOLS: AiTool[] = [
   {
     name: "get_overview",
     description:
-      "Headline numbers for the user's schools (or one school): students, classes, subjects, teachers, parents, schools and the current academic term. Use for general 'how is my school doing / give me a summary' questions.",
+      "Headline numbers for the user's schools (or one school): students, classes, subjects, teachers, parents, schools and the current academic term. Use for general summaries and for 'how many students / teachers / parents' questions.",
     parameters: {
       type: "object",
       properties: { schoolId: { type: "string", description: "Limit to one school (id). Omit for all schools the user can see." } },
@@ -100,10 +100,17 @@ export const AI_TOOLS: AiTool[] = [
         Class.countDocuments({ ...f, isActive: true }),
         Subject.countDocuments({ ...f, isActive: true }),
         SchoolMember.countDocuments({ ...f, role: "teacher", status: "active" }),
-        SchoolMember.countDocuments({ ...f, role: "parent", status: "active" }),
+        // A parent may be a school member, linked to a pupil, or both: count each account once.
+        Promise.all([
+          SchoolMember.find({ ...f, role: "parent", status: "active" }).distinct("user"),
+          Student.find({ ...f, isActive: true, parent: { $ne: null } }).distinct("parent"),
+        ]).then(([members, linked]) => ({ total: new Set([...members, ...linked].map(String)).size, linkedToPupils: linked.length })),
         currentTerm(),
       ]);
-      return { schools: schoolCount, activeStudents: students, classes, subjects, activeTeachers: teachers, activeParents: parents, currentTerm: term };
+      return {
+        schools: schoolCount, activeStudents: students, classes, subjects, activeTeachers: teachers,
+        parents: parents.total, parentsLinkedToPupils: parents.linkedToPupils, currentTerm: term,
+      };
     },
   },
 
@@ -286,7 +293,8 @@ export const AI_TOOLS: AiTool[] = [
 
   {
     name: "get_attendance_summary",
-    description: "Attendance totals and rate over a recent period, for a school, a class or a student. Includes a per-class breakdown for school-level questions.",
+    description:
+      "Pupil attendance totals and rate over a recent period, for a school, a class or a student. For school-level questions it also breaks attendance down per class (with class teacher) and per class teacher, lowest first. Staff attendance itself is not recorded on the platform.",
     parameters: {
       type: "object",
       properties: {
@@ -317,6 +325,11 @@ export const AI_TOOLS: AiTool[] = [
       const totals = await Attendance.aggregate([{ $match: match }, { $group: { _id: "$status", n: { $sum: 1 } } }]);
       const t = Object.fromEntries(totals.map((x) => [x._id, x.n]));
       const total = (t.present || 0) + (t.absent || 0) + (t.late || 0);
+      // Nothing recent and no period asked for: widen to a year rather than answer "no data".
+      if (!total && !days) {
+        const wider = await this.run(scope, { schoolId, classId, studentId, days: 365 });
+        return { ...wider, note: ["No attendance was recorded in the last 30 days; figures cover the last 12 months.", wider.note].filter(Boolean).join(" ") };
+      }
       const result: Loose = { periodDays: period, present: t.present || 0, absent: t.absent || 0, late: t.late || 0, attendanceRate: total ? round(((t.present || 0) + (t.late || 0)) / total * 100) : null };
       if (!isParent(scope) && !studentId && !classId) {
         const byClass = await Attendance.aggregate([
@@ -324,11 +337,32 @@ export const AI_TOOLS: AiTool[] = [
           { $lookup: { from: "students", localField: "student", foreignField: "_id", as: "st" } },
           { $group: { _id: { $arrayElemAt: ["$st.class", 0] }, present: { $sum: { $cond: [{ $in: ["$status", ["present", "late"]] }, 1, 0] } }, total: { $sum: 1 } } },
           { $lookup: { from: "classes", localField: "_id", foreignField: "_id", as: "c" } },
-          { $project: { class: { $arrayElemAt: ["$c.name", 0] }, rate: { $multiply: [{ $divide: ["$present", "$total"] }, 100] }, total: 1 } },
+          { $project: { class: { $arrayElemAt: ["$c.name", 0] }, teacher: { $arrayElemAt: ["$c.classTeacher", 0] }, present: 1, total: 1 } },
+          { $addFields: { rate: { $multiply: [{ $divide: ["$present", "$total"] }, 100] } } },
           { $sort: { rate: 1 } },
-          { $limit: 20 },
         ]);
-        result.byClassLowestFirst = byClass.map((c) => ({ class: c.class || "Unassigned", attendanceRate: round(c.rate), records: c.total }));
+        const teacherIds = [...new Set(byClass.map((c) => c.teacher && String(c.teacher)).filter(Boolean))];
+        const teachers = await User.find({ _id: { $in: teacherIds } }).select("firstName lastName").lean<Loose[]>();
+        const teacherName = new Map(teachers.map((t) => [String(t._id), fullName(t)]));
+        const nameOf = (c: Loose) => (c.teacher && teacherName.get(String(c.teacher))) || undefined;
+        result.byClassLowestFirst = byClass.slice(0, 20).map((c) => ({
+          class: c.class || "Unassigned", classTeacher: nameOf(c) || "not assigned", attendanceRate: round(c.rate), records: c.total,
+        }));
+        const perTeacher = new Map<string, { present: number; total: number; classes: string[] }>();
+        for (const c of byClass) {
+          const name = nameOf(c);
+          if (!name) continue;
+          const t = perTeacher.get(name) || { present: 0, total: 0, classes: [] };
+          t.present += c.present;
+          t.total += c.total;
+          t.classes.push(c.class || "Unassigned");
+          perTeacher.set(name, t);
+        }
+        result.byClassTeacherLowestFirst = [...perTeacher.entries()]
+          .map(([teacher, t]) => ({ teacher, classes: t.classes, pupilAttendanceRate: round((t.present / t.total) * 100), records: t.total }))
+          .sort((a, b) => a.pupilAttendanceRate - b.pupilAttendanceRate)
+          .slice(0, 20);
+        result.note = "Only pupil attendance is recorded; there is no staff attendance register.";
       }
       return result;
     },
