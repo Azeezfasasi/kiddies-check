@@ -1,304 +1,295 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle, Loader2, X, MessageSquare } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bot, Loader2, RotateCcw, Send, Sparkles, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import ChatMarkdown from '@/components/ChatMarkdown';
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  error?: boolean;
+}
+
+interface Welcome {
+  greeting: string;
+  suggestions: string[];
+  roleLabel?: string;
+  school?: string | null;
+}
+
+// Kept for the dashboard layout's existing props; data now comes from the server.
+interface FloatingAIChatProps {
+  userRole?: string;
+  studentData?: unknown;
+}
+
+const readActiveSchool = () => {
+  try {
+    return localStorage.getItem('activeSchoolId') || localStorage.getItem('schoolId') || '';
+  } catch {
+    return '';
+  }
+};
 
 /**
- * FloatingAIChat Component
- * Minimizable floating chat widget that appears on all dashboard pages
- * Fetches real database context for accurate responses
+ * KiddiesCheck Assistant: floating chat on every dashboard page. The server
+ * looks up data through permission-filtered tools, so the widget only sends
+ * the conversation and the currently selected school.
  */
-export default function FloatingAIChat({
-  userRole = 'parent',
-  studentData = null,
-}) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- props kept for the layout's existing call
+export default function FloatingAIChat(_props: FloatingAIChatProps) {
+  const { user } = useAuth();
+  const storageKey = user?._id ? `kc_ai_chat_${user._id}` : null;
+
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [contextData, setContextData] = useState(null);
-  const [contextLoading, setContextLoading] = useState(true);
-  const [token, setToken] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [welcome, setWelcome] = useState<Welcome | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load token from localStorage on mount
+  // Restore this user's conversation for the browser session.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token');
-      setToken(storedToken);
-    }
-  }, []);
-
-  // Load AI context only when the chat is opened, so dashboard pages stay light
-  useEffect(() => {
-    if (!isOpen || !token) {
-      if (!token) {
-        setContextLoading(false);
-      }
-      return;
-    }
-
-    const cachedContext = sessionStorage.getItem('ai_context_cache');
-    const cachedTime = sessionStorage.getItem('ai_context_cache_time');
-
-    if (cachedContext && cachedTime) {
-      try {
-        setContextData(JSON.parse(cachedContext));
-        setContextLoading(false);
-        return;
-      } catch (error) {
-        console.error('Failed to parse cached AI context:', error);
-      }
-    }
-
-    const fetchContext = async () => {
-      try {
-        setContextLoading(true);
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        };
-
-        const response = await fetch(`/api/ai/context?t=${Date.now()}`, {
-          headers,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          sessionStorage.setItem('ai_context_cache', JSON.stringify(data));
-          sessionStorage.setItem('ai_context_cache_time', Date.now().toString());
-          setContextData(data);
-        } else {
-          console.error(
-            `Failed to fetch AI context: ${response.status} ${response.statusText}`
-          );
-          const errorData = await response.json().catch(() => ({}));
-          console.error('Error response:', errorData);
-          
-          if (response.status === 401) {
-            console.warn('Token appears invalid, clearing from localStorage');
-            localStorage.removeItem('token');
-            setToken(null);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch AI context:', error);
-      } finally {
-        setContextLoading(false);
-      }
-    };
-
-    fetchContext();
-  }, [isOpen, token]);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    // Add user message to chat
-    const userMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: input,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
+    if (!storageKey) return;
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          userRole,
-          studentData,
-          contextData, // Pass the full context data to the API
-        }),
-      });
+      const saved = sessionStorage.getItem(storageKey);
+      setMessages(saved ? JSON.parse(saved) : []);
+    } catch {
+      setMessages([]);
+    }
+  }, [storageKey]);
 
-      console.log('Sending to AI chat:', {
-        messagesCount: [...messages, userMessage].length,
-        userRole,
-        contextStudents: contextData?.students?.length || 0,
-        studentNames: contextData?.students?.map(s => s.name) || [],
-      });
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(messages.slice(-40)));
+    } catch {
+      // Storage full or unavailable: the chat still works, it just won't persist.
+    }
+  }, [messages, storageKey]);
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
-      }
+  // Greeting and suggestions, loaded the first time the chat opens.
+  useEffect(() => {
+    if (!isOpen || welcome) return;
+    const school = readActiveSchool();
+    fetch(`/api/ai/chat${school ? `?activeSchoolId=${encodeURIComponent(school)}` : ''}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setWelcome(data))
+      .catch(() => setWelcome({ greeting: "Hi! I'm your KiddiesCheck Assistant. How can I help?", suggestions: [] }));
+  }, [isOpen, welcome]);
 
-      // Read streaming response
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      const assistantMessage = {
-        id: `msg-${Date.now() + 1}`,
-        role: 'assistant',
-        content: '',
-      };
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+  useEffect(() => {
+    if (isOpen) inputRef.current?.focus();
+  }, [isOpen]);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+  const send = useCallback(
+    async (text: string) => {
+      const content = text.trim();
+      if (!content || isLoading) return;
 
-        const chunk = decoder.decode(value);
-        assistantMessage.content += chunk;
+      const userMessage: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content };
+      const history = [...messages.filter((m) => !m.error), userMessage];
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+      setIsLoading(true);
 
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...assistantMessage };
-          return updated;
+      try {
+        const response = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: history.map(({ role, content: c }) => ({ role, content: c })),
+            activeSchoolId: readActiveSchool() || undefined,
+          }),
         });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(
+            response.status === 401
+              ? 'Your session has expired. Please log in again.'
+              : data.error || 'The assistant is unavailable right now.'
+          );
+        }
+
+        const reply = await response.text();
+        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: reply }]);
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `e-${Date.now()}`, role: 'assistant', content: error.message || 'Something went wrong. Please try again.', error: true },
+        ]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `msg-${Date.now() + 2}`,
-          role: 'assistant',
-          content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
+    },
+    [isLoading, messages]
+  );
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send(input);
     }
   };
 
-  // Expanded Chat View
-  if (isOpen) {
+  const newChat = () => {
+    setMessages([]);
+    setInput('');
+    inputRef.current?.focus();
+  };
+
+  if (!isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 w-full lg:w-96 h-[600px] bg-white rounded-lg border border-gray-200 shadow-2xl flex flex-col z-40">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-6 py-4 rounded-t-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-indigo-600" />
-            <div>
-              <h3 className="font-semibold text-gray-900">Learning Assistant</h3>
-              <p className="text-xs text-gray-600">
-                {contextLoading ? 'Loading...' : contextData?.summary || 'Ask about learning'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <MessageSquare className="w-12 h-12 text-gray-300 mb-3" />
-              <p className="text-gray-600 text-sm font-medium">
-                {contextLoading ? 'Loading context...' : 'What would you like to know?'}
-              </p>
-              <p className="text-gray-500 text-xs mt-2">
-                {contextData?.summary || 'Preparing AI context...'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  <div
-                    className={`max-w-xs px-4 py-2 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-indigo-600 text-white rounded-br-none'
-                        : 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg rounded-bl-none flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                    <span className="text-sm text-gray-600">Thinking...</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <form
-          onSubmit={handleSubmit}
-          className="border-t border-gray-200 bg-white p-4 rounded-b-lg"
-        >
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={handleInputChange}
-              placeholder="Ask about students, performance..."
-              disabled={isLoading || contextLoading}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim() || contextLoading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        </form>
-
-        {/* Footer Info */}
-        <div className="bg-blue-50 border-t border-blue-200 px-4 py-2 text-xs text-gray-600 text-center">
-          <p>💡 Educational insights. For medical/psychological concerns, consult professionals.</p>
-        </div>
-      </div>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 z-40 bg-gradient-to-r from-indigo-600 to-blue-600 text-white pl-4 pr-5 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+        aria-label="Open KiddiesCheck Assistant"
+      >
+        <Sparkles className="w-5 h-5" />
+        <span className="text-sm font-semibold">Ask AI</span>
+      </button>
     );
   }
 
-  // Minimized Ribbon Button
   return (
-    <button
-      onClick={() => setIsOpen(true)}
-      className="fixed bottom-4 right-4 z-40 bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-4 md:px-6 py-2 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2 group"
+    <div
+      className="fixed inset-0 sm:inset-auto sm:bottom-4 sm:right-4 sm:w-[420px] sm:h-[640px] sm:max-h-[calc(100vh-2rem)] bg-white sm:rounded-2xl border border-gray-200 shadow-2xl flex flex-col z-50"
+      role="dialog"
+      aria-label="KiddiesCheck Assistant"
     >
-      <MessageSquare className="w-5 h-5" />
-      {/* <span className="font-medium text-sm">
-        {contextLoading ? 'Loading...' : contextData?.summary?.split(' - ')[0] || 'Learning Assistant'}
-      </span> */}
-      <span className="ml-2 text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full group-hover:bg-opacity-30 transition-all">
-        AI Chat
-      </span>
-    </button>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-blue-600 text-white sm:rounded-t-2xl">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold leading-tight">KiddiesCheck Assistant</h3>
+            <p className="text-xs text-indigo-100 truncate">
+              {[welcome?.roleLabel, welcome?.school].filter(Boolean).join(' · ') || 'Ask about your school data'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <button onClick={newChat} title="New chat" aria-label="New chat" className="p-2 rounded-lg hover:bg-white/15 transition">
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={() => setIsOpen(false)} title="Close" aria-label="Close" className="p-2 rounded-lg hover:bg-white/15 transition">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col justify-center">
+            <div className="flex items-start gap-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-800 shadow-sm">
+                {welcome ? welcome.greeting : <span className="text-gray-400">Getting ready…</span>}
+              </div>
+            </div>
+            {welcome?.suggestions?.length ? (
+              <div className="mt-5">
+                <p className="text-xs font-medium text-gray-500 mb-2 px-1">Try asking</p>
+                <div className="flex flex-col gap-2">
+                  {welcome.suggestions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => send(s)}
+                      className="text-left text-sm px-3 py-2 rounded-xl border border-indigo-100 bg-white text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 transition"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          messages.map((m) =>
+            m.role === 'user' ? (
+              <div key={m.id} className="flex justify-end">
+                <div className="max-w-[85%] bg-indigo-600 text-white rounded-2xl rounded-br-sm px-4 py-2.5 text-sm whitespace-pre-wrap shadow-sm">
+                  {m.content}
+                </div>
+              </div>
+            ) : (
+              <div key={m.id} className="flex items-start gap-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div
+                  className={`max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm ${
+                    m.error ? 'bg-red-50 border border-red-200 text-red-700 text-sm' : 'bg-white border border-gray-200 text-gray-800'
+                  }`}
+                >
+                  {m.error ? m.content : <ChatMarkdown text={m.content} />}
+                </div>
+              </div>
+            )
+          )
+        )}
+        {isLoading && (
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4" />
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-2 text-sm text-gray-500 shadow-sm">
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+              Looking into that…
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* Input */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+        className="border-t border-gray-100 bg-white p-3 sm:rounded-b-2xl"
+      >
+        <div className="flex items-end gap-2 rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent px-3 py-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about your school…"
+            rows={1}
+            maxLength={2000}
+            className="flex-1 resize-none bg-transparent text-sm focus:outline-none max-h-32"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            aria-label="Send"
+            className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-300 transition shrink-0"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </button>
+        </div>
+        <p className="mt-1.5 text-[11px] text-gray-400 text-center">
+          AI answers can be wrong. For medical or safeguarding concerns, contact the school or a professional.
+        </p>
+      </form>
+    </div>
   );
 }
