@@ -1,104 +1,65 @@
 import type { NextRequest } from "next/server";
-import OpenAI from 'openai';
-import { getSystemPrompt } from '@/utils/ai-prompts';
+import { authenticateRequest } from "@/app/server/lib/requireAccess";
+import { buildAiScope } from "@/app/server/ai/scope";
+import { buildWelcome } from "@/app/server/ai/prompt";
+import { runChat, sanitizeHistory } from "@/app/server/ai/chat";
 
+const json = (body: unknown, status = 200) => Response.json(body, { status });
+
+function textResponse(text: string) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(text));
+      controller.close();
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+}
+
+/**
+ * GET /api/ai/chat?activeSchoolId=
+ * Greeting and suggested questions for the signed-in user.
+ */
+export async function GET(req: NextRequest) {
+  const auth = await authenticateRequest(req);
+  if ("response" in auth) return auth.response;
+  const scope = await buildAiScope(auth.user, req.nextUrl.searchParams.get("activeSchoolId"));
+  return json({ success: true, role: scope.role, roleLabel: scope.roleLabel, school: scope.activeSchool?.name || null, ...buildWelcome(scope) });
+}
+
+/**
+ * POST /api/ai/chat
+ * Body: { messages: [{ role: "user" | "assistant", content }], activeSchoolId? }
+ * Returns the assistant's reply as text. The model looks up data through
+ * tools filtered to what the signed-in user may see.
+ */
 export async function POST(req: NextRequest) {
+  const auth = await authenticateRequest(req);
+  if ("response" in auth) return auth.response;
+
+  if (!process.env.GROQ_API_KEY) {
+    console.error("[AI] GROQ_API_KEY is not configured");
+    return json({ error: "The AI assistant is not configured." }, 503);
+  }
+
+  let body: { messages?: unknown; activeSchoolId?: string };
   try {
-    const { messages, userRole, studentData, schoolContext, contextData } = await req.json();
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid request body." }, 400);
+  }
 
-    // Validate API key
-    if (!process.env.GROQ_API_KEY) {
-      console.error('GROQ_API_KEY not found in environment');
-      return new Response(
-        JSON.stringify({ error: 'Groq API key not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+  const history = sanitizeHistory(body.messages);
+  if (!history.length || history[history.length - 1].role !== "user") {
+    return json({ error: "Send at least one user message." }, 400);
+  }
 
-    console.log('Groq API Key present, length:', process.env.GROQ_API_KEY.length);
-
-    // Initialize OpenAI client pointing to Groq
-    const client = new OpenAI({
-      apiKey: process.env.GROQ_API_KEY.trim(),
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
-
-    // Get role-appropriate system prompt with database context
-    const systemPrompt = getSystemPrompt(userRole, studentData, schoolContext, contextData);
-
-    // Extract and log the student records section specifically
-    const studentRecordsStart = systemPrompt.indexOf('AVAILABLE STUDENT DATA');
-    const studentRecordsSection = studentRecordsStart !== -1 
-      ? systemPrompt.substring(studentRecordsStart, studentRecordsStart + 1200)
-      : 'NOT FOUND';
-
-    // Check if critical context is present
-    const hasCriticalContext = systemPrompt.includes('CRITICAL CONTEXT');
-    const hasStudentNameData = contextData?.students && contextData.students.length > 0;
-
-    console.log('System prompt for AI:', {
-      userRole,
-      contextDataStudents: contextData?.students?.length || 0,
-      studentNames: contextData?.students?.map(s => s.name) || [],
-      promptLength: systemPrompt.length,
-      promptPreview: systemPrompt.substring(0, 500),
-      hasCriticalContext,
-      hasStudentDataSection: studentRecordsStart !== -1,
-    });
-
-    // Convert messages to OpenAI format
-    const groqMessages = [
-      {
-        role: 'system',
-        content: systemPrompt,
-      },
-      ...messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-    ];
-
-    console.log('Groq API Request:', {
-      systemPromptLength: systemPrompt.length,
-      messagesCount: groqMessages.length,
-      systemPromptPreview: systemPrompt.substring(0, 300),
-      hasStudentData: hasCriticalContext && hasStudentNameData,
-      hasBevantData: systemPrompt.includes('Bevan'),
-    });
-
-    // Get completion from Groq using official model
-    const completion = await client.chat.completions.create({
-      messages: groqMessages,
-      model: 'openai/gpt-oss-20b', // Official Groq model from docs
-      temperature: 0.7,
-      max_tokens: 1024,
-    });
-
-    const fullResponse = completion.choices[0]?.message?.content || 'No response generated';
-
-    // Return as streaming response to maintain compatibility with frontend
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      start(controller) {
-        // Send the entire response at once
-        controller.enqueue(encoder.encode(fullResponse));
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-    });
+  try {
+    const scope = await buildAiScope(auth.user, body.activeSchoolId);
+    return textResponse(await runChat(scope, history));
   } catch (error) {
-    console.error('AI Chat API Error:', error.message || error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process AI request', 
-        details: error.message || String(error)
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    console.error("[AI] chat error:", error?.message || error);
+    return json({ error: "The AI assistant is unavailable right now. Please try again shortly." }, 502);
   }
 }
