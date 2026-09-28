@@ -9,14 +9,6 @@
     {
       "url": "/",
       "description": "Current host"
-    },
-    {
-      "url": "https://kiddiescheck.org",
-      "description": "Production"
-    },
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development"
     }
   ],
   "tags": [

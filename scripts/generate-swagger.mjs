@@ -263,11 +263,10 @@ const spec = {
     description:
       "REST API for Kiddies Check.\n\n1. Call `POST /api/auth/login` to get a token.\n2. Click **Authorize** and paste the token.\n3. Use **Try it out** on any endpoint.\n\n_Generated from `src/app/api` by `npm run docs:generate`._",
   },
-  servers: [
-    { url: "/", description: "Current host" },
-    { url: "https://kiddiescheck.org", description: "Production" },
-    { url: "http://localhost:3000", description: "Local development" },
-  ],
+  // Same-origin only: an absolute URL for another host (e.g. kiddiescheck.org vs
+  // www.kiddiescheck.org) makes the browser send a CORS preflight, which fails
+  // on Vercel's apex -> www redirect.
+  servers: [{ url: "/", description: "Current host" }],
   tags: [...tags].sort().map((name) => ({ name })),
   security: [{ bearerAuth: [] }],
   components: {
