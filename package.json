@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
+    "docs:generate": "node scripts/generate-swagger.mjs",
+    "prebuild": "node scripts/generate-swagger.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -40,7 +42,8 @@
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
     "react-loading-indicators": "^1.0.1",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "swagger-ui-react": "^5.33.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

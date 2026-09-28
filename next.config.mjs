@@ -53,6 +53,16 @@ const nextConfig = {
           },
         ],
       },
+      // Let external Swagger tools (e.g. petstore.swagger.io, editor.swagger.io) load the spec
+      {
+        source: '/swagger.json',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
       // Cache static assets longer
       {
         source: '/static/:path*',
