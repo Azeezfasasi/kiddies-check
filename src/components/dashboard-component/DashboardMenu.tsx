@@ -135,9 +135,9 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'graduation',
       roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager'),
       children: [
-        { href: '/dashboard/school-members', label: 'School members', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
-        { href: '/dashboard/invite-member', label: 'Invite Members', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
-        { href: '/dashboard/school-parents', label: 'Parent List', roles: withFeature(['admin', 'school-leader'], 'school-manager') },
+        { href: '/dashboard/school-members', label: 'School members', roles: withFeature(['admin', 'school-leader','learning-specialist'], 'school-manager') },
+        { href: '/dashboard/invite-member', label: 'Invite Members', roles: withFeature(['admin', 'school-leader','learning-specialist'], 'school-manager') },
+        { href: '/dashboard/school-parents', label: 'Parent List', roles: withFeature(['admin', 'school-leader','learning-specialist'], 'school-manager') },
         { href: '/dashboard/assign-class', label: 'Class Assignment', roles: withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager') },
       ]
     },
