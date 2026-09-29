@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+// Register all models so populate() never hits an unregistered ref
+import '@/app/server/models';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
