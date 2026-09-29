@@ -433,7 +433,7 @@ export default function SchoolParentList() {
                             }}
                             className="flex items-center justify-center gap-1 px-2 py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition font-medium text-xs"
                           >
-                            <Users size={14} /> Children
+                            <Users size={14} /> Children / Link
                           </button>
                           <button
                             onClick={() => {
@@ -488,9 +488,9 @@ export default function SchoolParentList() {
                     <button
                       onClick={() => handleViewChildren(parent)}
                       className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition font-medium text-sm"
-                      title="View children"
+                      title="View / link children"
                     >
-                      <Users size={18} />
+                      <Users size={18} /> Link child
                     </button>
                     <button
                       onClick={() => handleEdit(parent)}
@@ -565,6 +565,11 @@ export default function SchoolParentList() {
             parent={selectedParent}
             schoolId={schoolId}
             userId={userId}
+            onChildrenChange={(count) =>
+              setParents((prev) =>
+                prev.map((p) => (p._id === selectedParent._id ? { ...p, childrenCount: count } : p))
+              )
+            }
             onClose={() => {
               setShowChildrenModal(false);
               setSelectedParent(null);
