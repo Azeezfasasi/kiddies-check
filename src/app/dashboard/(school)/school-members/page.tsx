@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Mail, UserCheck, Clock, AlertCircle, Download } from 'lucide-react';
+import { Users, UserCheck, Clock, AlertCircle, Download } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { withFeature } from '@/utils/roles';
 import type { Loose } from "@/types/loose";

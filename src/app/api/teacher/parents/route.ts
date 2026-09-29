@@ -1,5 +1,7 @@
 import type { NextRequest } from "next/server";
 import User from "@/app/server/models/User";
+import SchoolMember from "@/app/server/models/SchoolMember";
+import Student from "@/app/server/models/Student";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 import { isAcademicAdmin, withFeature } from "@/utils/roles";
@@ -45,30 +47,47 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    await connectDB();
-
     // Build search query
     let searchQuery = {};
     if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       searchQuery = {
         $or: [
-          { firstName: { $regex: search, $options: "i" } },
-          { lastName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } },
+          { firstName: { $regex: escaped, $options: "i" } },
+          { lastName: { $regex: escaped, $options: "i" } },
+          { email: { $regex: escaped, $options: "i" } },
+          { phone: { $regex: escaped, $options: "i" } },
         ],
       };
     }
 
-    // Find parents (users with role 'parent') 
-    // For flexibility, allow searching in all users and let the role filter them
-    const parents = await User.find({
-      role: "parent",
-      isActive: true,
-      ...searchQuery,
-    })
-      .select("firstName lastName email phone avatar role")
-      .limit(50);
+    // A school's parents are everyone invited to it as a parent (pending or accepted)
+    // plus anyone linked as the parent of one of its pupils. Count each account once.
+    const [memberships, linkedParentIds] = await Promise.all([
+      SchoolMember.find({ school: schoolId, role: "parent", status: { $ne: "removed" } })
+        .select("user status invitedAt acceptedAt")
+        .lean(),
+      Student.find({ school: schoolId, parent: { $ne: null } }).distinct("parent"),
+    ]);
+
+    const membershipByUser = new Map(
+      memberships.filter((m) => m.user).map((m) => [String(m.user), m])
+    );
+    const parentIds = [...new Set([...membershipByUser.keys(), ...linkedParentIds.map(String)])];
+
+    const users = await User.find({ _id: { $in: parentIds }, ...searchQuery })
+      .select("firstName lastName email phone avatar role isActive createdAt")
+      .lean();
+
+    const parents = users.map((u) => {
+      const membership = membershipByUser.get(String(u._id));
+      return {
+        ...u,
+        memberStatus: membership?.status ?? null,
+        invitedAt: membership?.invitedAt ?? null,
+        acceptedAt: membership?.acceptedAt ?? null,
+      };
+    });
 
     return Response.json({ parents }, { status: 200 });
   } catch (error) {
