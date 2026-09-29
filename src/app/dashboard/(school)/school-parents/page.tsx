@@ -80,29 +80,9 @@ export default function SchoolParentList() {
         return;
       }
       
-      // Fetch additional data for each parent (children count, status, etc.)
-      const enrichedParents = await Promise.all(
-        data.parents.map(async (parent) => {
-          try {
-            const childRes = await fetch(
-              `/api/teacher/students?schoolId=${schoolId}&parentId=${parent._id}`,
-              {
-                headers: { 'x-user-id': userId },
-              }
-            );
-            const childData = await childRes.json();
-            return {
-              ...parent,
-              childrenCount: childData.data?.length || 0,
-            };
-          } catch (err) {
-            return { ...parent, childrenCount: 0 };
-          }
-        })
-      );
-
-      setParents(enrichedParents);
-      filterAndSortParents(enrichedParents, searchQuery, filterStatus, sortBy);
+      // childrenCount comes back with each parent from the API
+      setParents(data.parents);
+      filterAndSortParents(data.parents, searchQuery, filterStatus, sortBy);
     } catch (error) {
       console.error('Error fetching parents:', error);
       toast.error(error.message || 'Failed to load parents');

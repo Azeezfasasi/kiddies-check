@@ -12,6 +12,7 @@ import School from "@/app/server/models/School";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { can, type AccessLevel } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
@@ -207,103 +208,83 @@ export async function POST(request: NextRequest) {
     const results = [];
     const errors = [];
 
-    for (const mapping of mappings) {
-      const { fromClassId, toClassId, retainedStudentIds = [] } = mapping;
+    const validMappings = mappings.filter((mapping) => {
+      if (!mapping.fromClassId) errors.push({ fromClassId: mapping.fromClassId, error: "fromClassId is required" });
+      return Boolean(mapping.fromClassId);
+    });
+    const fromClassIds = [...new Set(validMappings.map((m) => String(m.fromClassId)))];
 
-      if (!fromClassId) {
-        errors.push({ fromClassId, error: "fromClassId is required" });
-        continue;
-      }
+    // Snapshot every source class before moving anyone, so a pupil promoted
+    // P1 -> P2 is not picked up again by a P2 -> P3 mapping in the same run.
+    const students = await Student.find({ school: schoolId, class: { $in: fromClassIds }, isActive: true })
+      .select("_id class")
+      .lean();
+    const alreadyDone = await PromotionRecord.find({
+      student: { $in: students.map((s) => s._id) },
+      academicSession,
+      status: { $in: ["promoted", "graduated"] },
+    }).distinct("student");
 
+    const handled = new Set(alreadyDone.map(String)); // skip pupils already promoted/graduated this session
+    const studentsByClass = new Map();
+    for (const s of students) {
+      const key = String(s.class);
+      if (!studentsByClass.has(key)) studentsByClass.set(key, []);
+      studentsByClass.get(key).push(s);
+    }
+
+    const records = [];
+    const studentUpdates = [];
+    const now = new Date();
+
+    for (const { fromClassId, toClassId, retainedStudentIds = [] } of validMappings) {
       // If no toClassId, treat as graduation for all non-retained students
       const isGraduation = !toClassId;
+      const retainedSet = new Set(retainedStudentIds.map(String));
 
-      // Get students in fromClass
-      const studentsInClass = await Student.find({
-        school: schoolId,
-        class: fromClassId,
-        isActive: true,
-      });
+      for (const student of studentsByClass.get(String(fromClassId)) || []) {
+        const studentIdStr = String(student._id);
+        if (handled.has(studentIdStr)) continue;
+        handled.add(studentIdStr);
 
-      const retainedSet = new Set(retainedStudentIds);
-
-      for (const student of studentsInClass) {
-        const studentIdStr = student._id.toString();
-
-        // Skip if already promoted in this session
-        const existing = await PromotionRecord.findOne({
-          student: student._id,
-          academicSession,
-          status: { $in: ["promoted", "graduated"] },
-        });
-
-        if (existing) {
-          continue;
-        }
+        const base = { student: student._id, academicSession, promotionDate: now, promotedBy: auth.user._id, school: schoolId };
 
         if (retainedSet.has(studentIdStr)) {
-          // Create retention record
-          await PromotionRecord.create({
-            student: student._id,
-            fromClass: fromClassId,
-            toClass: fromClassId,
-            academicSession,
-            promotionDate: new Date(),
-            promotedBy: auth.user._id,
-            status: "retained",
-            remarks: remarks || "Retained",
-            school: schoolId,
-          });
+          records.push({ ...base, fromClass: fromClassId, toClass: fromClassId, status: "retained", remarks: remarks || "Retained" });
           results.push({ studentId: student._id, status: "retained" });
-          continue;
-        }
-
-        if (isGraduation) {
-          // Graduate student
-          await PromotionRecord.create({
-            student: student._id,
-            fromClass: fromClassId,
-            toClass: fromClassId,
-            academicSession,
-            promotionDate: new Date(),
-            promotedBy: auth.user._id,
-            status: "graduated",
-            remarks: remarks || "Graduated",
-            school: schoolId,
-          });
-          // Optionally deactivate graduated student
-          student.isActive = false;
-          await student.save();
+        } else if (isGraduation) {
+          records.push({ ...base, fromClass: fromClassId, toClass: fromClassId, status: "graduated", remarks: remarks || "Graduated" });
+          // Graduated pupils are deactivated
+          studentUpdates.push({ updateOne: { filter: { _id: student._id }, update: { $set: { isActive: false } } } });
           results.push({ studentId: student._id, status: "graduated" });
         } else {
-          // Promote student
-          const oldClass = student.class;
-          student.class = toClassId;
-          await student.save();
-
-          await PromotionRecord.create({
-            student: student._id,
-            fromClass: oldClass,
-            toClass: toClassId,
-            academicSession,
-            promotionDate: new Date(),
-            promotedBy: auth.user._id,
-            status: "promoted",
-            remarks: remarks || "Promoted to next class",
-            school: schoolId,
-          });
+          records.push({ ...base, fromClass: student.class, toClass: toClassId, status: "promoted", remarks: remarks || "Promoted to next class" });
+          studentUpdates.push({ updateOne: { filter: { _id: student._id }, update: { $set: { class: toClassId } } } });
           results.push({ studentId: student._id, status: "promoted" });
         }
       }
     }
 
+    // Records first: they mark pupils as done, so if moving them then fails a
+    // re-run can't promote anyone twice.
+    if (records.length) await PromotionRecord.insertMany(records);
+    if (studentUpdates.length) await Student.bulkWrite(studentUpdates, { ordered: false });
+
     // Update class student counts
     const allClassIds = [
-      ...new Set(mappings.flatMap((m) => [m.fromClassId, m.toClassId].filter(Boolean))),
-    ];
-    for (const classId of allClassIds) {
-      const count = await Student.countDocuments({ class: classId, isActive: true });
-      await Class.findByIdAndUpdate(classId, { numberOfStudents: count });
+      ...new Set(validMappings.flatMap((m) => [m.fromClassId, m.toClassId].filter(Boolean).map(String))),
+    ].filter((id) => mongoose.isValidObjectId(id));
+    const counts = await Student.aggregate([
+      { $match: { class: { $in: allClassIds.map((id) => new mongoose.Types.ObjectId(id)) }, isActive: true } },
+      { $group: { _id: "$class", n: { $sum: 1 } } },
+    ]);
+    const countByClass = new Map(counts.map((c) => [String(c._id), c.n]));
+    if (allClassIds.length) {
+      await Class.bulkWrite(
+        allClassIds.map((classId) => ({
+          updateOne: { filter: { _id: new mongoose.Types.ObjectId(classId) }, update: { $set: { numberOfStudents: countByClass.get(classId) ?? 0 } } },
+        }))
+      );
     }
 
     return Response.json(

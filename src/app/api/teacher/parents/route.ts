@@ -75,14 +75,24 @@ export async function GET(req: NextRequest) {
     );
     const parentIds = [...new Set([...membershipByUser.keys(), ...linkedParentIds.map(String)])];
 
-    const users = await User.find({ _id: { $in: parentIds }, ...searchQuery })
-      .select("firstName lastName email phone avatar role isActive createdAt")
-      .lean();
+    const objectIds = parentIds.map((id) => new Types.ObjectId(id));
+    const [users, childCounts] = await Promise.all([
+      User.find({ _id: { $in: objectIds }, ...searchQuery })
+        .select("firstName lastName email phone avatar role isActive createdAt")
+        .lean(),
+      // Active pupils per parent, so the page doesn't need a request per parent
+      Student.aggregate([
+        { $match: { school: new Types.ObjectId(schoolId), isActive: true, parent: { $in: objectIds } } },
+        { $group: { _id: "$parent", count: { $sum: 1 } } },
+      ]),
+    ]);
+    const childCountByParent = new Map(childCounts.map((c) => [String(c._id), c.count]));
 
     const parents = users.map((u) => {
       const membership = membershipByUser.get(String(u._id));
       return {
         ...u,
+        childrenCount: childCountByParent.get(String(u._id)) ?? 0,
         memberStatus: membership?.status ?? null,
         invitedAt: membership?.invitedAt ?? null,
         acceptedAt: membership?.acceptedAt ?? null,
