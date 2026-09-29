@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Search, Plus, Eye, Edit2, Mail, Lock, Trash2, 
-  ChevronDown, X, AlertTriangle, Loader
+  Users, Search, Eye, Edit2, Mail, Lock, Trash2, 
+  ChevronDown, Loader
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -339,7 +339,7 @@ export default function SchoolParentList() {
               <Users className="mx-auto text-gray-400 mb-3 md:mb-4" size={44} />
               <h3 className="text-lg md:text-xl font-semibold text-gray-700 mb-2">No Parents Found</h3>
               <p className="text-gray-600 text-sm md:text-base">
-                {searchQuery ? 'Try adjusting your search criteria' : 'No parents have been registered yet'}
+                {searchQuery ? 'Try adjusting your search criteria' : 'No parents have been invited to this school yet'}
               </p>
             </div>
           ) : (
@@ -388,6 +388,14 @@ export default function SchoolParentList() {
                         >
                           {parent.isActive !== false ? 'Active' : 'Disabled'}
                         </span>
+                        {parent.memberStatus === 'invited' && (
+                          <span
+                            className="px-3 md:px-4 py-1 md:py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap bg-yellow-100 text-yellow-800"
+                            title="Invitation sent but not yet accepted"
+                          >
+                            Invite pending
+                          </span>
+                        )}
 
                         {/* Actions Dropdown Toggle - Mobile Only */}
                         <button
