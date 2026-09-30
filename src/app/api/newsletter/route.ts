@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { NextRequest, NextResponse } from 'next/server';
 import {
   subscribeToNewsletter,
@@ -22,7 +23,7 @@ import {
   syncUsersToNewsletter,
   sendTestEmail,
 } from '@/app/server/controllers/newsletterController';
-import { requireAccess } from "@/app/server/lib/requireAccess";
+import { requireAccess, verifiedUserId } from "@/app/server/lib/requireAccess";
 
 // Newsletter management: a signed-in admin / learning specialist, or a
 // platform role granted the newsletter feature. (Previously this trusted an
@@ -30,8 +31,8 @@ import { requireAccess } from "@/app/server/lib/requireAccess";
 const requireAdmin = async (req, level: "view" | "edit" = "edit") => (await requireAccess(req, "newsletter", { level })) === null;
 
 // Get user ID from request (adjust based on your auth system)
-const getUserId = (req) => {
-  return req.headers.get('x-user-id') || 'anonymous';
+const getUserId = async (req) => {
+  return await verifiedUserId(req) || 'anonymous';
 };
 
 // ============================================
@@ -165,7 +166,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
       const result = await createCampaign(body, userId);
       return NextResponse.json(result);
     }
@@ -224,7 +225,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
       const result = await sendNewsletter(campaignId, userId);
       return NextResponse.json(result);
     }
@@ -269,7 +270,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
       const result = await scheduleCampaign(campaignId, scheduledFor, userId);
       return NextResponse.json(result);
     }
@@ -283,7 +284,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
       const result = await createTemplate(body, userId);
       return NextResponse.json(result);
     }
@@ -380,7 +381,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function putHandler(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
@@ -426,7 +427,7 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
       const result = await editCampaign(campaignId, updateData, userId);
       return NextResponse.json(result);
     }
@@ -444,7 +445,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function deleteHandler(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const action = url.searchParams.get('action');
@@ -506,3 +507,7 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

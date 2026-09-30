@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import {
   editProject,
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   return getProjectById(req, params.id);
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   const params = await context.params;
@@ -29,7 +30,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   const params = await context.params;
@@ -37,7 +38,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 }
 
 // Custom endpoint for disabling a project (PUT /api/project/[id]?disable=1)
-export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   const params = await context.params;
@@ -50,3 +51,6 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
   }
   return new Response("Not found", { status: 404 });
 }
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);
+export const PATCH = withAudit(patchHandler);

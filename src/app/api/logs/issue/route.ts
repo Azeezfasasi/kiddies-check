@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { Types } from "mongoose";
 import { connectDB } from "@/app/server/db/connect";
 import IssueReport from "@/app/server/models/IssueReport";
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const status = req.nextUrl.searchParams.get("status");
     const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
@@ -139,7 +140,7 @@ export async function PATCH(req: NextRequest) {
   try {
     await connectDB();
 
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

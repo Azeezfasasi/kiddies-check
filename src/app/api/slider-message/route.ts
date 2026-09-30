@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from "next/server";
 import {
   getAllSliderMessages,
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/slider-message
 // Admin only - create new message
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/slider-message
 // Admin only - update a message or reorder
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -106,3 +107,6 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);

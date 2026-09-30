@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import User from '@/app/server/models/User';
@@ -10,12 +12,12 @@ import { legacy, type LegacySchoolFields } from "@/types/legacy";
  * POST /api/school/switch
  * Switch the active school for admin/learning-specialist users
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
     const { schoolId } = await request.json();
-    const userId = request.headers.get('x-user-id');
+    const userId = await verifiedUserId(request);
 
     // Validate input
     if (!schoolId || !userId) {
@@ -99,7 +101,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    const userId = request.headers.get('x-user-id');
+    const userId = await verifiedUserId(request);
 
     if (!userId) {
       return NextResponse.json(
@@ -153,3 +155,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

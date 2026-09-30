@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import ReportCard from "@/app/server/models/ReportCard";
@@ -20,9 +22,9 @@ async function canAccessSchool(user, schoolId, level: AccessLevel = "edit") {
   return false;
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
 
     if (!userId || !body.schoolId || !body.studentId || !body.classId || !body.term || !body.academicYear || !body.cardType) {
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const studentName = req.nextUrl.searchParams.get("studentName") || "";
     const className = req.nextUrl.searchParams.get("className") || "";
@@ -132,3 +134,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

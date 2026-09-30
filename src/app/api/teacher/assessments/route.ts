@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Assessment from "@/app/server/models/Assessment";
 import AssessmentTrend from "@/app/server/models/AssessmentTrend";
@@ -57,9 +59,9 @@ async function calculateTrend(studentId, subjectId, schoolId) {
 }
 
 // POST /api/teacher/assessments - Create a new assessment
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { schoolId, studentId, subjectId, classId, week, year, date, score, maxScore, gradeLevel, remarks, assessmentType } =
       await req.json();
 
@@ -170,7 +172,7 @@ export async function POST(req: NextRequest) {
 // PUT /api/teacher/assessments/:id - Update an existing assessment
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const studentId = req.nextUrl.searchParams.get("studentId");
     const subjectId = req.nextUrl.searchParams.get("subjectId");
@@ -220,3 +222,5 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import ProspectiveStudent from "@/app/server/models/ProspectiveStudent";
 import Student from "@/app/server/models/Student";
@@ -11,7 +13,7 @@ import { can } from "@/utils/roles";
 // GET - Fetch prospective students
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const status = req.nextUrl.searchParams.get("status"); // pending, approved, rejected
     const searchQuery = req.nextUrl.searchParams.get("search");
@@ -90,9 +92,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST - Create prospective student (used during parent registration)
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
     
     const {
@@ -151,9 +153,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT - Approve or reject prospective student
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
     
     const {
@@ -325,3 +327,6 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import { connectDB } from "@/utils/db";
@@ -8,7 +9,7 @@ import type { PopulatedUser } from "@/types/populated";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
 
     console.log("[Staff API] Fetching staff for userId:", userId, "schoolId:", schoolId);

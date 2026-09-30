@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import {
   getHomeAbout,
@@ -22,7 +23,7 @@ export async function GET() {
 }
 
 // PUT - Update main content or handle paragraph operations
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -54,3 +55,5 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+export const PUT = withAudit(putHandler);

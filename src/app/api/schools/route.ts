@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { authenticate } from "@/app/server/middleware/auth";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
@@ -94,7 +95,7 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/schools - Create a new school
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   return authenticate(req, async (user) => {
     try {
       await connectDB();
@@ -170,3 +171,5 @@ export async function POST(req: NextRequest) {
     }
   });
 }
+
+export const POST = withAudit(postHandler);

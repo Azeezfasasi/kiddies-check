@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
@@ -60,7 +62,7 @@ const sendEmailViaBrevo = async (toEmail, subject, htmlContent) => {
  * POST /api/school/invite-member
  * Invite a member to join the school
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -153,7 +155,7 @@ export async function POST(request: NextRequest) {
       status: invitationType === 'new-user' ? 'invited' : 'active',
       permissions: permissions || [],
       invitationToken,
-      invitedBy: request.headers.get('x-user-id'), // Get from authenticated user
+      invitedBy: await verifiedUserId(request), // Get from authenticated user
       invitedAt: new Date(),
     });
 
@@ -236,7 +238,7 @@ export async function GET(request: NextRequest) {
       school: schoolId,
       ...(status && { status }),
     })
-      .populate('user', 'firstName lastName email avatar')
+      .populate('user', 'firstName lastName email avatar lastLogin')
       .populate('invitedBy', 'firstName lastName')
       .skip(skip)
       .limit(limit)
@@ -319,3 +321,5 @@ function generateInvitationEmail(schoolName, role, link, invitationType) {
     </div>
   `;
 }
+
+export const POST = withAudit(postHandler);

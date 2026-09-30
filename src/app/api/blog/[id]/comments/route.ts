@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { addComment, deleteComment } from '../../../../server/controllers/blogController';
 import { connectDB } from '../../../../../utils/db';
@@ -6,7 +7,7 @@ import { authenticateRequest } from "@/app/server/lib/requireAccess";
 import { can } from "@/utils/roles";
 
 // POST /api/blog/[id]/comments
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   await connectDB();
   const resolvedParams = await params;
   return addComment(req, { params: resolvedParams });
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 // DELETE /api/blog/[id]/comments
 // A comment can be deleted by its author or by someone who manages blogs.
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateRequest(req);
   if ("response" in auth) return auth.response;
 
@@ -36,3 +37,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   req.json = async () => body;
   return deleteComment(req, { params: resolvedParams });
 }
+
+export const POST = withAudit(postHandler);
+export const DELETE = withAudit(deleteHandler);

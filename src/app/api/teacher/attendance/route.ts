@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Attendance from "@/app/server/models/Attendance";
 import Student from "@/app/server/models/Student";
@@ -10,9 +12,9 @@ import { sendAttendanceNotificationToParent } from "@/app/server/utils/emailServ
 import { isAcademicAdmin } from "@/utils/roles";
 import type { PopulatedUser } from "@/types/populated";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { schoolId, studentId, date, status, markedVia, note } = await req.json();
 
     if (!userId || !schoolId || !studentId || !status) {
@@ -116,7 +118,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const studentId = req.nextUrl.searchParams.get("studentId");
     const classId = req.nextUrl.searchParams.get("classId");
@@ -185,3 +187,5 @@ export async function GET(req: NextRequest) {
   }
 }
 
+
+export const POST = withAudit(postHandler);

@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/admin/academic-calendar
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/academic-calendar
  * Create a new academic term
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const auth = await verifyAdmin(request);
     if (auth.error) {
@@ -168,3 +169,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
+export const POST = withAudit(postHandler);

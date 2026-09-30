@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
@@ -21,7 +22,7 @@ const generateToken = (userId) => {
  * For existing members: { memberId, userId }
  * For invited users: { invitationToken, schoolId, firstName, lastName, email, phone, password, confirmPassword }
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -148,6 +149,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    user.lastLogin = new Date(); // accepting the invite signs them in
     await user.save();
 
     // Auto-subscribe every new user to the newsletter
@@ -198,3 +200,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

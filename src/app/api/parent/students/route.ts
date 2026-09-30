@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
 import Class from "@/app/server/models/Class";
@@ -6,7 +7,7 @@ import { connectDB } from "@/utils/db";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
 
     if (!userId || !schoolId || schoolId === "null" || schoolId === "undefined") {

@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import User from "@/app/server/models/User";
 import SchoolMember from "@/app/server/models/SchoolMember";
 import Student from "@/app/server/models/Student";
@@ -8,7 +9,7 @@ import { isAcademicAdmin, withFeature } from "@/utils/roles";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const search = req.nextUrl.searchParams.get("search") || "";
 
@@ -78,7 +79,7 @@ export async function GET(req: NextRequest) {
     const objectIds = parentIds.map((id) => new Types.ObjectId(id));
     const [users, childCounts] = await Promise.all([
       User.find({ _id: { $in: objectIds }, ...searchQuery })
-        .select("firstName lastName email phone avatar role isActive createdAt")
+        .select("firstName lastName email phone avatar role isActive lastLogin createdAt")
         .lean(),
       // Active pupils per parent, so the page doesn't need a request per parent
       Student.aggregate([

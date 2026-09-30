@@ -283,8 +283,8 @@ export default function SchoolMembersPage() {
                                 {new Date(member.createdAt).toLocaleDateString()}
                               </td>
                               <td className="px-4 sm:px-6 py-4 text-xs sm:text-sm text-gray-600">
-                                {member.lastAccessAt
-                                  ? new Date(member.lastAccessAt).toLocaleDateString()
+                                {member.user.lastLogin
+                                  ? new Date(member.user.lastLogin).toLocaleDateString()
                                   : 'Never'}
                               </td>
                             </tr>
@@ -349,8 +349,8 @@ export default function SchoolMembersPage() {
                           <div>
                             <p className="text-gray-500 font-medium mb-1 text-xs sm:text-sm">Last Active</p>
                             <p className="text-gray-700 text-xs sm:text-sm">
-                              {member.lastAccessAt
-                                ? new Date(member.lastAccessAt).toLocaleDateString()
+                              {member.user.lastLogin
+                                ? new Date(member.user.lastLogin).toLocaleDateString()
                                 : 'Never'}
                             </p>
                           </div>

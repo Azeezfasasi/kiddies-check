@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/admin/registrations
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
  * PUT /api/admin/registrations/approve
  * Approve a pending registration
  */
-export async function PUT(request: NextRequest) {
+async function putHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -227,3 +228,5 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withAudit(putHandler);

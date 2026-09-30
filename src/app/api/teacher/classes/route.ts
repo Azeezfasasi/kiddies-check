@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Class from "@/app/server/models/Class";
 import Subject from "@/app/server/models/Subject";
@@ -6,9 +8,9 @@ import { connectDB } from "@/utils/db";
 import { isAcademicAdmin } from "@/utils/roles";
 import { legacy, type LegacyClassFields } from "@/types/legacy";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { schoolId, name, level, section, classTeacher, numberOfStudents, description, subjects } = await req.json();
 
     if (!userId || !schoolId) {
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
 
     if (!userId || !schoolId) {
@@ -139,3 +141,5 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/reminders
@@ -16,7 +17,7 @@ const MAX_REMINDERS = 500;
  * Bills that are paid/waived, were reminded in the last 12 hours, or have no
  * parent/guardian email are skipped and counted in the response.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const body = await request.json();
     const auth = await authorizeSchool(request, body.schoolId, { requireRecorder: true });
@@ -49,3 +50,5 @@ export async function POST(request: NextRequest) {
     return jsonError("Failed to send reminders", 500);
   }
 }
+
+export const POST = withAudit(postHandler);

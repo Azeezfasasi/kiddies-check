@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import Exam from "@/app/server/models/Exam";
@@ -8,7 +9,7 @@ import { signAttemptToken } from "@/app/server/lib/examAttemptToken";
 
 // POST /api/exams/[id]/join — no user session involved. A student picks their name from
 // the class roster and enters the access code the teacher shared with the room.
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const { studentId, accessCode } = await req.json();
@@ -91,3 +92,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

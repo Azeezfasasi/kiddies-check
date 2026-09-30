@@ -40,6 +40,15 @@ export async function authenticateRequest(req: Request): Promise<{ user: UserDoc
 }
 
 /**
+ * The signed-in user's id from the request's token, or null. Replaces the
+ * old `x-user-id` header, which any client could set to impersonate a user.
+ */
+export async function verifiedUserId(req: Request): Promise<string | null> {
+  const auth = await authenticateRequest(req);
+  return "user" in auth ? String(auth.user._id) : null;
+}
+
+/**
  * Authenticates the request and checks the user may act on `feature`:
  * one of `roles` (default: admin, learning-specialist) or a platform role
  * granted the feature at `level` in the permission map.

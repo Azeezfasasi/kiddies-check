@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/fee-structures/[id]
@@ -12,7 +13,7 @@ import { checkSchoolAccess, isValidId, jsonError, releaseArrears, verifyBillingU
  * Removes a class's fees and the bills generated from them. Refused once any
  * payment has been recorded against those bills, so no payment is ever lost.
  */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (!isValidId(id)) return jsonError("Invalid fee structure id", 400);
@@ -64,3 +65,5 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return jsonError("Failed to delete fee structure", 500);
   }
 }
+
+export const DELETE = withAudit(deleteHandler);

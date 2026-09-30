@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
@@ -20,9 +22,9 @@ async function getNextAvailableEnrollmentNo(schoolId, startingNumber = 1) {
   return enrollmentNo;
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const {
       schoolId,
       firstName,
@@ -168,7 +170,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const classId = req.nextUrl.searchParams.get("classId");
     const parentId = req.nextUrl.searchParams.get("parentId");
@@ -224,3 +226,5 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

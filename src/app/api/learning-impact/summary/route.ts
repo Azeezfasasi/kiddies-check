@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import mongoose from "mongoose";
 import { connectDB } from "@/utils/db";
 import LessonObjectiveRating from "@/app/server/models/LessonObjectiveRating";
@@ -14,7 +15,7 @@ async function checkAccess(userId, schoolId) {
 // GET /api/learning-impact/summary?schoolId=...
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const year = req.nextUrl.searchParams.get("year") || new Date().getFullYear();
 

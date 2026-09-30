@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { connectDB } from "@/utils/db";
 import Exam from "@/app/server/models/Exam";
 import ExamAttempt from "@/app/server/models/ExamAttempt";
@@ -8,7 +9,7 @@ import { canAccessSchool } from "@/app/server/lib/schoolAccess";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { id } = await params;
 
     if (!userId || !id) {

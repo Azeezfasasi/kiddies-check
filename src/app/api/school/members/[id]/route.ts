@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
@@ -37,7 +38,7 @@ const fail = (error: string, status: number) => NextResponse.json({ success: fal
  * PUT /api/school/members/{id}
  * Update school member (role, permissions, status)
  */
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await authenticateRequest(request);
     if ('response' in auth) return auth.response;
@@ -121,7 +122,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
  * DELETE /api/school/members/{id}
  * Remove member from school
  */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await authenticateRequest(request);
     if ('response' in auth) return auth.response;
@@ -159,3 +160,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return fail(error.message || 'Failed to remove member', 500);
   }
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

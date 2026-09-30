@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { authenticate } from "@/app/server/middleware/auth";
 import {
@@ -13,8 +14,10 @@ export async function GET(req: NextRequest) {
 }
 
 // PUT /api/auth/profile
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   return authenticate(req, async () => {
     return updateUserProfile(req);
   });
 }
+
+export const PUT = withAudit(putHandler);

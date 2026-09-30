@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/admin/promotions
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
  * Run bulk grade promotion
  * Body: { schoolId, academicSession, mappings: [{ fromClassId, toClassId, retainedStudentIds: [] }], remarks }
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const auth = await verifyAccess(request, "edit");
     if (auth.error) {
@@ -306,3 +307,5 @@ export async function POST(request: NextRequest) {
   }
 }
 
+
+export const POST = withAudit(postHandler);

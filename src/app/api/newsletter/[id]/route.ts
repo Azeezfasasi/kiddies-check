@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getSubscriber,
@@ -10,15 +11,15 @@ import {
   deleteCampaign,
   pauseCampaign,
 } from '@/app/server/controllers/newsletterController';
-import { requireAccess } from "@/app/server/lib/requireAccess";
+import { requireAccess, verifiedUserId } from "@/app/server/lib/requireAccess";
 
 // Newsletter management: a signed-in admin / learning specialist, or a
 // platform role granted the newsletter feature. (Previously this trusted an
 // x-user-role header sent by the browser.)
 const requireAdmin = async (req, level: "view" | "edit" = "edit") => (await requireAccess(req, "newsletter", { level })) === null;
 
-const getUserId = (req) => {
-  return req.headers.get('x-user-id') || 'anonymous';
+const getUserId = async (req) => {
+  return await verifiedUserId(req) || 'anonymous';
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const url = new URL(request.url);
@@ -104,7 +105,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         );
       }
 
-      const userId = getUserId(request);
+      const userId = await getUserId(request);
 
       // PUT /api/newsletter/[id]?type=campaign&action=pause
       if (action === 'pause') {
@@ -130,7 +131,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const url = new URL(request.url);
@@ -167,3 +168,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     );
   }
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

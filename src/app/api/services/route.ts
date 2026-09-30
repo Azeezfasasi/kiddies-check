@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import {
   getServices,
@@ -22,7 +23,7 @@ export async function GET() {
 }
 
 // POST new service
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT for updating or reordering
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -77,7 +78,7 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE a service
-export async function DELETE(req: NextRequest) {
+async function deleteHandler(req: NextRequest) {
   const denied = await requireAccess(req, "site-content");
   if (denied) return denied;
   try {
@@ -100,3 +101,7 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

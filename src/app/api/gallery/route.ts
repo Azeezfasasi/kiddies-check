@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { connectDB } from '@/app/server/db/connect';
 import {
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const denied = await requireAccess(req, "gallery");
   if (denied) return denied;
   try {
@@ -101,3 +102,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

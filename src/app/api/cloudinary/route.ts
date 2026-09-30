@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { v2 as cloudinary } from 'cloudinary';
 import { requireLogin } from "@/app/server/lib/requireAccess";
@@ -49,7 +50,7 @@ async function uploadWithRetry(fileData, folderName, maxRetries = 3) {
 /**
  * Upload image to Cloudinary
  */
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   const denied = await requireLogin(req);
   if (denied) return denied;
   try {
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 /**
  * Delete image from Cloudinary
  */
-export async function DELETE(req: NextRequest) {
+async function deleteHandler(req: NextRequest) {
   const denied = await requireLogin(req);
   if (denied) return denied;
   try {
@@ -123,3 +124,6 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);
+export const DELETE = withAudit(deleteHandler);

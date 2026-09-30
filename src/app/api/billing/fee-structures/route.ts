@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/fee-structures
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
  * Copy term: { action: "copy", schoolId, fromSession, fromTerm, academicSession, term, overwrite }
  * Saving a structure regenerates bills for every active student in the class.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const body = await request.json();
     const { schoolId, academicSession, term } = body;
@@ -217,3 +218,5 @@ async function copyStructures(user, body) {
     billsUpdated,
   });
 }
+
+export const POST = withAudit(postHandler);

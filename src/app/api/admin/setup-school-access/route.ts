@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import type { Types } from 'mongoose';
 import { connectDB } from '@/utils/db';
@@ -15,7 +16,7 @@ import School from '@/app/server/models/School';
  *   schoolIds: string[] (array of school IDs)
  * }
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -169,3 +170,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

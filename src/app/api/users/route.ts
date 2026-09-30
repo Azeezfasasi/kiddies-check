@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { authenticate, isUserManager } from "@/app/server/middleware/auth";
 import { getAllUsers, createUserByAdmin } from "@/app/server/controllers/authController";
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/users
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   // Create user with role assignment (admin only)
   return authenticate(req, async () => {
     return isUserManager(req, async () => {
@@ -21,3 +22,5 @@ export async function POST(req: NextRequest) {
     });
   });
 }
+
+export const POST = withAudit(postHandler);

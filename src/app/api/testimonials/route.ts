@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import {
   getTestimonials,
@@ -13,7 +14,7 @@ export async function GET() {
   return NextResponse.json(result);
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   const denied = await requireAccess(request, "site-content");
   if (denied) return denied;
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+async function putHandler(request: NextRequest) {
   const denied = await requireAccess(request, "site-content");
   if (denied) return denied;
   try {
@@ -56,7 +57,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+async function deleteHandler(request: NextRequest) {
   const denied = await requireAccess(request, "site-content");
   if (denied) return denied;
   try {
@@ -79,3 +80,7 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

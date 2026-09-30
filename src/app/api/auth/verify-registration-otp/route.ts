@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * POST /api/auth/verify-registration-otp
@@ -10,7 +11,7 @@ import ProspectiveStudent from '@/app/server/models/ProspectiveStudent';
 import { sendAdminPendingNotification } from '@/app/server/utils/emailService';
 import { getUserSchoolName } from "@/app/server/lib/userSchool";
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -182,3 +183,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

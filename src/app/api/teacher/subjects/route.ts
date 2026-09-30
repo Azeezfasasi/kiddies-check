@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Subject from "@/app/server/models/Subject";
 import Class from "@/app/server/models/Class";
@@ -6,9 +8,9 @@ import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
 import { isAcademicAdmin } from "@/utils/roles";
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { schoolId, name, code, description, classes, teacher, creditHours, curriculum, assessmentType } =
       await req.json();
 
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const classId = req.nextUrl.searchParams.get("classId");
 
@@ -143,3 +145,5 @@ export async function GET(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);
