@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { connectDB } from "@/utils/db";
 import Assessment from "@/app/server/models/Assessment";
 import AcademicCalendar from "@/app/server/models/AcademicCalendar";
@@ -51,7 +52,7 @@ const EXAM_MAX_MARKS = 60;
 // can be pre-filled with CA / Exam / Total scores instead of starting blank.
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const studentId = req.nextUrl.searchParams.get("studentId");
     const term = req.nextUrl.searchParams.get("term") || "";

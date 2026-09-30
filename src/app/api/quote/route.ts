@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { createQuote, getAllQuotes } from "../../server/controllers/quoteController";
 import { requireAccess } from "@/app/server/lib/requireAccess";
@@ -9,7 +10,9 @@ export async function GET(req: NextRequest) {
   return getAllQuotes(req);
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   // Create a new quote request
   return createQuote(req);
 }
+
+export const POST = withAudit(postHandler);

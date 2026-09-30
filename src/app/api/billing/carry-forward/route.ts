@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/carry-forward
@@ -13,7 +14,7 @@ import { TERMS, authorizeSchool, carryBalancesInto, jsonError } from "@/app/serv
  * POST /api/billing/carry-forward
  * { schoolId, academicSession, term } — admin / school leader
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const { schoolId, academicSession, term } = await request.json();
     const auth = await authorizeSchool(request, schoolId, { requireFeeManager: true });
@@ -40,3 +41,5 @@ export async function POST(request: NextRequest) {
     return jsonError("Failed to carry balances forward", 500);
   }
 }
+
+export const POST = withAudit(postHandler);

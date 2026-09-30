@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { connectDB } from "@/app/server/db/connect";
 import LoginLog from "@/app/server/models/LoginLog";
 import User from "@/app/server/models/User";
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

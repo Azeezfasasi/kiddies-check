@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import LessonObjectiveRating from "@/app/server/models/LessonObjectiveRating";
@@ -13,7 +15,7 @@ async function checkAccess(userId, schoolId) {
 // GET /api/learning-impact/lesson-objectives?schoolId=...
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const teacherId = req.nextUrl.searchParams.get("teacherId");
     const classId = req.nextUrl.searchParams.get("classId");
@@ -55,9 +57,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/learning-impact/lesson-objectives
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
     const {
       schoolId,
@@ -116,9 +118,9 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT /api/learning-impact/lesson-objectives
-export async function PUT(req: NextRequest) {
+async function putHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
     const { ratingId, schoolId, objectives, overallRating, teachersComment, improvementSuggestions } = body;
 
@@ -158,9 +160,9 @@ export async function PUT(req: NextRequest) {
 }
 
 // DELETE /api/learning-impact/lesson-objectives
-export async function DELETE(req: NextRequest) {
+async function deleteHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { searchParams } = new URL(req.url);
     const ratingId = searchParams.get("ratingId");
     const schoolId = searchParams.get("schoolId");
@@ -196,3 +198,7 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
+
+export const POST = withAudit(postHandler);
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/app/server/db/connect';
 import User from '@/app/server/models/User';
@@ -13,7 +14,7 @@ import type { PopulatedNamed } from "@/types/populated";
  * Query params:
  * ?adminEmail=email@example.com
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     await connectDB();
 
@@ -158,3 +159,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

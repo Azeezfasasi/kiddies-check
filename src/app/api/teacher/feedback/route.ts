@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Feedback from "@/app/server/models/Feedback";
 import User from "@/app/server/models/User";
@@ -7,7 +9,7 @@ import { isAcademicAdmin, withFeature } from "@/utils/roles";
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const studentId = req.nextUrl.searchParams.get("studentId");
 
@@ -62,9 +64,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { schoolId, studentId, title, comment, category, rating } = await req.json();
 
     if (!userId || !schoolId || !studentId || !title || !comment) {
@@ -131,3 +133,5 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

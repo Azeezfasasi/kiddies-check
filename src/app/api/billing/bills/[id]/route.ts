@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/bills/[id]
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  * { action: "void-payment", paymentId, reason } — admin / school leader
  * { action: "update", notes, dueDate }          — any billing role
  */
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function patchHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (!isValidId(id)) return jsonError("Invalid bill id", 400);
@@ -170,3 +171,5 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return jsonError(error.message || "Failed to update bill", 500);
   }
 }
+
+export const PATCH = withAudit(patchHandler);

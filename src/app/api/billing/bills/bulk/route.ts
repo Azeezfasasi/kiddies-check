@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/bills/bulk
@@ -32,7 +33,7 @@ const ACTIONS = ["mark-paid", "record-payment", ...FEE_MANAGER_ACTIONS];
  * Payment actions also accept { method, reference, paidAt, note, notifyParent }
  * and email each parent a receipt unless notifyParent is false.
  */
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const body = await request.json();
     const { schoolId, action } = body;
@@ -167,3 +168,5 @@ export async function POST(request: NextRequest) {
     return jsonError(error.message || "Failed to run bulk update", 500);
   }
 }
+
+export const POST = withAudit(postHandler);

@@ -1,7 +1,8 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/app/server/utils/cloudinaryService';
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -33,3 +34,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withAudit(postHandler);

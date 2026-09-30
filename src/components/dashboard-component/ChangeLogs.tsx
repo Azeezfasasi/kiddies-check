@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogIn, Activity, AlertCircle, Calendar, User, Clock, ChevronDown, Loader, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -21,86 +21,68 @@ export default function ChangeLogs() {
     loginLogs: [],
     activityLogs: [],
     issueLogs: [],
+    loginTotal: 0,
+    activityTotal: 0,
+    issueTotal: 0,
+    openIssues: 0,
+    pagination: { page: 1, limit: 20, total: 0, pages: 0 },
   });
   const [loading, setLoading] = useState(false);
-  const [schoolId, setSchoolId] = useState("");
   const [days, setDays] = useState(7);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [expandedLog, setExpandedLog] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
-  const fetchLogs = async (filterDays = days) => {
+  // Paging, search and date filtering all happen on the server
+  const latestRequest = useRef(0);
+  const fetchLogs = async () => {
+    const requestId = ++latestRequest.current;
     try {
       setLoading(true);
-      const schoolIdParam = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
-      const userId = localStorage.getItem("userId");
-      
-      if (!userId) {
-        toast.error("User not authenticated");
-        return;
-      }
+      const schoolIdParam = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId") || "";
+      const query = new URLSearchParams({
+        type: activeTab,
+        page: String(currentPage),
+        limit: String(itemsPerPage),
+        days: String(days),
+        search: debouncedSearch,
+        schoolId: schoolIdParam,
+      });
 
-      setSchoolId(schoolIdParam);
-
-      const res = await fetch(
-        `/api/logs?schoolId=${schoolIdParam}&type=all&limit=100&days=${filterDays}`,
-        {
-          headers: { "x-user-id": userId },
-        }
-      );
-
+      const res = await fetch(`/api/logs?${query}`);
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to fetch logs");
       }
 
       const data = await res.json();
-      if (data.success) {
-        setLogs(data.data);
-        setCurrentPage(1);
-      }
+      // A newer filter or page was requested meanwhile; drop this response
+      if (requestId !== latestRequest.current) return;
+      if (data.success) setLogs(data.data);
     } catch (error) {
+      if (requestId !== latestRequest.current) return;
       console.error("Error fetching logs:", error);
       toast.error("Failed to load logs");
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
+    const timer = setTimeout(() => {
+      const next = searchQuery.trim();
+      if (next === debouncedSearch) return;
+      setDebouncedSearch(next);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const filterLogs = (logsArray, query) => {
-    if (!query.trim()) return logsArray;
-    
-    return logsArray.filter((log) => {
-      const searchStr = query.toLowerCase();
-      return (
-        log.email?.toLowerCase().includes(searchStr) ||
-        log.firstName?.toLowerCase().includes(searchStr) ||
-        log.lastName?.toLowerCase().includes(searchStr) ||
-        log.description?.toLowerCase().includes(searchStr) ||
-        log.title?.toLowerCase().includes(searchStr) ||
-        log.entityName?.toLowerCase().includes(searchStr)
-      );
-    });
-  };
-
-  const paginateArray = (array, page, itemsPerPageCount) => {
-    const startIndex = (page - 1) * itemsPerPageCount;
-    const endIndex = startIndex + itemsPerPageCount;
-    return {
-      items: array.slice(startIndex, endIndex),
-      totalPages: Math.ceil(array.length / itemsPerPageCount),
-      totalItems: array.length,
-    };
-  };
+  useEffect(() => {
+    fetchLogs();
+  }, [activeTab, currentPage, days, debouncedSearch]);
 
   const formatTime = (date) => {
     return new Date(date).toLocaleString("en-GB", {
@@ -149,15 +131,7 @@ export default function ChangeLogs() {
 
   // Login Log Item
   const renderLoginLogs = () => {
-    const filtered = filterLogs(logs.loginLogs, searchQuery);
-    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
-    
-    if (filtered.length === 0) {
-      return { items: [], totalPages: 0, totalItems: 0 };
-    }
-
-    return {
-      items: paginated.items.map((log) => (
+    return logs.loginLogs.map((log) => (
         <div
           key={log._id}
           className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition"
@@ -195,23 +169,12 @@ export default function ChangeLogs() {
             </div>
           </div>
         </div>
-      )),
-      totalPages: paginated.totalPages,
-      totalItems: paginated.totalItems,
-    };
+      ));
   };
 
   // Activity Log Item
   const renderActivityLogs = () => {
-    const filtered = filterLogs(logs.activityLogs, searchQuery);
-    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
-    
-    if (filtered.length === 0) {
-      return { items: [], totalPages: 0, totalItems: 0 };
-    }
-
-    return {
-      items: paginated.items.map((log) => (
+    return logs.activityLogs.map((log) => (
         <div
           key={log._id}
           className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer"
@@ -254,23 +217,12 @@ export default function ChangeLogs() {
             />
           </div>
         </div>
-      )),
-      totalPages: paginated.totalPages,
-      totalItems: paginated.totalItems,
-    };
+      ));
   };
 
   // Issue Log Item
   const renderIssueLogs = () => {
-    const filtered = filterLogs(logs.issueLogs, searchQuery);
-    const paginated = paginateArray(filtered, currentPage, itemsPerPage);
-    
-    if (filtered.length === 0) {
-      return { items: [], totalPages: 0, totalItems: 0 };
-    }
-
-    return {
-      items: paginated.items.map((issue) => (
+    return logs.issueLogs.map((issue) => (
         <div
           key={issue._id}
           className={`rounded-lg p-3 sm:p-4 hover:shadow-md transition cursor-pointer ${getSeverityColor(issue.severity)}`}
@@ -320,10 +272,7 @@ export default function ChangeLogs() {
             />
           </div>
         </div>
-      )),
-      totalPages: paginated.totalPages,
-      totalItems: paginated.totalItems,
-    };
+      ));
   };
 
   const tabs = [
@@ -351,7 +300,13 @@ export default function ChangeLogs() {
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            {/* First, last and up to two either side of the current page */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPageNum) <= 2)
+              .flatMap((page, i, shown) => (i > 0 && page - shown[i - 1] > 1 ? ["gap-" + page, page] : [page]))
+              .map((page) => typeof page === "string" ? (
+              <span key={page} className="px-1 text-gray-400">…</span>
+            ) : (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
@@ -407,7 +362,7 @@ export default function ChangeLogs() {
               value={days}
               onChange={(e) => {
                 setDays(parseInt(e.target.value));
-                fetchLogs(parseInt(e.target.value));
+                setCurrentPage(1);
               }}
               className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
@@ -428,7 +383,10 @@ export default function ChangeLogs() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setCurrentPage(1);
+                }}
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition flex-shrink-0 ${
                   activeTab === tab.id
                     ? "text-blue-600 border-b-2 border-blue-600"
@@ -453,93 +411,56 @@ export default function ChangeLogs() {
             <>
               {activeTab === "all" && (
                 <div className="space-y-6">
-                  {logs.loginLogs.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-3 flex items-center gap-2">
-                        <LogIn className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="truncate">Recent Logins ({logs.loginLogs.length})</span>
-                      </h3>
-                      <div className="space-y-2">{renderLoginLogs().items.slice(0, 5)}</div>
-                    </div>
-                  )}
-                  {logs.activityLogs.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-3 flex items-center gap-2">
-                        <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="truncate">Recent Activities ({logs.activityLogs.length})</span>
-                      </h3>
-                      <div className="space-y-2">{renderActivityLogs().items.slice(0, 5)}</div>
-                    </div>
-                  )}
-                  {logs.issueLogs.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-3 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="truncate">Recent Issues ({logs.issueLogs.length})</span>
-                      </h3>
-                      <div className="space-y-2">{renderIssueLogs().items.slice(0, 5)}</div>
-                    </div>
-                  )}
-                  {logs.loginLogs.length === 0 &&
-                    logs.activityLogs.length === 0 &&
-                    logs.issueLogs.length === 0 && (
-                      <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
-                        No logs found for the selected period
+                  {[
+                    { tab: "login", title: "Recent Logins", icon: LogIn, items: renderLoginLogs(), total: logs.loginTotal },
+                    { tab: "activity", title: "Recent Activities", icon: Activity, items: renderActivityLogs(), total: logs.activityTotal },
+                    { tab: "issue", title: "Recent Issues", icon: AlertCircle, items: renderIssueLogs(), total: logs.issueTotal },
+                  ]
+                    .filter((section) => section.total > 0)
+                    .map(({ tab, title, icon: Icon, items, total }) => (
+                      <div key={tab}>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <h3 className="font-semibold text-base sm:text-lg text-gray-900 flex items-center gap-2 min-w-0">
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                            <span className="truncate">{title} ({total})</span>
+                          </h3>
+                          {total > items.length && (
+                            <button
+                              onClick={() => {
+                                setActiveTab(tab);
+                                setCurrentPage(1);
+                              }}
+                              className="text-xs sm:text-sm text-blue-600 hover:underline flex-shrink-0"
+                            >
+                              View all
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-2">{items}</div>
                       </div>
-                    )}
+                    ))}
+                  {logs.loginTotal === 0 && logs.activityTotal === 0 && logs.issueTotal === 0 && (
+                    <div className="text-center py-8 sm:py-12 text-gray-500 text-sm sm:text-base">
+                      No logs found for the selected period
+                    </div>
+                  )}
                 </div>
               )}
 
-              {activeTab === "login" && (
+              {activeTab !== "all" && (
                 <div>
                   <div className="space-y-2">
-                    {renderLoginLogs().items.length > 0 ? (
-                      renderLoginLogs().items
+                    {logs.pagination.total > 0 ? (
+                      { login: renderLoginLogs, activity: renderActivityLogs, issue: renderIssueLogs }[activeTab]()
                     ) : (
                       <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-                        No login logs found
+                        {{ login: "No login logs found", activity: "No activity logs found", issue: "No issue reports found" }[activeTab]}
                       </div>
                     )}
                   </div>
-                  <PaginationControls 
-                    totalPages={renderLoginLogs().totalPages} 
-                    totalItems={renderLoginLogs().totalItems}
-                    currentPageNum={currentPage}
-                  />
-                </div>
-              )}
-              {activeTab === "activity" && (
-                <div>
-                  <div className="space-y-2">
-                    {renderActivityLogs().items.length > 0 ? (
-                      renderActivityLogs().items
-                    ) : (
-                      <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-                        No activity logs found
-                      </div>
-                    )}
-                  </div>
-                  <PaginationControls 
-                    totalPages={renderActivityLogs().totalPages} 
-                    totalItems={renderActivityLogs().totalItems}
-                    currentPageNum={currentPage}
-                  />
-                </div>
-              )}
-              {activeTab === "issue" && (
-                <div>
-                  <div className="space-y-2">
-                    {renderIssueLogs().items.length > 0 ? (
-                      renderIssueLogs().items
-                    ) : (
-                      <div className="text-center py-6 sm:py-8 text-gray-500 text-sm">
-                        No issue reports found
-                      </div>
-                    )}
-                  </div>
-                  <PaginationControls 
-                    totalPages={renderIssueLogs().totalPages} 
-                    totalItems={renderIssueLogs().totalItems}
+                  <PaginationControls
+                    totalPages={logs.pagination.pages}
+                    totalItems={logs.pagination.total}
                     currentPageNum={currentPage}
                   />
                 </div>
@@ -554,19 +475,19 @@ export default function ChangeLogs() {
         <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-600">Total Logins</div>
           <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1">
-            {logs.loginLogs.length}
+            {logs.loginTotal}
           </div>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-600">Total Activities</div>
           <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1">
-            {logs.activityLogs.length}
+            {logs.activityTotal}
           </div>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
           <div className="text-xs sm:text-sm text-gray-600">Open Issues</div>
           <div className="text-xl sm:text-2xl font-bold text-red-600 mt-1">
-            {logs.issueLogs.filter((i) => i.status === "open").length}
+            {logs.openIssues}
           </div>
         </div>
       </div>

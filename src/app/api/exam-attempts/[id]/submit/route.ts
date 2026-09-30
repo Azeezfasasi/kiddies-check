@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import ExamAttempt from "@/app/server/models/ExamAttempt";
@@ -29,7 +30,7 @@ function currentIsoWeek(date) {
 // POST /api/exam-attempts/[id]/submit — grades objective answers immediately, then writes
 // the result into Assessment (assessmentType: "exam") so report-card auto-population picks
 // it up through the same aggregation path as any manually recorded assessment.
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -113,3 +114,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

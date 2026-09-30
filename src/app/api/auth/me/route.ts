@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import User from '@/app/server/models/User';
 import jwt from 'jsonwebtoken';
 
@@ -22,17 +23,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fallback: try x-user-id header
+    // Token cookie, when there is no Authorization header
     if (!userId) {
-      userId = request.headers.get('x-user-id');
-    }
-
-    // Fallback: try from localStorage cookie (if using cookie-based auth)
-    if (!userId && request.cookies) {
-      const userCookie = request.cookies.get('userId');
-      if (userCookie) {
-        userId = userCookie.value;
-      }
+      userId = await verifiedUserId(request);
     }
 
     if (!userId) {

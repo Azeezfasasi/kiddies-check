@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { connectDB } from '@/app/server/db/connect';
 import {
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "gallery");
   if (denied) return denied;
   try {
@@ -105,7 +106,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "gallery");
   if (denied) return denied;
   try {
@@ -145,3 +146,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     );
   }
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { defineModel } from "./defineModel";
 import { ALL_ROLES } from "@/utils/roles";
+import { markActivityLogged } from "@/app/server/lib/auditContext";
 
 const activityLogSchema = new mongoose.Schema(
   {
@@ -36,27 +37,26 @@ const activityLogSchema = new mongoose.Schema(
         "assign-parent",
         "upload-notebook",
         "send-feedback",
+        "upload",
+        "send",
+        "submit",
+        "approve",
+        "reject",
+        "join",
+        "accept",
         "other",
       ],
       required: true,
       index: true,
     },
+    // Free-form: withAudit derives it from the route (student, bill, exam, ...)
     entityType: {
       type: String,
-      enum: [
-        "student",
-        "class",
-        "attendance",
-        "user",
-        "school",
-        "feedback",
-        "notebook",
-        "parent",
-        "other",
-      ],
       required: true,
       index: true,
     },
+    method: String,
+    path: String,
     entityId: {
       type: String,
       index: true,
@@ -88,5 +88,8 @@ activityLogSchema.index({ user: 1, timestamp: -1 });
 activityLogSchema.index({ school: 1, timestamp: -1 });
 activityLogSchema.index({ entityType: 1, timestamp: -1 });
 activityLogSchema.index({ timestamp: -1 });
+
+// A route that logs its own activity stops withAudit from adding a generic duplicate
+activityLogSchema.post("save", markActivityLogged);
 
 export default defineModel("ActivityLog", activityLogSchema);

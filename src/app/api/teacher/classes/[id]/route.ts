@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Class from "@/app/server/models/Class";
 import Subject from "@/app/server/models/Subject";
@@ -11,7 +13,7 @@ import type { PopulatedUser } from "@/types/populated";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = await params;
 
@@ -57,9 +59,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = await params;
     const body = await req.json();
@@ -198,9 +200,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = await params;
 
@@ -265,3 +267,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/billing/bills/[id]/payments
@@ -24,7 +25,7 @@ import {
  * Payments larger than the outstanding balance are rejected. Unless
  * notifyParent is false, the receipt is emailed to the parent/guardian.
  */
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     if (!isValidId(id)) return jsonError("Invalid bill id", 400);
@@ -87,3 +88,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return jsonError(error.message || "Failed to record payment", 500);
   }
 }
+
+export const POST = withAudit(postHandler);

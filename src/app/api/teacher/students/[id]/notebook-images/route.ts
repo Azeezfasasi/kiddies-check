@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
@@ -44,11 +46,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // POST upload notebook images
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     const { id } = await params;
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return Response.json(
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 // DELETE notebook image
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectDB();
     const { id } = await params;
@@ -192,3 +194,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     );
   }
 }
+
+export const POST = withAudit(postHandler);
+export const DELETE = withAudit(deleteHandler);

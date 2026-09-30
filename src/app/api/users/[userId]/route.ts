@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { authenticate, isUserManager } from "@/app/server/middleware/auth";
 import {
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ user
 }
 
 // PUT /api/users/[userId]
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+async function putHandler(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
   return authenticate(req, async () => {
     return isUserManager(req, async () => {
@@ -27,7 +28,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ user
 }
 
 // DELETE /api/users/[userId]
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
   return authenticate(req, async () => {
     return isUserManager(req, async () => {
@@ -35,3 +36,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ u
     });
   });
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

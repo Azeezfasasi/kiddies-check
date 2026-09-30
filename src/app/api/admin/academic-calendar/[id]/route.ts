@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 /**
  * /api/admin/academic-calendar/[id]
@@ -39,7 +40,7 @@ const verifyAdmin = async (req) => {
  * PUT /api/admin/academic-calendar/[id]
  * Update an academic term
  */
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await verifyAdmin(request);
     if (auth.error) {
@@ -116,7 +117,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
  * DELETE /api/admin/academic-calendar/[id]
  * Delete an academic term
  */
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await verifyAdmin(request);
     if (auth.error) {
@@ -155,7 +156,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
  * PATCH /api/admin/academic-calendar/[id]
  * Set term as current (and unset others)
  */
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function patchHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await verifyAdmin(request);
     if (auth.error) {
@@ -196,3 +197,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);
+export const PATCH = withAudit(patchHandler);

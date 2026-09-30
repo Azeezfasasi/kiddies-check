@@ -1,22 +1,23 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { updateQuote, deleteQuote, changeQuoteStatus, replyToQuote, assignQuote } from "../../../server/controllers/quoteController";
 import { authorizeAccess, requireAccess } from "@/app/server/lib/requireAccess";
 
-export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
   if (denied) return denied;
   const params = await context.params;
   return updateQuote(req, params.id);
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
   if (denied) return denied;
   const params = await context.params;
   return deleteQuote(req, params.id);
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await authorizeAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
   if ("response" in auth) return auth.response;
   const params = await context.params;
@@ -35,3 +36,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   }
   return new Response(JSON.stringify({ success: false, message: "Invalid request" }), { status: 400 });
 }
+
+export const PATCH = withAudit(patchHandler);
+export const DELETE = withAudit(deleteHandler);
+export const PUT = withAudit(putHandler);

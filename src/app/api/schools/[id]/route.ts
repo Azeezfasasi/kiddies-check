@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { authenticate } from "@/app/server/middleware/auth";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // PUT /api/schools/:id - Update a school
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return authenticate(req, async (user) => {
     try {
       await connectDB();
@@ -120,7 +121,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 // DELETE /api/schools/:id - Delete a school
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return authenticate(req, async (user) => {
     try {
       await connectDB();
@@ -186,3 +187,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
   });
 }
+
+export const PUT = withAudit(putHandler);
+export const DELETE = withAudit(deleteHandler);

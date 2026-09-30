@@ -1,3 +1,5 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import Exam from "@/app/server/models/Exam";
@@ -26,7 +28,7 @@ function validateQuestions(questions) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const classId = req.nextUrl.searchParams.get("classId") || "";
     const subjectId = req.nextUrl.searchParams.get("subjectId") || "";
@@ -63,9 +65,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const body = await req.json();
     const { schoolId, classId, subjectId, title, term, academicYear, durationMinutes, instructions, questions } = body;
 
@@ -128,3 +130,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export const POST = withAudit(postHandler);

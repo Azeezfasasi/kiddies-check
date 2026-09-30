@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import type { NextRequest } from "next/server";
 import { deleteContact, replyToContact, getContactById } from "../../../server/controllers/contactController";
 import Contact from "@/app/server/models/Contact";
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   return getContactById(req, params.id);
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function deleteHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const denied = await requireAccess(req, "contact-responses");
   if (denied) return denied;
   // Delete contact form
@@ -27,7 +28,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
  *   { status }   — change status only (pending | replied | closed)
  * The reply is attributed to the signed-in user, never to a client-sent id.
  */
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const auth = await authorizeAccess(req, "contact-responses");
   if ("response" in auth) return auth.response;
   const { id } = await context.params;
@@ -46,3 +47,6 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   req.json = async () => ({ ...body, senderId: auth.user._id.toString() });
   return replyToContact(req, id);
 }
+
+export const DELETE = withAudit(deleteHandler);
+export const PUT = withAudit(putHandler);

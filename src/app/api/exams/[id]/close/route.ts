@@ -1,12 +1,14 @@
+import { withAudit } from "@/app/server/lib/audit";
+import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import { type NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/utils/db";
 import Exam from "@/app/server/models/Exam";
 import User from "@/app/server/models/User";
 import { canAccessSchool } from "@/app/server/lib/schoolAccess";
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = req.headers.get("x-user-id");
+    const userId = await verifiedUserId(req);
     const { id } = await params;
 
     if (!userId || !id) {
@@ -38,3 +40,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export const PUT = withAudit(putHandler);

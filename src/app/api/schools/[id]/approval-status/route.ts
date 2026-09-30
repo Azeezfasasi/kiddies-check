@@ -1,3 +1,4 @@
+import { withAudit } from "@/app/server/lib/audit";
 import { authenticate } from "@/app/server/middleware/auth";
 import { connectDB } from "@/utils/db";
 import { Types } from "mongoose";
@@ -6,7 +7,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { can } from "@/utils/roles";
 
 // PATCH /api/schools/:id/approval-status - Update school approval status
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return authenticate(req, async (user) => {
     try {
       await connectDB();
@@ -76,3 +77,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   });
 }
+
+export const PATCH = withAudit(patchHandler);
