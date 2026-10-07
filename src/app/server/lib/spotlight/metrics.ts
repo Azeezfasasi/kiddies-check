@@ -61,13 +61,17 @@ function windowOf(period: ResolvedPeriod) {
   return { $gte: fromKey(all[0]), $lte: end };
 }
 
-/** Teachers per school: active teacher memberships plus legacy User.schoolId teachers. */
+/**
+ * Teaching staff per school: active teacher memberships, legacy User.schoolId
+ * teachers, and class teachers of active arms (often a head teacher who teaches).
+ */
 async function teachersBySchool(schoolIds: Id[]) {
-  const [members, legacy] = await Promise.all([
+  const [members, legacy, classTeachers] = await Promise.all([
     SchoolMember.find({ school: { $in: schoolIds }, role: "teacher", status: "active", user: { $ne: null } })
       .select("school user")
       .lean(),
     User.find({ role: "teacher", isActive: true, schoolId: { $in: schoolIds } }).select("schoolId").lean(),
+    Class.find({ school: { $in: schoolIds }, isActive: true, classTeacher: { $ne: null } }).select("school classTeacher").lean(),
   ]);
   const map = new Map<string, Set<string>>();
   const add = (school: unknown, user: unknown) => {
@@ -77,7 +81,19 @@ async function teachersBySchool(schoolIds: Id[]) {
   };
   members.forEach((m) => add(m.school, m.user));
   legacy.forEach((u) => add(u.schoolId, u._id));
+  classTeachers.forEach((c) => add(c.school, c.classTeacher));
   return map;
+}
+
+/**
+ * Assessment Records for staff: who recorded, out of the teaching roster plus
+ * anyone else who recorded. Counting every recorder keeps a school's figure
+ * consistent with its arms: assessments recorded by a head teacher or
+ * learning specialist are never silently dropped.
+ */
+function recordingCoverage(recorders: Set<string>, roster: Set<string>) {
+  const total = new Set([...roster, ...recorders]).size;
+  return { recorded: recorders.size, total, value: pct(recorders.size, total) };
 }
 
 /** Turns per-day tallies into KPI values for a set of days. */
@@ -172,13 +188,13 @@ export async function networkView(user: UserDocument, scope: SpotlightScope, per
 
   const kpis = kpiBlock(period, (days) => {
     const att = calc.attendance(days, null, totalPupils);
-    const recorded = calc.actors(days, null, allTeachers).size;
+    const staff = recordingCoverage(calc.actors(days, null, null), allTeachers);
     return {
-      assessments: pct(recorded, allTeachers.size),
+      assessments: staff.value,
       present: att.present,
       attendanceMarked: att.attendanceMarked,
       detail: {
-        assessments: [{ label: "Teachers recording", value: `${fmtCount(recorded)} of ${fmtCount(allTeachers.size)}` }],
+        assessments: [{ label: "Teachers recording", value: `${fmtCount(staff.recorded)} of ${fmtCount(staff.total)}` }],
         present: [
           { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
           { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
@@ -207,7 +223,7 @@ export async function networkView(user: UserDocument, scope: SpotlightScope, per
       subtitle: head?.name ?? null,
       href: { level: "school", id },
       kpis: {
-        assessments: pct(calc.actors(periodDays, new Set([id]), schoolTeachers).size, schoolTeachers.size),
+        assessments: recordingCoverage(calc.actors(periodDays, new Set([id]), null), schoolTeachers).value,
         present: att.present,
         attendanceMarked: att.attendanceMarked,
       },
@@ -300,13 +316,13 @@ export async function schoolView(schoolId: Id, period: ResolvedPeriod) {
 
   const kpis = kpiBlock(period, (days) => {
     const att = byClass.attendance(days, null, totalPupils);
-    const recorded = byTeacher.actors(days, null, schoolTeachers).size;
+    const staff = recordingCoverage(byTeacher.actors(days, null, null), schoolTeachers);
     return {
-      assessments: pct(recorded, schoolTeachers.size),
+      assessments: staff.value,
       present: att.present,
       attendanceMarked: att.attendanceMarked,
       detail: {
-        assessments: [{ label: "Teachers recording", value: `${recorded} of ${schoolTeachers.size}` }],
+        assessments: [{ label: "Teachers recording", value: `${staff.recorded} of ${staff.total}` }],
         present: [
           { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
           { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
@@ -334,9 +350,11 @@ export async function schoolView(schoolId: Id, period: ResolvedPeriod) {
     };
   });
 
-  // Team: the school's teachers. Attendance columns show the arm they are class teacher of.
-  const teacherUsers = await User.find({ _id: { $in: [...schoolTeachers] } }).select("firstName lastName email").lean();
-  const recordedTeachers = byTeacher.actors(periodDays, null, schoolTeachers);
+  // Team: the teaching roster plus anyone else who recorded assessments in the period.
+  // Attendance columns show the arm they are class teacher of.
+  const recordedTeachers = byTeacher.actors(periodDays, null, null);
+  const teamIds = new Set([...schoolTeachers, ...recordedTeachers]);
+  const teacherUsers = await User.find({ _id: { $in: [...teamIds] } }).select("firstName lastName email").lean();
   const team: ViewRow[] = teacherUsers.map((t) => {
     const id = str(t._id);
     const ownClass = classes.find((c) => str((c.classTeacher as unknown as { _id?: unknown })?._id) === id);
@@ -344,7 +362,7 @@ export async function schoolView(schoolId: Id, period: ResolvedPeriod) {
     return {
       id,
       name: fullName(t) ?? t.email,
-      subtitle: classRow ? `Class teacher, ${classRow.name}` : "Teacher",
+      subtitle: classRow ? `Class teacher, ${classRow.name}` : schoolTeachers.has(id) ? "Teacher" : "Recorded assessments",
       href: classRow ? { level: "arm" as Level, id: classRow.id } : null,
       kpis: {
         assessments: recordedTeachers.has(id) ? 100 : 0,
