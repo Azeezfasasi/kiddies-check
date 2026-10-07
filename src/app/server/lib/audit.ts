@@ -18,7 +18,7 @@ const SEGMENT_ACTIONS: Record<string, string> = {
   import: "import", "bulk-upload": "import", export: "export",
   upload: "upload", notebook: "upload-notebook", attendance: "mark-attendance",
   parent: "assign-parent", feedback: "send-feedback", reminders: "send", send: "send",
-  submit: "submit", approve: "approve", reject: "reject", join: "join", accept: "accept",
+  "resend-invite": "send", submit: "submit", approve: "approve", reject: "reject", join: "join", accept: "accept",
 };
 
 const VERBS: Record<string, string> = {

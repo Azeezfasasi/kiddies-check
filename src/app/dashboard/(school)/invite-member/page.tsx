@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Loader, Mail, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Loader, Mail, Plus, Trash2, Edit2, Check, X, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { withFeature } from '@/utils/roles';
@@ -17,7 +17,6 @@ const MEMBER_ROLES = [
 export default function InviteMemberPage() {
   const [schoolId, setSchoolId] = useState('');
   const [userSchoolName, setUserSchoolName] = useState('');
-  const [schools, setSchools] = useState([]);
   const [showSchoolSelector, setShowSchoolSelector] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -33,6 +32,7 @@ export default function InviteMemberPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('active');
 
   // Get school ID from user context or session
@@ -90,14 +90,7 @@ export default function InviteMemberPage() {
     getSchoolId();
   }, []);
 
-  // Fetch members
-  useEffect(() => {
-    if (!schoolId) return;
-    setShowSchoolSelector(false);
-    fetchMembers();
-  }, [schoolId, filterStatus]);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       setLoadingMembers(true);
       const response = await fetch(
@@ -115,7 +108,14 @@ export default function InviteMemberPage() {
     } finally {
       setLoadingMembers(false);
     }
-  };
+  }, [schoolId, filterStatus]);
+
+  // Fetch members
+  useEffect(() => {
+    if (!schoolId) return;
+    setShowSchoolSelector(false);
+    fetchMembers();
+  }, [schoolId, fetchMembers]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -123,11 +123,6 @@ export default function InviteMemberPage() {
       ...prev,
       [name]: value,
     }));
-  };
-
-  const handleSelectSchool = (selectedSchoolId) => {
-    setSchoolId(selectedSchoolId);
-    localStorage.setItem('schoolId', selectedSchoolId);
   };
 
   const handleSubmit = async (e) => {
@@ -207,6 +202,24 @@ export default function InviteMemberPage() {
     } catch (err) {
       toast.error('Failed to remove member');
       console.error('Error:', err);
+    }
+  };
+
+  const handleResendInvite = async (member) => {
+    setResendingId(member._id);
+    try {
+      const response = await fetch(`/api/school/members/${member._id}/resend-invite`, { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        toast.success(data.message || 'Invitation resent');
+      } else {
+        toast.error(data.error || 'Failed to resend invitation');
+      }
+    } catch (err) {
+      toast.error('Failed to resend invitation');
+      console.error('Error:', err);
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -290,7 +303,7 @@ export default function InviteMemberPage() {
               Manage School Members
             </h1>
             <p className="text-gray-600">
-              Invite teachers, parents, and staff to access your school's data
+              Invite teachers, parents, and staff to access your school&apos;s data
             </p>
           </div>
 
@@ -567,6 +580,20 @@ export default function InviteMemberPage() {
                                     >
                                       <Edit2 className="w-4 h-4" />
                                     </button>
+                                    {member.status === 'invited' && (
+                                      <button
+                                        onClick={() => handleResendInvite(member)}
+                                        disabled={resendingId === member._id}
+                                        className="p-2 text-amber-600 hover:bg-amber-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Resend Invitation"
+                                      >
+                                        {resendingId === member._id ? (
+                                          <Loader className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Send className="w-4 h-4" />
+                                        )}
+                                      </button>
+                                    )}
                                     <button
                                       onClick={() =>
                                         handleRemoveMember(member._id)

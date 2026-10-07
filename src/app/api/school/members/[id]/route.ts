@@ -2,35 +2,12 @@ import { withAudit } from "@/app/server/lib/audit";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
-import type { UserDocument } from '@/app/server/models/User';
 import { authenticateRequest } from '@/app/server/lib/requireAccess';
-import { can, hasAllSchoolAccess } from '@/utils/roles';
+import { canActOnSchool, canManageMembers, isViewOnlyMemberAccess } from '@/app/server/lib/schoolMembers';
 
 const VALID_ROLES = ['school-leader', 'learning-specialist', 'teacher', 'parent', 'staff'];
 const VALID_STATUSES = ['invited', 'active', 'inactive', 'removed'];
 const VALID_PERMISSIONS = ['view_students', 'edit_students', 'view_reports', 'manage_members', 'edit_school_info', 'view_analytics'];
-
-// Full member management (role, status, permissions, removal).
-const canManageMembers = (role: string) =>
-  ['admin', 'school-leader', 'learning-specialist'].includes(role) || can(role, 'school-manager', 'edit');
-
-// View-only School Manager access (e.g. Viewer): may only edit the permissions
-// of their own membership, never anyone's role or status.
-const isViewOnlyMemberAccess = (role: string) => !canManageMembers(role) && can(role, 'school-manager', 'view');
-
-// Admins and cross-school roles act on any school; school leaders only on
-// their own school (primary school or an active leadership membership).
-async function canActOnSchool(user: UserDocument, schoolId: unknown): Promise<boolean> {
-  if (user.role === 'admin' || hasAllSchoolAccess(user.role)) return true;
-  if (user.schoolId && user.schoolId.toString() === String(schoolId)) return true;
-  const membership = await SchoolMember.findOne({
-    user: user._id,
-    school: schoolId,
-    role: 'school-leader',
-    status: 'active',
-  }).select('_id');
-  return !!membership;
-}
 
 const fail = (error: string, status: number) => NextResponse.json({ success: false, error }, { status });
 
