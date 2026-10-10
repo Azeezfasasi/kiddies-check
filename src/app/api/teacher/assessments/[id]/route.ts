@@ -121,7 +121,19 @@ async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: 
     const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
     const { id } = await params;
-    const { score, gradeLevel, remarks, assessmentType } = await req.json();
+    const {
+      studentId,
+      subjectId,
+      classId,
+      week,
+      year,
+      date,
+      score,
+      maxScore,
+      gradeLevel,
+      remarks,
+      assessmentType,
+    } = await req.json();
 
     if (!userId || !schoolId) {
       return Response.json({ error: "User and school information required" }, { status: 401 });
@@ -156,40 +168,63 @@ async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: 
     // Auto-calculate grade level from score if score is being updated
     const finalScore = score !== undefined ? score : assessment.score;
     const finalGradeLevel = score !== undefined ? getGradeLevel(score) : (gradeLevel || assessment.gradeLevel);
+    const finalMaxScore = maxScore || assessment.maxScore || 100;
+
+    let finalDate = assessment.date;
+    if (date) {
+      finalDate = new Date(date);
+      if (isNaN(finalDate.getTime())) {
+        return Response.json({ error: "Invalid date" }, { status: 400 });
+      }
+    }
 
     const updatedAssessment = await Assessment.findByIdAndUpdate(
       id,
       {
+        student: studentId || assessment.student,
+        subject: subjectId || assessment.subject,
+        class: classId || assessment.class,
+        week: week ?? assessment.week,
+        year: year ?? assessment.year,
+        date: finalDate,
         score: finalScore,
+        maxScore: finalMaxScore,
+        percentage: parseFloat(((finalScore / finalMaxScore) * 100).toFixed(2)),
         gradeLevel: finalGradeLevel,
-        remarks: remarks || assessment.remarks,
+        remarks: remarks !== undefined ? remarks : assessment.remarks,
         assessmentType: assessmentType || assessment.assessmentType,
         updatedAt: new Date(),
       },
-      { new: true }
+      { new: true, runValidators: true }
     )
       .populate("student", "firstName lastName")
       .populate("subject", "name")
       .populate("class", "name")
       .populate("teacher", "firstName lastName");
 
-    // Recalculate trend
-    const trendData = await recalculateTrend(
-      assessment.student,
-      assessment.subject,
-      schoolId,
-      assessment.year
-    );
+    // Recalculate trend for the new combination, and the old one if the record moved
+    const trendKeys = [
+      { student: updatedAssessment.student._id, subject: updatedAssessment.subject._id, year: updatedAssessment.year },
+      { student: assessment.student, subject: assessment.subject, year: assessment.year },
+    ];
+    const seen = new Set<string>();
 
-    if (trendData) {
-      await AssessmentTrend.findOneAndUpdate(
-        { student: assessment.student, subject: assessment.subject, school: schoolId, year: assessment.year },
-        {
-          ...trendData,
-          lastUpdate: new Date(),
-        },
-        { upsert: true }
-      );
+    for (const key of trendKeys) {
+      const keyStr = `${key.student}-${key.subject}-${key.year}`;
+      if (seen.has(keyStr)) continue;
+      seen.add(keyStr);
+
+      const trendData = await recalculateTrend(key.student, key.subject, schoolId, key.year);
+      if (trendData) {
+        await AssessmentTrend.findOneAndUpdate(
+          { student: key.student, subject: key.subject, school: schoolId, year: key.year },
+          {
+            ...trendData,
+            lastUpdate: new Date(),
+          },
+          { upsert: true }
+        );
+      }
     }
 
     return Response.json(
