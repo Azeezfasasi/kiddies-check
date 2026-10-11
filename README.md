@@ -2,7 +2,7 @@
 
 Kiddies Check is a full-stack school management and child-safety platform built with Next.js. It connects schools, teachers, parents, and students in one system for managing school operations, monitoring attendance and academic progress, communicating with families, and providing safety-focused tools.
 
-## Live Demo: kiddiescheck.org
+## Live Demo: https://kiddiescheck.org
 
 ## What the platform provides
 
