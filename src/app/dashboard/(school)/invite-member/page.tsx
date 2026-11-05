@@ -234,7 +234,12 @@ export default function InviteMemberPage() {
       });
 
       if (response.ok) {
-        toast.success('Member updated');
+        const data = await response.json().catch(() => ({}));
+        if (data.message && data.message !== 'Member updated successfully') {
+          toast(data.message, { icon: 'ℹ️', duration: 6000 });
+        } else {
+          toast.success('Member updated');
+        }
         setEditingId(null);
         fetchMembers();
       } else {

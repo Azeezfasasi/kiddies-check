@@ -8,6 +8,7 @@ import { connectDB } from '@/app/server/db/connect';
 import { subscribeToNewsletter } from '@/app/server/controllers/newsletterController';
 import jwt from 'jsonwebtoken';
 import { verifiedUserId } from '@/app/server/lib/requireAccess';
+import { syncAccountRoleWithMembership } from '@/app/server/lib/schoolMembers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
@@ -98,6 +99,8 @@ async function postHandler(request: NextRequest) {
         }
         await user.save();
       }
+
+      if (user) await syncAccountRoleWithMembership(user._id, member.role, member.school?._id || member.school);
 
       return NextResponse.json(
         {
@@ -198,6 +201,9 @@ async function postHandler(request: NextRequest) {
       console.error('Error auto-subscribing user to newsletter:', newsletterError);
       // Don't fail invitation acceptance if newsletter subscription fails
     }
+
+    // Give the account the role they were invited with
+    await syncAccountRoleWithMembership(user._id, schoolMember.role, schoolId);
 
     // Mark invitation as accepted
     schoolMember.status = 'active';

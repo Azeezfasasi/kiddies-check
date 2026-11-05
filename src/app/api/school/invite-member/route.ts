@@ -1,5 +1,6 @@
 import { withAudit } from "@/app/server/lib/audit";
-import { verifiedUserId } from "@/app/server/lib/requireAccess";
+import { authenticateRequest } from "@/app/server/lib/requireAccess";
+import { canActOnSchool, canManageMembers, isViewOnlyMemberAccess, syncAccountRoleWithMembership } from "@/app/server/lib/schoolMembers";
 import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
@@ -15,6 +16,14 @@ import { sendEmailViaBrevo, generateInvitationEmail, invitationLink as buildInvi
  */
 async function postHandler(request: NextRequest) {
   try {
+    const auth = await authenticateRequest(request);
+    if ('response' in auth) return auth.response;
+    const inviter = auth.user;
+
+    if (!canManageMembers(inviter.role)) {
+      return NextResponse.json({ success: false, error: 'You do not have permission to invite members' }, { status: 403 });
+    }
+
     await connectDB();
 
     const { schoolId, email, role, permissions, firstName, lastName } = await request.json();
@@ -41,6 +50,10 @@ async function postHandler(request: NextRequest) {
         { success: false, error: 'Invalid role' },
         { status: 400 }
       );
+    }
+
+    if (!(await canActOnSchool(inviter, schoolId))) {
+      return NextResponse.json({ success: false, error: 'You do not have access to this school' }, { status: 403 });
     }
 
     // Check if school exists
@@ -75,6 +88,9 @@ async function postHandler(request: NextRequest) {
         firstName: userFirstName,
         lastName: userLastName,
         password: 'temp-' + crypto.randomBytes(16).toString('hex'), // Temporary password
+        // The invited role ('staff' has no account role, so it keeps the default)
+        ...(role !== 'staff' && { role }),
+        schoolId,
         isEmailVerified: false,
         isActive: false,
       });
@@ -106,11 +122,16 @@ async function postHandler(request: NextRequest) {
       status: invitationType === 'new-user' ? 'invited' : 'active',
       permissions: permissions || [],
       invitationToken,
-      invitedBy: await verifiedUserId(request), // Get from authenticated user
+      invitedBy: inviter._id,
       invitedAt: new Date(),
     });
 
     await schoolMember.save();
+
+    // Existing users join straight away, so their account role follows the invited role
+    if (invitationType === 'existing-user') {
+      await syncAccountRoleWithMembership(user._id, role, schoolId);
+    }
 
     // Send invitation email
     const invitationLink = buildInvitationLink(invitationType, invitationToken, schoolId, email);
@@ -165,6 +186,10 @@ async function postHandler(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await authenticateRequest(request);
+    if ('response' in auth) return auth.response;
+    const { user } = auth;
+
     const { searchParams } = new URL(request.url);
     const schoolId = searchParams.get('schoolId');
     const status = searchParams.get('status') || 'active';
@@ -176,6 +201,10 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Valid school ID is required' },
         { status: 400 }
       );
+    }
+
+    if (!(canManageMembers(user.role) || isViewOnlyMemberAccess(user.role)) || !(await canActOnSchool(user, schoolId))) {
+      return NextResponse.json({ success: false, error: 'You do not have access to this school' }, { status: 403 });
     }
 
     const skip = (page - 1) * limit;
