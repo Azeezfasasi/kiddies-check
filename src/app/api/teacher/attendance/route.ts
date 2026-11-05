@@ -10,6 +10,10 @@ import ActivityLog from "@/app/server/models/ActivityLog";
 import { connectDB } from "@/utils/db";
 import { sendAttendanceNotificationToParent } from "@/app/server/utils/emailService";
 import { isAcademicAdmin } from "@/utils/roles";
+import SchoolMember from "@/app/server/models/SchoolMember";
+
+// Staff roles that take attendance at their own school
+const ATTENDANCE_ROLES = ["school-leader", "learning-specialist", "teacher"];
 import type { PopulatedUser } from "@/types/populated";
 
 async function postHandler(req: NextRequest) {
@@ -26,16 +30,23 @@ async function postHandler(req: NextRequest) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
 
-    if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
-      const hasAccess =
+    // Admins and platform academic roles can mark in any school; school staff only in
+    // their own school (User.schoolId or an active membership). Parents and view-only
+    // roles can't mark attendance.
+    await connectDB();
+
+    if (!isAcademicAdmin(user.role)) {
+      if (!ATTENDANCE_ROLES.includes(user.role)) {
+        return Response.json({ error: "You don't have permission to mark attendance" }, { status: 403 });
+      }
+      const inSchool =
         (user.schoolId && user.schoolId.toString() === schoolId) ||
-        (user.managedSchools && user.managedSchools.some(sid => sid.toString() === schoolId));
-      if (!hasAccess) {
+        (user.role !== "learning-specialist" && user.managedSchools?.some((sid) => sid.toString() === schoolId)) ||
+        !!(await SchoolMember.exists({ user: user._id, school: schoolId, status: "active" }));
+      if (!inSchool) {
         return Response.json({ error: "Access denied" }, { status: 403 });
       }
     }
-
-    await connectDB();
 
     const student = await Student.findOne({ _id: studentId, school: schoolId }).populate<{ parent: PopulatedUser | null }>('parent');
     if (!student) {
