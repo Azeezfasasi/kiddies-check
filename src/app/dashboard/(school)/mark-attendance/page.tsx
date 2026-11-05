@@ -20,6 +20,7 @@ import {
 import toast from "react-hot-toast";
 import AttendanceScanner from "@/app/components/AttendanceScanner";
 import { useAuth } from "@/context/AuthContext";
+import { can } from "@/utils/roles";
 
 export default function MarkAttendancePage() {
   const router = useRouter();
@@ -49,7 +50,10 @@ export default function MarkAttendancePage() {
     const today = new Date();
     return today.toISOString().split("T")[0];
   });
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { user, isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
+  // Staff who take attendance; view-only roles (e.g. Viewer) can see records but not mark them
+  const canMarkAttendance =
+    isAdmin || isSchoolLeader || isLearningSpecialist || isTeacher || can(user?.role, "academics", "edit");
 
   useEffect(() => {
     const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -604,10 +608,14 @@ export default function MarkAttendancePage() {
                 </div>
               </div>
 
-              <p className="text-sm text-gray-600 mb-5 font-medium">Select attendance status:</p>
+              {canMarkAttendance ? (
+                <p className="text-sm text-gray-600 mb-5 font-medium">Select attendance status:</p>
+              ) : (
+                <p className="text-sm text-gray-600 mb-5">You have view-only access, so you can&apos;t mark attendance.</p>
+              )}
 
               {/* Action Buttons */}
-              {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+              {canMarkAttendance && (
               <div className="space-y-3">
                 <button
                   onClick={() => markAttendance("present")}
