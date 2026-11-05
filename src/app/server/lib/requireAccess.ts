@@ -5,8 +5,8 @@ import { can, type AccessLevel, type Feature } from "@/utils/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
-/** Roles that manage site content today, before platform permissions. */
-export const CONTENT_ROLES = ["admin", "learning-specialist"];
+/** Roles that manage site content (blog, gallery, newsletter, site pages), before platform permissions. */
+export const CONTENT_ROLES = ["admin"];
 
 const deny = (message: string, status: number) => Response.json({ success: false, message, error: message }, { status });
 
@@ -50,7 +50,7 @@ export async function verifiedUserId(req: Request): Promise<string | null> {
 
 /**
  * Authenticates the request and checks the user may act on `feature`:
- * one of `roles` (default: admin, learning-specialist) or a platform role
+ * one of `roles` (default: admin) or a platform role
  * granted the feature at `level` in the permission map.
  */
 export async function authorizeAccess(

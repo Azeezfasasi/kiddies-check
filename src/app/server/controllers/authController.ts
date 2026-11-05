@@ -445,7 +445,8 @@ export const login = async (req) => {
       }
     }
     
-    // For learning-specialist, get schoolId from SchoolMember
+    // For learning-specialist, get schoolId from SchoolMember. Learning specialists
+    // belong to one school, so save it on the account for the school-scoped checks.
     if (user.role === 'learning-specialist' && !schoolId) {
       const schoolMember = await SchoolMember.findOne({
         user: user._id,
@@ -454,6 +455,11 @@ export const login = async (req) => {
       });
       if (schoolMember) {
         schoolId = schoolMember.school;
+        try {
+          await User.updateOne({ _id: user._id }, { schoolId });
+        } catch (saveError) {
+          console.error("Error saving learning-specialist schoolId on login:", saveError);
+        }
       }
     }
 

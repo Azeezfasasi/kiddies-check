@@ -164,7 +164,7 @@ export default function EditGalleryPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'gallery')}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'gallery')}>
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto px-3 sm:px-4">
         {/* Back Button */}

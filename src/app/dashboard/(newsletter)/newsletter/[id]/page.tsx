@@ -102,7 +102,7 @@ export default function CampaignAnalyticsPage() {
   }, [fetchData]);
 
   return (
-    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'newsletter')}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'newsletter')}>
       <div className="space-y-6">
         <Link
           href="/dashboard/all-newsletters"

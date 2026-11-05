@@ -16,7 +16,7 @@ export const createQuote = async (req) => {
   }
 };
 
-// 2. Get all quote requests (admin/learning-specialist only)
+// 2. Get all quote requests (admin only)
 export const getAllQuotes = async (req) => {
   try {
     await connectDB();
@@ -74,13 +74,13 @@ export const replyToQuote = async (req, quoteId) => {
     await connectDB();
     const body = await req.json();
     const { message, senderId, senderName } = body;
-    // Validate senderId exists and is admin or learning-specialist
+    // Validate senderId exists and is an admin
     const sender = await User.findById(senderId);
     if (!sender) {
       return NextResponse.json({ success: false, message: "Sender not found" }, { status: 400 });
     }
-    if (sender.role !== 'admin' && sender.role !== 'learning-specialist') {
-      return NextResponse.json({ success: false, message: "Sender is not authorized to reply (must be admin or learning-specialist)" }, { status: 403 });
+    if (sender.role !== 'admin') {
+      return NextResponse.json({ success: false, message: "Sender is not authorized to reply (must be an admin)" }, { status: 403 });
     }
     const quote = await Quote.findById(quoteId);
     if (!quote) return NextResponse.json({ success: false, message: "Quote not found" }, { status: 404 });
@@ -93,7 +93,7 @@ export const replyToQuote = async (req, quoteId) => {
   }
 };
 
-// 7. Assign quote request to admin/learning-specialist
+// 7. Assign quote request to an admin
 export const assignQuote = async (req, quoteId) => {
   try {
     await connectDB();

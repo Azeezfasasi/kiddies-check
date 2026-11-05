@@ -5,6 +5,9 @@ import { Briefcase, NotepadText } from 'lucide-react';
 import Link from 'next/link';
 import { can, isPlatformRole, roleLabel } from '@/utils/roles';
 
+// Roles that work within a school and see its name in the welcome card
+const SCHOOL_NAME_ROLES = ['teacher', 'school-leader', 'learning-specialist', 'parent'];
+
 function getGreeting(date) {
   const hour = date.getHours();
   if (hour < 12) return 'Good morning';
@@ -18,6 +21,7 @@ export default function DashboardWelcome() {
   const [dateStr, setDateStr] = useState("");
   const [timeStr, setTimeStr] = useState("");
   const [greeting, setGreeting] = useState("");
+  const [schoolName, setSchoolName] = useState("");
 
 
   useEffect(() => {
@@ -32,6 +36,35 @@ export default function DashboardWelcome() {
     const t = setInterval(updateTime, 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // School-based roles see the name of the school they're working in
+  useEffect(() => {
+    if (!SCHOOL_NAME_ROLES.includes(user?.role)) return;
+
+    const cachedName = localStorage.getItem("schoolName");
+    if (cachedName) setSchoolName(cachedName);
+
+    const schoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
+    const token = localStorage.getItem("token");
+    if (!schoolId || !token) return;
+
+    const loadSchoolName = async () => {
+      try {
+        const res = await fetch(`/api/schools/${schoolId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success && data.school?.name) {
+          setSchoolName(data.school.name);
+          localStorage.setItem("schoolName", data.school.name);
+        }
+      } catch (error) {
+        console.error("Failed to load school name", error);
+      }
+    };
+
+    loadSchoolName();
+  }, [user?.role]);
 
   if (loading) {
     return (
@@ -51,6 +84,7 @@ export default function DashboardWelcome() {
   // Get first name and role from user object
   const firstName = user?.firstName || (user?.name ? user.name.split(" ")[0] : "Admin");
   const role = user?.role || "";
+  const atSchool = schoolName ? <> at <span className="not-italic font-bold">{schoolName}</span></> : null;
 
   return (
     <section className="bg-white rounded-lg shadow-sm p-5 md:p-6 lg:p-8">
@@ -73,13 +107,13 @@ export default function DashboardWelcome() {
             )}
             {user?.role === 'learning-specialist' && (
               <p className="text-xs text-blue-800 font-semibold italic">
-                You are a learning specialist.
+                You are a learning specialist{atSchool}.
               </p>
             )}
 
             {user?.role === 'school-leader' && (
               <p className="text-xs text-blue-800 font-semibold italic">
-                You are a school leader.
+                You are a school leader{atSchool}.
               </p>
             )}
             {user?.role === 'student' && (
@@ -89,7 +123,7 @@ export default function DashboardWelcome() {
             )}
             {user?.role === 'teacher' && (
               <p className="text-xs text-blue-800 font-semibold italic">
-                You are a teacher.
+                You are a teacher{atSchool}.
               </p>
             )}
             {isPlatformRole(user?.role) && (
@@ -99,13 +133,13 @@ export default function DashboardWelcome() {
             )}
             {user?.role === 'parent' && (
               <p className="text-xs text-blue-800 font-semibold italic">
-                You are a parent.
+                You are a parent{atSchool}.
               </p>
             )}
           </div>
         </div>
 
-        {user?.role === 'admin' || user?.role === 'learning-specialist' || (can(user?.role, 'registrations') && can(user?.role, 'blog')) ? (
+        {user?.role === 'admin' || (can(user?.role, 'registrations') && can(user?.role, 'blog')) ? (
         <div className="flex flex-col lg:flex-row md:items-center gap-3">
           <Link href="/dashboard/manage-registration" className="inline-flex justify-center items-center gap-2 px-3 py-1 md:py-2 bg-blue-900 text-white rounded-md text-sm hover:bg-blue-800 cursor-pointer">
             <Briefcase />

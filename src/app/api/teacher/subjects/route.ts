@@ -33,7 +33,7 @@ async function postHandler(req: NextRequest) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin + learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     // Teachers are allowed only if they match the requested school (handled by hasAccess below)
     if (!(user.role === "teacher" || isAcademicAdmin(user.role))) {
       const hasSchoolAccess = 
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     if (!isAcademicAdmin(user.role, "view")) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 

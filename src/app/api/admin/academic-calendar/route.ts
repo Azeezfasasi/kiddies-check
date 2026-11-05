@@ -27,7 +27,7 @@ const verifyAdmin = async (req) => {
     await connectDB();
     const user = await User.findById(decoded.id);
 
-    if (!user || !(["admin", "learning-specialist"].includes(user.role) || can(user.role, "calendar", "edit"))) {
+    if (!user || !(user.role === "admin" || can(user.role, "calendar", "edit"))) {
       return { error: "Forbidden: Admin access required", status: 403 };
     }
 

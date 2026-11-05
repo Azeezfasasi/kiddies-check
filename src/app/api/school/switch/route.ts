@@ -10,7 +10,7 @@ import { legacy, type LegacySchoolFields } from "@/types/legacy";
 
 /**
  * POST /api/school/switch
- * Switch the active school for admin/learning-specialist users
+ * Switch the active school for admins and platform support roles
  */
 async function postHandler(request: NextRequest) {
   try {
@@ -43,7 +43,7 @@ async function postHandler(request: NextRequest) {
       );
     }
 
-    // Admins, learning-specialists and platform support roles can switch schools
+    // Admins and platform support roles can switch schools
     if (!hasAllSchoolAccess(user.role)) {
       return NextResponse.json(
         { success: false, error: 'Your role cannot switch schools' },
@@ -60,7 +60,7 @@ async function postHandler(request: NextRequest) {
       );
     }
 
-    // Admin and learning-specialist can switch to any school
+    // Admins and platform support roles can switch to any school
     // No access control needed - they have full access
 
     return NextResponse.json(
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     let accessibleSchools = [];
 
     if (hasAllSchoolAccess(user.role)) {
-      // For admins/learning-specialists/support roles, fetch ALL schools in the database
+      // For admins and support roles, fetch ALL schools in the database
       accessibleSchools = await School.find({}, 'name email location logo _id').sort({ name: 1 });
     } else if (user.schoolId) {
       // Return primary school for regular users

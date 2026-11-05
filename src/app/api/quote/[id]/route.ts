@@ -4,21 +4,21 @@ import { updateQuote, deleteQuote, changeQuoteStatus, replyToQuote, assignQuote 
 import { authorizeAccess, requireAccess } from "@/app/server/lib/requireAccess";
 
 async function patchHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
+  const denied = await requireAccess(req, "contact-responses", { roles: ["admin"] });
   if (denied) return denied;
   const params = await context.params;
   return updateQuote(req, params.id);
 }
 
 async function deleteHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const denied = await requireAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
+  const denied = await requireAccess(req, "contact-responses", { roles: ["admin"] });
   if (denied) return denied;
   const params = await context.params;
   return deleteQuote(req, params.id);
 }
 
 async function putHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const auth = await authorizeAccess(req, "contact-responses", { roles: ["admin", "learning-specialist"] });
+  const auth = await authorizeAccess(req, "contact-responses", { roles: ["admin"] });
   if ("response" in auth) return auth.response;
   const params = await context.params;
   const body = await req.json();

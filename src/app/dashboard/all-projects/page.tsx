@@ -135,7 +135,7 @@ export default function AllProjectsPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'learning-specialist']}>
+    <ProtectedRoute allowedRoles={['admin']}>
     <div className="min-h-screen bg-gray-50 py-6 px-0 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}

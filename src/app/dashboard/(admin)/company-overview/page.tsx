@@ -245,7 +245,7 @@ export default function CompanyOverviewManager() {
 
   if (loading) {
     return (
-      <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
+      <ProtectedRoute allowedRoles={withFeature(['admin'], 'site-content')}>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader className="w-8 h-8 animate-spin text-blue-600" />
         </div>
@@ -254,7 +254,7 @@ export default function CompanyOverviewManager() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'site-content')}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'site-content')}>
       <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">Company Overview Manager</h1>

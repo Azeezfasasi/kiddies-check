@@ -265,7 +265,7 @@ export default function SendNewsletter() {
   };
 
   return (
-    <ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'newsletter')}>
+    <ProtectedRoute allowedRoles={withFeature(['admin'], 'newsletter')}>
     <div className="space-y-6">
       {/* Header */}
       <div>

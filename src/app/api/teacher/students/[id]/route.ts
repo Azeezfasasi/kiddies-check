@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     if (!isAcademicAdmin(user.role, "view")) {
       const hasSchoolAccess = 
         (user?.schoolId && user.schoolId.equals(schoolId)) || 
@@ -76,7 +76,7 @@ async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 

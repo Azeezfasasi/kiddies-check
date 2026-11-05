@@ -13,7 +13,7 @@ async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id
       await connectDB();
 
       // Verify admin or learning specialist access
-      if (user.role !== "admin" && user.role !== "learning-specialist" && !can(user.role, "schools", "edit")) {
+      if (user.role !== "admin" && !can(user.role, "schools", "edit")) {
         return NextResponse.json(
           { error: "Access denied: You are not authorized to access this" },
           { status: 403 }

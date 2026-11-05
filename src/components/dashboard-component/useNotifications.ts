@@ -14,7 +14,7 @@ const useNotifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        if (!token || !['admin', 'learning-specialist'].includes(user?.role)) {
+        if (!token || !['admin'].includes(user?.role)) {
           setNotifications([]);
           setUnreadCount(0);
           setLoading(false);

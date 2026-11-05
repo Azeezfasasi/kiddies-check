@@ -119,7 +119,7 @@ const ContactFormResponses = () => {
 			return
 		}
 		if (!user || !user._id) {
-			alert("You must be logged in as an admin or learning-specialist to reply.")
+			alert("You must be logged in as an admin to reply.")
 			return
 		}
 		try {
@@ -164,7 +164,7 @@ const ContactFormResponses = () => {
 	// Change status
 	const handleChangeStatus = async (response, newStatus) => {
 		if (!user || !user._id) {
-			alert("You must be logged in as an admin or learning-specialist to change status.")
+			alert("You must be logged in as an admin to change status.")
 			return
 		}
 		try {
@@ -227,7 +227,7 @@ const ContactFormResponses = () => {
 	}
 
 	return (
-		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'contact-responses')}>
+		<ProtectedRoute allowedRoles={withFeature(['admin'], 'contact-responses')}>
 		<div className="bg-gray-50 py-4 md:py-8 px-0 sm:px-6 lg:px-8">
 			<div className="max-w-7xl mx-auto overflow-x-hidden">
 				<h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Contact Form Responses</h1>

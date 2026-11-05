@@ -11,7 +11,7 @@ export function SchoolSwitcher({ currentSchoolId, onSchoolSwitch, isAdmin = fals
   const [error, setError] = useState(null);
   const [currentSchool, setCurrentSchool] = useState(null);
 
-  // Only show for admin and learning-specialist
+  // Only show for admins and platform support roles
   // Don't hide immediately if not admin - let it attempt to load first
   const shouldShow = isAdmin === true;
 
