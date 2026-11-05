@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import SchoolMember from '@/app/server/models/SchoolMember';
 import { authenticateRequest } from '@/app/server/lib/requireAccess';
-import { canActOnSchool, canManageMembers, isViewOnlyMemberAccess } from '@/app/server/lib/schoolMembers';
+import { canActOnSchool, canManageMembers, isViewOnlyMemberAccess, syncAccountRoleWithMembership, type RoleSyncResult } from '@/app/server/lib/schoolMembers';
 
 const VALID_ROLES = ['school-leader', 'learning-specialist', 'teacher', 'parent', 'staff'];
 const VALID_STATUSES = ['invited', 'active', 'inactive', 'removed'];
@@ -56,6 +56,10 @@ async function putHandler(request: NextRequest, { params }: { params: Promise<{ 
       if (!VALID_ROLES.includes(role)) {
         return fail('Invalid role', 400);
       }
+      // Nobody but an admin changes their own role
+      if (existing.user?.toString() === user._id.toString() && user.role !== 'admin') {
+        return fail("You can't change your own role", 403);
+      }
       updateData.role = role;
     }
 
@@ -81,10 +85,17 @@ async function putHandler(request: NextRequest, { params }: { params: Promise<{ 
       return fail('Member not found', 404);
     }
 
+    // Access is decided by the account role, so keep it in step with the membership role
+    let roleSync: RoleSyncResult = { updated: false };
+    if (role && existing.user) {
+      roleSync = await syncAccountRoleWithMembership(existing.user, role, existing.school);
+    }
+
     return NextResponse.json(
       {
         success: true,
-        message: 'Member updated successfully',
+        message: roleSync.note ? `Member updated. ${roleSync.note}` : 'Member updated successfully',
+        accountRoleUpdated: roleSync.updated,
         data: member,
       },
       { status: 200 }
