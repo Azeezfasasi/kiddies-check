@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader, ArrowLeft, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Loader, ArrowLeft, CheckCircle2, Pencil } from "lucide-react";
 
 const statusStyles = {
   draft: "bg-gray-100 text-gray-700",
@@ -64,6 +65,9 @@ export default function ExamPreviewPage() {
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold text-gray-900">{exam.title}</h1>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${statusStyles[exam.status]}`}>{exam.status}</span>
+            <Link href={`/dashboard/exams/${exam._id}/edit`} className="ml-auto flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+              <Pencil className="w-4 h-4" /> Edit
+            </Link>
           </div>
           <p className="mt-1 text-sm text-gray-600">
             {exam.class?.name} · {exam.subject?.name} · {exam.term} {exam.academicYear} · {exam.durationMinutes} min · {exam.totalMarks} marks
@@ -79,6 +83,10 @@ export default function ExamPreviewPage() {
               <p className="mb-3 font-semibold text-gray-900">
                 {index + 1}. {q.text} <span className="ml-1 text-xs font-normal text-gray-400">({q.marks} mark{q.marks === 1 ? "" : "s"})</span>
               </p>
+              {q.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={q.imageUrl} alt={`Diagram for question ${index + 1}`} className="mb-3 max-h-80 max-w-full rounded-lg border border-gray-200" />
+              )}
               <div className="space-y-2">
                 {q.options.map((option) => (
                   <div

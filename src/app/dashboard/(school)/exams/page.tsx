@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search, ExternalLink, Info } from "lucide-react";
+import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search, ExternalLink, Info, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -230,6 +230,9 @@ export default function ExamsPage() {
                     <div className="flex flex-wrap gap-2">
                       <Link href={`/dashboard/exams/${exam._id}/preview`} className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200">
                         <Eye className="w-4 h-4" /> View
+                      </Link>
+                      <Link href={`/dashboard/exams/${exam._id}/edit`} className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+                        <Pencil className="w-4 h-4" /> Edit
                       </Link>
                       {exam.status === "draft" && (
                         <>

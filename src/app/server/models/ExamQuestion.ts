@@ -34,6 +34,16 @@ const examQuestionSchema = new mongoose.Schema(
       required: [true, "Question text is required"],
       trim: true,
     },
+    // Optional diagram shown with the question (Cloudinary URL)
+    imageUrl: {
+      type: String,
+      default: null,
+    },
+    imagePublicId: {
+      type: String,
+      default: null,
+      index: true,
+    },
     type: {
       type: String,
       enum: ["single-choice", "true-false"],

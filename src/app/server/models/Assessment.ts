@@ -69,6 +69,13 @@ const assessmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    // Set for CBT results so a corrected answer key can re-grade this record
+    examAttempt: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ExamAttempt",
+      index: true,
+      sparse: true,
+    },
     createdAt: {
       type: Date,
       default: Date.now,

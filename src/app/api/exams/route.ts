@@ -8,6 +8,7 @@ import Class from "@/app/server/models/Class";
 import Subject from "@/app/server/models/Subject";
 import User from "@/app/server/models/User";
 import { canAccessSchool } from "@/app/server/lib/schoolAccess";
+import { questionImageFields } from "@/app/server/lib/examImages";
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -118,6 +119,7 @@ async function postHandler(req: NextRequest) {
         exam: exam._id,
         order: index,
         text: q.text,
+        ...questionImageFields(q),
         type: q.type === "true-false" ? "true-false" : "single-choice",
         options: q.options.map((o) => ({ text: o.text, isCorrect: Boolean(o.isCorrect) })),
         marks: Number(q.marks) || 1,
