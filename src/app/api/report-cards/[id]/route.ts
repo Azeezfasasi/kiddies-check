@@ -11,6 +11,11 @@ import type { PopulatedStudent } from "@/types/populated";
 
 const allowedRoles = withFeature(["admin", "learning-specialist", "school-leader", "teacher"], "report-cards");
 
+// Teachers create and edit report cards; only school leadership (and platform roles with
+// report-card edit access) can delete them.
+const canDeleteReportCards = (role) =>
+  ["admin", "school-leader", "learning-specialist"].includes(role) || can(role, "report-cards", "edit");
+
 async function canAccessSchool(user, schoolId, level: AccessLevel = "edit") {
   if (!user) return false;
   if (allowedRoles.includes(user.role)) {
@@ -85,9 +90,29 @@ async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
     }
 
+    const term = body.term || existing.term;
+    const academicYear = body.academicYear || existing.academicYear;
+
+    // One report card per student, term and academic year
+    if (term !== existing.term || academicYear !== existing.academicYear) {
+      const duplicate = await ReportCard.exists({
+        _id: { $ne: existing._id },
+        school: existing.school,
+        student: existing.student,
+        term,
+        academicYear,
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          { success: false, message: "A report card already exists for this student, term and academic year" },
+          { status: 409 }
+        );
+      }
+    }
+
     const payload: Record<string, unknown> = {
-      term: body.term || existing.term,
-      academicYear: body.academicYear || existing.academicYear,
+      term,
+      academicYear,
       status: body.status || existing.status,
       notes: body.notes ?? existing.notes,
     };
@@ -130,6 +155,10 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
     const user = await User.findById(userId);
     if (!user || !(await canAccessSchool(user, reportCard.school.toString()))) {
       return NextResponse.json({ success: false, message: "Access denied" }, { status: 403 });
+    }
+
+    if (!canDeleteReportCards(user.role)) {
+      return NextResponse.json({ success: false, message: "Only school leaders can delete report cards" }, { status: 403 });
     }
 
     await reportCard.deleteOne();
