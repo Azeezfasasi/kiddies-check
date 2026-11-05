@@ -106,8 +106,8 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'blog',
       roles: withFeature(['admin'], 'blog'),
       children: [
-        { href: '/dashboard/add-blog', label: 'Add Blog', roles: withFeature(['admin', 'learning-specialist'], 'blog') },
-        { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: withFeature(['admin', 'learning-specialist'], 'blog') }
+        { href: '/dashboard/add-blog', label: 'Add Blog', roles: withFeature(['admin'], 'blog') },
+        { href: '/dashboard/manage-blog', label: 'Manage Blogs', roles: withFeature(['admin'], 'blog') }
       ]
     },
     // { href: '/blog', label: 'View Blogs', icon: 'dashboard', roles: ['school-leader', 'teacher', 'parent'] },
@@ -152,7 +152,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
         { href: '/dashboard/all-subjects', label: 'Subjects', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
         { href: '/dashboard/student-assessments', label: 'Student Learning Data', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
         { href: '/dashboard/mark-attendance', label: 'Mark Attendance', roles: withFeature(['admin', 'school-leader', 'teacher', 'learning-specialist'], 'academics') },
-        // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin', 'learning-specialist'] },
+        // { href: '/dashboard/learning-impact', label: 'Learning Impact Data', roles: ['admin'] },
       ]
     },
     
@@ -162,9 +162,9 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'Newsletter',
       roles: withFeature(['admin'], 'newsletter'),
       children: [
-        { href: '/dashboard/send-newsletter', label: 'Send Newsletter', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
-        { href: '/dashboard/all-newsletters', label: 'All Newsletters', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
-        { href: '/dashboard/subscribers', label: 'Subscribers', roles: withFeature(['admin', 'learning-specialist'], 'newsletter') },
+        { href: '/dashboard/send-newsletter', label: 'Send Newsletter', roles: withFeature(['admin'], 'newsletter') },
+        { href: '/dashboard/all-newsletters', label: 'All Newsletters', roles: withFeature(['admin'], 'newsletter') },
+        { href: '/dashboard/subscribers', label: 'Subscribers', roles: withFeature(['admin'], 'newsletter') },
       ]
     },
     {
@@ -173,8 +173,8 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'Gallery',
       roles: withFeature(['admin'], 'gallery'),
       children: [
-        { href: '/dashboard/add-gallery', label: 'Add Gallery', roles: withFeature(['admin', 'learning-specialist'], 'gallery') },
-        { href: '/dashboard/all-gallery', label: 'All Gallery', roles: withFeature(['admin', 'learning-specialist'], 'gallery') },
+        { href: '/dashboard/add-gallery', label: 'Add Gallery', roles: withFeature(['admin'], 'gallery') },
+        { href: '/dashboard/all-gallery', label: 'All Gallery', roles: withFeature(['admin'], 'gallery') },
       ]
     },
     { href: '/gallery', label: 'Our Gallery', icon: 'projects', roles: ['client'] },
@@ -230,13 +230,13 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'house',
       roles: withFeature(['admin'], 'site-content'),
       children: [
-        { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/home-cta', label: 'Home CTA', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/our-services-contents', label: 'Our Services', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/testimonials', label: 'Testimonials', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/why-rayob', label: 'Why Kiddies Check', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/hero-slider', label: 'Hero Slider', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/manage-slider-message', label: 'Slider Messages', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/home-cta', label: 'Home CTA', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/our-services-contents', label: 'Our Services', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/our-clients', label: 'Our Clients & Partners', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/testimonials', label: 'Testimonials', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/why-rayob', label: 'Why Kiddies Check', roles: withFeature(['admin'], 'site-content') },
         
       ]
     },
@@ -246,9 +246,9 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
       icon: 'about',
       roles: withFeature(['admin'], 'site-content'),
       children: [
-        { href: '/dashboard/company-overview', label: 'Company Overview', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/history-milestones', label: 'History & Milestones', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
-        { href: '/dashboard/team-section', label: 'Our Team Manager', roles: withFeature(['admin', 'learning-specialist'], 'site-content') },
+        { href: '/dashboard/company-overview', label: 'Company Overview', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/history-milestones', label: 'History & Milestones', roles: withFeature(['admin'], 'site-content') },
+        { href: '/dashboard/team-section', label: 'Our Team Manager', roles: withFeature(['admin'], 'site-content') },
       ]
     },
   ]

@@ -141,7 +141,7 @@ const ManageBlogPage = () => {
 	}
 
 	return (
-		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'blog')}>
+		<ProtectedRoute allowedRoles={withFeature(['admin'], 'blog')}>
 		<div className="space-y-6 overflow-x-hidden">
 			{/* Header with Create Button */}
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

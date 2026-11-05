@@ -193,9 +193,12 @@ const ALL_SCHOOL_PLATFORM_ROLES: PlatformRole[] = ["support-staff", "it-support"
 export const can = (role: RoleInput, feature: Feature, level: AccessLevel = "view"): boolean =>
   (PERMISSIONS[role as PlatformRole]?.[feature] || 0) >= LEVELS[level];
 
-/** Can this role see and act on every school (and use the school switcher)? */
+/**
+ * Can this role see and act on every school (and use the school switcher)?
+ * Learning specialists are not included: like school leaders, they belong to one school.
+ */
 export const hasAllSchoolAccess = (role: RoleInput): boolean =>
-  role === "admin" || role === "learning-specialist" || ALL_SCHOOL_PLATFORM_ROLES.includes(role as PlatformRole);
+  role === "admin" || ALL_SCHOOL_PLATFORM_ROLES.includes(role as PlatformRole);
 
 /** Existing role list plus every platform role that has `feature` at `level`. */
 export const withFeature = (roles: string[], feature: Feature, level: AccessLevel = "view"): string[] => [
@@ -204,12 +207,12 @@ export const withFeature = (roles: string[], feature: Feature, level: AccessLeve
 ];
 
 /**
- * Cross-school academic privileges: what `["admin", "learning-specialist"].includes(role)`
- * meant in the class/student/subject/attendance routes, extended to the
- * platform roles that have the Learning Specialist and School Manager pages.
+ * Cross-school academic privileges in the class/student/subject/attendance routes:
+ * admins and the platform roles that have the academic pages. Learning specialists
+ * are school-scoped and go through the same own-school checks as school leaders.
  */
 export const isAcademicAdmin = (role: RoleInput, level: AccessLevel = "edit"): boolean =>
-  role === "admin" || role === "learning-specialist" || can(role, "academics", level);
+  role === "admin" || can(role, "academics", level);
 
 /** One of the platform support roles (not tied to a single school's membership). */
 export const isPlatformRole = (role: RoleInput): role is PlatformRole => PLATFORM_ROLES.includes(role as PlatformRole);

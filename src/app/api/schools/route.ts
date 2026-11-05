@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     try {
       await connectDB();
 
-      // Verify admin or learning specialist access
-      if (user.role !== "admin" && user.role !== "learning-specialist" && !can(user.role, "schools")) {
+      // Listing every school is for admins and platform roles with school management
+      if (user.role !== "admin" && !can(user.role, "schools")) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }

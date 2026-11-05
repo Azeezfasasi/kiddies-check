@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema(
       ref: 'School',
       index: true,
     },
-    // Multi-school access for admins and learning-specialists
+    // Multi-school access for admins (learning specialists belong to a single school)
     managedSchools: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: 'School',
@@ -346,8 +346,8 @@ userSchema.statics.findByRole = function (role) {
 userSchema.methods.canAccessSchool = function (schoolId) {
   // Platform support roles work across every school
   if (isPlatformRole(this.role) && hasAllSchoolAccess(this.role)) return true;
-  // Admin and learning-specialist can access schools in managedSchools
-  if (['admin', 'learning-specialist'].includes(this.role)) {
+  // Admins can access schools in managedSchools
+  if (this.role === 'admin') {
     return this.managedSchools.some(id => id.toString() === schoolId.toString());
   }
   // Other users can only access their own school
@@ -359,7 +359,7 @@ userSchema.methods.getAccessibleSchools = async function () {
   if (isPlatformRole(this.role) && hasAllSchoolAccess(this.role)) {
     return (await mongoose.model("School").find({}).select("_id")).map((s) => s._id);
   }
-  if (['admin', 'learning-specialist'].includes(this.role)) {
+  if (this.role === 'admin') {
     return this.managedSchools;
   }
   // Return primary school only

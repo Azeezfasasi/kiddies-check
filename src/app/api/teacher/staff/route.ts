@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Invalid school ID format" }, { status: 400 });
     }
 
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     let hasSchoolAccess = isAcademicAdmin(user.role, "view");
 
-    // If not admin/learning-specialist, check schoolId or SchoolMember
+    // Otherwise (including learning specialists), check schoolId or SchoolMember
     if (!hasSchoolAccess) {
       // Check User model for schoolId
       if (user.schoolId && user.schoolId.toString() === schoolId) {
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      console.log("[Staff API] Access granted via admin/learning-specialist role");
+      console.log("[Staff API] Access granted via admin/platform academic role");
     }
 
     if (!hasSchoolAccess) {

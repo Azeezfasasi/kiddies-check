@@ -35,7 +35,7 @@ export default function AcademicCalendarPage() {
   const router = useRouter();
   const { user } = useAuth();
   // IT Support can view the calendar but not change it.
-  const canEdit = ["admin", "learning-specialist"].includes(user?.role) || can(user?.role, "calendar", "edit");
+  const canEdit = ["admin"].includes(user?.role) || can(user?.role, "calendar", "edit");
   const [terms, setTerms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

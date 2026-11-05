@@ -36,13 +36,13 @@ export async function GET(req: NextRequest) {
         status: "active",
       });
 
-      // Allow access if user is in SchoolMember as school-leader/admin, or has school-leader/admin role globally
+      // School leaders and learning specialists only see stats for their own school
       const isAdmin = user.role === "admin";
-      const isSchoolLeader = user.role === "school-leader";
-      const isLearningSpecialist = user.role === "learning-specialist";
-      const hasSchoolAccess = !!userAccess;
+      const isOwnSchoolLeader =
+        ["school-leader", "learning-specialist"].includes(user.role) && user.schoolId?.toString() === schoolId;
+      const hasSchoolAccess = !!userAccess || isOwnSchoolLeader;
 
-      if (!hasSchoolAccess && !isAdmin && !isSchoolLeader && !isLearningSpecialist && !hasAllSchoolAccess(user.role)) {
+      if (!hasSchoolAccess && !isAdmin && !hasAllSchoolAccess(user.role)) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }

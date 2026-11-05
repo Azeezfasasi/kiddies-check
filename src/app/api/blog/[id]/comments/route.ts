@@ -23,7 +23,7 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
   const resolvedParams = await params;
   const body = await req.json();
 
-  const canManageBlog = ["admin", "learning-specialist"].includes(auth.user.role) || can(auth.user.role, "blog", "edit");
+  const canManageBlog = ["admin"].includes(auth.user.role) || can(auth.user.role, "blog", "edit");
   if (!canManageBlog) {
     const blog = await Blog.findById(resolvedParams.id).select("comments").lean();
     const comment = (blog?.comments as { _id: { toString(): string }; userId?: { toString(): string } }[] | undefined)?.find(

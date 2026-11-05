@@ -33,7 +33,7 @@ const verifyAdminToken = (req) => {
 // Middleware to check if user is admin
 const isAdmin = async (userId, level: AccessLevel = "edit") => {
   const user = await User.findById(userId);
-  return user && (user.role === 'admin' || user.role === 'learning-specialist' || legacy<LegacyUserFields>(user).isAdmin === true || can(user.role, 'registrations', level));
+  return user && (user.role === 'admin' || legacy<LegacyUserFields>(user).isAdmin === true || can(user.role, 'registrations', level));
 };
 
 /**

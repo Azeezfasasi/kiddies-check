@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         status: "active",
       });
 
-      // Also allow if user is an admin/learning-specialist/teacher with school management access
+      // Also allow admins/platform academic roles, or users tied to this school
       const hasManagementAccess =
         user &&
         ((isAcademicAdmin(user.role, "view")) ||

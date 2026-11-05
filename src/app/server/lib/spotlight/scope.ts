@@ -4,7 +4,7 @@ import SchoolMember from "@/app/server/models/SchoolMember";
 import type { UserDocument } from "@/app/server/models/User";
 import { hasAllSchoolAccess } from "@/utils/roles";
 
-/** Roles that see every school, plus everyone else's own leadership schools. */
+/** Roles that see their own school in Spotlight (admins and platform roles see every school). */
 const LEADERSHIP_ROLES = ["school-leader", "learning-specialist"];
 
 export interface SpotlightScope {
@@ -24,7 +24,8 @@ export async function resolveScope(user: UserDocument): Promise<SpotlightScope |
   }
 
   const ids = new Set<string>();
-  (user.managedSchools ?? []).forEach((id) => ids.add(String(id)));
+  // Learning specialists belong to a single school, so managedSchools doesn't widen their scope
+  if (user.role !== "learning-specialist") (user.managedSchools ?? []).forEach((id) => ids.add(String(id)));
   if (LEADERSHIP_ROLES.includes(user.role) && user.schoolId) ids.add(String(user.schoolId));
   const memberships = await SchoolMember.find({ user: user._id, role: { $in: LEADERSHIP_ROLES }, status: "active" })
     .select("school")

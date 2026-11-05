@@ -107,8 +107,8 @@ export function canUserAccessSchool(user, schoolId) {
   // Platform support roles work across every school
   if (isPlatformRole(user.role) && hasAllSchoolAccess(user.role)) return true;
 
-  // Admins and learning-specialists check managedSchools
-  if (['admin', 'learning-specialist'].includes(user.role)) {
+  // Admins check managedSchools
+  if (user.role === 'admin') {
     if (!user.managedSchools) return false;
     return user.managedSchools.some(id => id.toString() === schoolId.toString());
   }
@@ -153,8 +153,8 @@ export async function canUserAccessSchoolWithMembership(userId, schoolId, userRo
   try {
     if (isPlatformRole(userRole) && hasAllSchoolAccess(userRole)) return true;
 
-    // Admins and learning-specialists with managedSchools
-    if (['admin', 'learning-specialist'].includes(userRole)) {
+    // Admins with managedSchools
+    if (userRole === 'admin') {
       if (managedSchools && managedSchools.length > 0) {
         return managedSchools.some(id => id.toString() === schoolId.toString());
       }

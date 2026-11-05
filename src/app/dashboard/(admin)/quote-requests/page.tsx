@@ -15,7 +15,7 @@ const ManageQuoteRequests = () => {
 				}
 				try {
 					if (!user || !user._id) {
-						alert('You must be logged in as an admin or learning-specialist to reply.');
+						alert('You must be logged in as an admin to reply.');
 						return;
 					}
 					const res = await fetch(`/api/quote/${selectedRequest._id}`, {
@@ -158,7 +158,7 @@ const ManageQuoteRequests = () => {
 			return;
 		}
 		if (!user || !user._id) {
-			alert('You must be logged in as an admin or learning-specialist to change status.');
+			alert('You must be logged in as an admin to change status.');
 			return;
 		}
 		try {

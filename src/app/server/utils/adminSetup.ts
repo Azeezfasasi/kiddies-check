@@ -3,7 +3,8 @@ import User from '@/app/server/models/User';
 import School from '@/app/server/models/School';
 
 /**
- * Helper script to set up admin/learning-specialist users with multi-school access
+ * Helper script to set up admin users with multi-school access.
+ * Learning specialists belong to a single school and can't be given extra schools.
  * 
  * Usage in backend:
  * - Import and call setupAdminSchoolAccess(adminEmail, [schoolIds])
@@ -25,9 +26,9 @@ export async function setupAdminSchoolAccess(adminEmail, schoolIds) {
       throw new Error(`User not found: ${adminEmail}`);
     }
 
-    // Verify user is admin or learning-specialist
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
-      throw new Error(`User ${adminEmail} is not an admin or learning-specialist`);
+    // Only admins can manage several schools
+    if (!['admin'].includes(user.role)) {
+      throw new Error(`User ${adminEmail} is not an admin`);
     }
 
     // Verify all schools exist
@@ -66,8 +67,8 @@ export async function addSchoolToAdmin(adminEmail, schoolId) {
       throw new Error(`User not found: ${adminEmail}`);
     }
 
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
-      throw new Error(`User is not an admin or learning-specialist`);
+    if (!['admin'].includes(user.role)) {
+      throw new Error(`User is not an admin`);
     }
 
     // Verify school exists

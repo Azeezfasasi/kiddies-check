@@ -86,7 +86,7 @@ async function putHandler(req: NextRequest, { params }: { params: Promise<{ id: 
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
     
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     if (!isAcademicAdmin(user.role)) {
       const hasAccess = 
         (user.schoolId && user.schoolId.toString() === schoolId) || 
@@ -221,10 +221,10 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
 
     const schoolObjectId = new Types.ObjectId(schoolId);
     
-    // Allow admin and learning-specialist full access to any school
+    // Allow admins and platform academic roles full access to any school
     let hasAccess = isAcademicAdmin(user.role);
 
-    // If not admin/learning-specialist, check schoolId or SchoolMember
+    // Otherwise (including learning specialists), check schoolId or SchoolMember
     if (!hasAccess) {
       // Check User model for schoolId
       if (user.schoolId && user.schoolId.toString() === schoolId) {

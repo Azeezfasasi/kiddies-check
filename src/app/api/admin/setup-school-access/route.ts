@@ -4,11 +4,23 @@ import type { Types } from 'mongoose';
 import { connectDB } from '@/utils/db';
 import User from '@/app/server/models/User';
 import School from '@/app/server/models/School';
+import { authenticateRequest } from '@/app/server/lib/requireAccess';
+
+// Only signed-in admins may view or change which schools an admin manages
+async function requireAdmin(request: NextRequest) {
+  const auth = await authenticateRequest(request);
+  if ('response' in auth) return auth.response;
+  if (auth.user.role !== 'admin') {
+    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
+  }
+  return null;
+}
 
 /**
  * POST /api/admin/setup-school-access
  * 
- * Assign schools to an admin/learning-specialist user
+ * Assign schools to an admin user. Learning specialists belong to a single school
+ * (User.schoolId), so they can't be given extra schools here.
  * 
  * Body:
  * {
@@ -18,6 +30,9 @@ import School from '@/app/server/models/School';
  */
 async function postHandler(request: NextRequest) {
   try {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     await connectDB();
 
     const { adminEmail, schoolIds } = await request.json();
@@ -39,10 +54,10 @@ async function postHandler(request: NextRequest) {
       );
     }
 
-    // Verify user is admin or learning-specialist
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    // Only admins can manage several schools
+    if (user.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: `User ${adminEmail} is not an admin or learning-specialist` },
+        { success: false, error: `User ${adminEmail} is not an admin` },
         { status: 403 }
       );
     }
@@ -96,6 +111,9 @@ async function postHandler(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -118,10 +136,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify user is admin or learning-specialist
-    if (!['admin', 'learning-specialist'].includes(user.role)) {
+    // Only admins can manage several schools
+    if (user.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: `User ${adminEmail} is not an admin or learning-specialist` },
+        { success: false, error: `User ${adminEmail} is not an admin` },
         { status: 403 }
       );
     }

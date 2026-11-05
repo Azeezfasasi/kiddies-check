@@ -19,9 +19,9 @@ export async function checkSchoolAccess(userId, schoolId) {
 
   const hasSchoolAccess =
     user.role === "admin" ||
-    user.role === "learning-specialist" ||
     (user.schoolId && user.schoolId.toString() === schoolId) ||
-    (user.managedSchools && user.managedSchools.some((id) => id.toString() === schoolId)) ||
+    // Learning specialists belong to a single school, so managedSchools doesn't widen their access
+    (user.role !== "learning-specialist" && user.managedSchools && user.managedSchools.some((id) => id.toString() === schoolId)) ||
     !!(await SchoolMember.findOne({
       user: userId,
       school: schoolId,

@@ -77,7 +77,7 @@ async function postHandler(req: NextRequest) {
 
     await connectDB();
 
-    // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
+    // Check access: admin/platform academic role or tied to school via User.schoolId/managedSchools or SchoolMember
     const hasSchoolAccess =
       isAcademicAdmin(user.role) ||
       (user.schoolId && user.schoolId.toString() === schoolId) ||
@@ -190,7 +190,7 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    // Check access: admin/learning-specialist or tied to school via User.schoolId/managedSchools or SchoolMember
+    // Check access: admin/platform academic role or tied to school via User.schoolId/managedSchools or SchoolMember
     const hasSchoolAccess =
       isAcademicAdmin(user.role, "view") ||
       (user.schoolId && user.schoolId.toString() === schoolId) ||

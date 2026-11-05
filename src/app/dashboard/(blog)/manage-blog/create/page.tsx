@@ -6,7 +6,7 @@ import { withFeature } from '@/utils/roles';
 
 export default function CreateBlogPage() {
 	return (
-		<ProtectedRoute allowedRoles={withFeature(['admin', 'learning-specialist'], 'blog')}>
+		<ProtectedRoute allowedRoles={withFeature(['admin'], 'blog')}>
 		<div className="container mx-auto px-6 lg:px-20 py-12">
 			<PageTitle title="Create Blog Post" subtitle="Add a new blog post to your website" breadcrumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Manage Blog', href: '/dashboard/manage-blog' }, { label: 'Create Post' }]} />
 			<div className="mt-6">

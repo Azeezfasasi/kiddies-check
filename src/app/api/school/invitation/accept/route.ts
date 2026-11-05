@@ -7,6 +7,7 @@ import User from '@/app/server/models/User';
 import { connectDB } from '@/app/server/db/connect';
 import { subscribeToNewsletter } from '@/app/server/controllers/newsletterController';
 import jwt from 'jsonwebtoken';
+import { verifiedUserId } from '@/app/server/lib/requireAccess';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
@@ -19,7 +20,7 @@ const generateToken = (userId) => {
  * POST /api/school/invitation/accept
  * Accept a school invitation and complete registration for invited users
  * 
- * For existing members: { memberId, userId }
+ * For existing members (signed in as userId): { memberId, userId, invitationToken }
  * For invited users: { invitationToken, schoolId, firstName, lastName, email, phone, password, confirmPassword }
  */
 async function postHandler(request: NextRequest) {
@@ -38,16 +39,40 @@ async function postHandler(request: NextRequest) {
         );
       }
 
-      // Verify the member exists and belongs to this user
+      // Only the invited user can accept, and only with the invitation's token
+      const signedInUserId = await verifiedUserId(request);
+      if (!signedInUserId || signedInUserId !== String(userId)) {
+        return NextResponse.json(
+          { success: false, error: 'Sign in as the invited user to accept this invitation' },
+          { status: 401 }
+        );
+      }
+
+      if (!invitationToken) {
+        return NextResponse.json(
+          { success: false, error: 'Invitation token is required' },
+          { status: 400 }
+        );
+      }
+
+      // Verify the member exists, belongs to this user and matches the token
       const member = await SchoolMember.findOne({
         _id: memberId,
         user: userId,
+        invitationToken,
       }).populate('school');
 
       if (!member) {
         return NextResponse.json(
           { success: false, error: 'Invitation not found' },
           { status: 404 }
+        );
+      }
+
+      if (member.status !== 'invited') {
+        return NextResponse.json(
+          { success: false, error: 'This invitation has already been accepted' },
+          { status: 409 }
         );
       }
 
@@ -58,11 +83,19 @@ async function postHandler(request: NextRequest) {
       member.invitationExpires = undefined;
       await member.save();
 
-      // Mark user as active if this is their first school
+      // Mark user as active if this is their first school, and approved: the school
+      // approved them by inviting them
       const user = await User.findById(userId);
-      if (user && !user.isActive) {
-        user.isActive = true;
-        user.isEmailVerified = true;
+      if (user && (!user.isActive || user.approvalStatus !== 'approved')) {
+        if (!user.isActive) {
+          user.isActive = true;
+          user.isEmailVerified = true;
+        }
+        if (user.approvalStatus !== 'approved') {
+          user.approvalStatus = 'approved';
+          user.approvedAt = new Date();
+          user.approvedBy = member.invitedBy;
+        }
         await user.save();
       }
 
@@ -148,6 +181,12 @@ async function postHandler(request: NextRequest) {
         isEmailVerified: true,
       });
     }
+
+    // The school approved this person by inviting them, so they don't wait for
+    // platform registration approval like self-registered users.
+    user.approvalStatus = 'approved';
+    user.approvedAt = new Date();
+    user.approvedBy = schoolMember.invitedBy;
 
     user.lastLogin = new Date(); // accepting the invite signs them in
     await user.save();
