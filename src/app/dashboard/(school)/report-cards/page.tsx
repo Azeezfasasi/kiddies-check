@@ -9,6 +9,7 @@ import NurseryReportCard from "@/components/dashboard-components/report-cards/Nu
 import PrimaryReportCard from "@/components/dashboard-components/report-cards/PrimaryReportCard";
 import Link from "next/link";
 import { Commet } from "react-loading-indicators";
+import { can } from "@/utils/roles";
 
 export default function ReportCardsPage() {
   const { user, token } = useAuth();
@@ -18,12 +19,13 @@ export default function ReportCardsPage() {
   const [className, setClassName] = useState("");
   const [cardType, setCardType] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editingCardId, setEditingCardId] = useState("");
-  const [editForm, setEditForm] = useState({ term: "", academicYear: "", notes: "" });
   const [deletingId, setDeletingId] = useState("");
   const [downloadCard, setDownloadCard] = useState(null);
   const [school, setSchool] = useState(null);
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
+  // Teachers create, edit and download report cards; deleting is for school leadership.
+  const canEditCards = isAdmin || isSchoolLeader || isLearningSpecialist || isTeacher || can(user?.role, "report-cards", "edit");
+  const canDeleteCards = isAdmin || isSchoolLeader || isLearningSpecialist || can(user?.role, "report-cards", "edit");
 
   useEffect(() => {
     const storedSchoolId = localStorage.getItem("activeSchoolId") || localStorage.getItem("schoolId");
@@ -98,39 +100,6 @@ export default function ReportCardsPage() {
     }
   };
 
-  const startEdit = (card) => {
-    setEditingCardId(card._id);
-    setEditForm({ term: card.term || "", academicYear: card.academicYear || "", notes: card.notes || "" });
-  };
-
-  const handleUpdate = async (card) => {
-    try {
-      const response = await fetch(`/api/report-cards/${card._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": user?._id || localStorage.getItem("userId") || "",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify({
-          term: editForm.term,
-          academicYear: editForm.academicYear,
-          notes: editForm.notes,
-          nurseryData: card.cardType === "nursery" ? card.nurseryData : undefined,
-          primaryData: card.cardType === "primary" ? card.primaryData : undefined,
-          secondaryData: card.cardType === "secondary" ? card.secondaryData : undefined,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.message || "Unable to update report card");
-      toast.success("Report card updated");
-      setEditingCardId("");
-      await loadReports();
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
   const handleDownloadPdf = async (card) => {
     const cardToDownload = card;
     setDownloadCard(cardToDownload);
@@ -172,45 +141,24 @@ export default function ReportCardsPage() {
 
   const ActionButtons = ({ card }) => (
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => startEdit(card)} className="flex-1 min-w-[72px] rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 sm:flex-none">
-        Edit
-      </button>
-      <button
-        type="button"
-        onClick={() => handleDelete(card._id)}
-        disabled={deletingId === card._id}
-        className="flex-1 min-w-[72px] rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-60 sm:flex-none"
-      >
-        {deletingId === card._id ? "Deleting..." : "Delete"}
-      </button>
+      {canEditCards && (
+        <Link href={`/dashboard/report-cards/${card._id}/edit`} className="flex-1 min-w-[72px] rounded bg-blue-600 px-3 py-1.5 text-center text-sm text-white hover:bg-blue-700 sm:flex-none">
+          Edit
+        </Link>
+      )}
+      {canDeleteCards && (
+        <button
+          type="button"
+          onClick={() => handleDelete(card._id)}
+          disabled={deletingId === card._id}
+          className="flex-1 min-w-[72px] rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700 disabled:opacity-60 sm:flex-none"
+        >
+          {deletingId === card._id ? "Deleting..." : "Delete"}
+        </button>
+      )}
       <button type="button" onClick={() => handleDownloadPdf(card)} className="flex-1 min-w-[72px] rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 sm:flex-none">
         Download
       </button>
-    </div>
-  );
-
-  const EditPanel = ({ card }) => (
-    <div className="grid gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 sm:p-4 md:grid-cols-3">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Term</label>
-        <input value={editForm.term} onChange={(e) => setEditForm((prev) => ({ ...prev, term: e.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Academic Year</label>
-        <input value={editForm.academicYear} onChange={(e) => setEditForm((prev) => ({ ...prev, academicYear: e.target.value }))} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
-      </div>
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Notes</label>
-        <textarea value={editForm.notes} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} rows={3} className="w-full rounded-lg border border-gray-300 px-3 py-2" />
-      </div>
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end md:col-span-3">
-        <button type="button" onClick={() => setEditingCardId("")} className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-          Cancel
-        </button>
-        <button type="button" onClick={() => handleUpdate(card)} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-          Save changes
-        </button>
-      </div>
     </div>
   );
 
@@ -222,7 +170,7 @@ export default function ReportCardsPage() {
             <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Report Cards</h1>
             <p className="text-sm text-gray-600">Browse generated report cards and filter by student or class.</p>
           </div>
-          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+          {canEditCards && (
           <Link
             href="/dashboard/report-cards/create"
             className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
@@ -315,15 +263,7 @@ export default function ReportCardsPage() {
                     <dd className="text-right text-gray-900">{card.academicYear}</dd>
                   </dl>
 
-                  {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
-                    <ActionButtons card={card} />
-                  )}
-
-                  {editingCardId === card._id && (
-                    <div className="mt-3">
-                      <EditPanel card={card} />
-                    </div>
-                  )}
+                  <ActionButtons card={card} />
                 </div>
               ))}
             </div>
@@ -353,19 +293,10 @@ export default function ReportCardsPage() {
                           <td className="px-4 py-3">{card.term}</td>
                           <td className="px-4 py-3">{card.academicYear}</td>
                           <td className="px-4 py-3 capitalize">{card.status}</td>
-                          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
                           <td className="px-4 py-3">
                             <ActionButtons card={card} />
                           </td>
-                          )}
                         </tr>
-                        {editingCardId === card._id && (
-                          <tr>
-                            <td colSpan={7} className="px-4 py-3">
-                              <EditPanel card={card} />
-                            </td>
-                          </tr>
-                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
