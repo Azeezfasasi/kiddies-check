@@ -149,6 +149,10 @@ export default function ExamResultsPage() {
                                       )}
                                       <span>{index + 1}. {q.text}</span>
                                     </p>
+                                    {q.imageUrl && (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img src={q.imageUrl} alt={`Diagram for question ${index + 1}`} className="mb-2 ml-6 max-h-48 max-w-full rounded-lg border border-gray-200" />
+                                    )}
                                     <div className="ml-6 space-y-1">
                                       {q.options.map((option) => {
                                         const isSelected = option._id === selectedOptionId;

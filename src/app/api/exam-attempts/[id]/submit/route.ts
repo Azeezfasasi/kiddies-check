@@ -6,17 +6,7 @@ import ExamQuestion from "@/app/server/models/ExamQuestion";
 import Exam from "@/app/server/models/Exam";
 import Assessment from "@/app/server/models/Assessment";
 import { verifyAttemptToken } from "@/app/server/lib/examAttemptToken";
-
-function getGradeLevel(score) {
-  if (score >= 75) return "A1";
-  if (score >= 70) return "B2";
-  if (score >= 65) return "C4";
-  if (score >= 55) return "C5";
-  if (score >= 50) return "C6";
-  if (score >= 45) return "D7";
-  if (score >= 40) return "E8";
-  return "F";
-}
+import { getGradeLevel, scoreAttempt, examAssessmentRemarks } from "@/app/server/lib/examGrading";
 
 function currentIsoWeek(date) {
   const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -68,19 +58,7 @@ async function postHandler(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const questions = await ExamQuestion.find({ exam: exam._id });
-    const answerByQuestion = new Map(attempt.answers.map((a) => [a.question.toString(), a.selectedOptionId?.toString() || null]));
-
-    let score = 0;
-    const maxScore = questions.reduce((sum, q) => sum + q.marks, 0);
-
-    for (const q of questions) {
-      const selectedOptionId = answerByQuestion.get(q._id.toString());
-      if (!selectedOptionId) continue;
-      const correctOption = q.options.find((o) => o.isCorrect);
-      if (correctOption && correctOption._id.toString() === selectedOptionId) {
-        score += q.marks;
-      }
-    }
+    const { score, maxScore, percentageScore } = scoreAttempt(attempt, questions);
 
     const now = new Date();
     attempt.score = score;
@@ -89,8 +67,6 @@ async function postHandler(req: NextRequest, { params }: { params: Promise<{ id:
     attempt.autoSubmitted = Boolean(body.autoSubmitted);
     attempt.status = "graded";
     await attempt.save();
-
-    const percentageScore = maxScore > 0 ? Math.round((score / maxScore) * 10000) / 100 : 0;
 
     await Assessment.create({
       student: attempt.student,
@@ -103,9 +79,10 @@ async function postHandler(req: NextRequest, { params }: { params: Promise<{ id:
       score: percentageScore,
       maxScore: 100,
       gradeLevel: getGradeLevel(percentageScore),
-      remarks: `Auto-graded CBT exam: ${exam.title}`,
+      remarks: examAssessmentRemarks(exam.title),
       assessmentType: "exam",
       teacher: exam.createdBy,
+      examAttempt: attempt._id,
     });
 
     return NextResponse.json({ success: true, score, maxScore, percentageScore }, { status: 200 });

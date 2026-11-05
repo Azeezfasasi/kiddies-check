@@ -285,6 +285,10 @@ export default function CbtExamPage() {
                   <p className="mb-3 font-semibold text-gray-900">
                     {index + 1}. {q.text}
                   </p>
+                  {q.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={q.imageUrl} alt={`Diagram for question ${index + 1}`} className="mb-3 max-h-80 max-w-full rounded-lg border border-gray-200" />
+                  )}
                   <div className="space-y-2">
                     {q.options.map((option) => (
                       <label
