@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import Student from "@/app/server/models/Student";
 import User from "@/app/server/models/User";
-import Class from "@/app/server/models/Class";
+import "@/app/server/models/Class";
+import "@/app/server/models/School";
 import { connectDB } from "@/utils/db";
 
 export async function GET(req: NextRequest) {
@@ -10,13 +11,13 @@ export async function GET(req: NextRequest) {
     const userId = await verifiedUserId(req);
     const schoolId = req.nextUrl.searchParams.get("schoolId");
 
-    if (!userId || !schoolId || schoolId === "null" || schoolId === "undefined") {
-      return Response.json({ error: "User and school information required" }, { status: 401 });
+    if (!userId) {
+      return Response.json({ error: "User information required" }, { status: 401 });
     }
 
     // Verify user is a parent
     const user = await User.findById(userId);
-    
+
     if (!user) {
       return Response.json({ error: "Access denied" }, { status: 403 });
     }
@@ -27,13 +28,13 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    // Find all students assigned to this parent
-    const students = await Student.find({ 
-      parent: userId, 
-      school: schoolId,
-      isActive: true 
-    })
+    // All children assigned to this parent, across every school; pass schoolId to limit to one school
+    const filter: Record<string, unknown> = { parent: userId, isActive: true };
+    if (schoolId && schoolId !== "null" && schoolId !== "undefined") filter.school = schoolId;
+
+    const students = await Student.find(filter)
       .populate("class", "name level section")
+      .populate("school", "name logo")
       .populate("parent", "firstName lastName email phone avatar")
       .sort({ firstName: 1, lastName: 1 });
 
