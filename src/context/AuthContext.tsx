@@ -43,6 +43,8 @@ export interface AuthUser {
 export interface AuthResult {
   success: boolean;
   message?: string;
+  // Set when the account is locked after too many wrong passwords (ISO date)
+  lockUntil?: string;
 }
 
 export interface ProfileUpdates {
@@ -172,7 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         return { success: true };
       }
-      return { success: false, message: data.message };
+      return { success: false, message: data.message, lockUntil: data.lockUntil };
     } catch (error) {
       return { success: false, message: error.message };
     }

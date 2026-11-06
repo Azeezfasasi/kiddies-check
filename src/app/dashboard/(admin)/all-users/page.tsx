@@ -27,6 +27,7 @@ export default function AllUsersPage() {
   const [editModal, setEditModal] = useState({ open: false, user: null, loading: false });
   const [deleteModal, setDeleteModal] = useState({ open: false, user: null, loading: false });
   const [statusModal, setStatusModal] = useState({ open: false, user: null, loading: false });
+  const [unlockingId, setUnlockingId] = useState(null);
   const [roleModal, setRoleModal] = useState({ open: false, user: null, loading: false, newRole: "" });
   const [bulkStatusModal, setBulkStatusModal] = useState({ open: false, loading: false });
   const [bulkRoleModal, setBulkRoleModal] = useState({ open: false, loading: false, newRole: "" });
@@ -324,6 +325,31 @@ export default function AllUsersPage() {
     }
   }
 
+  // Locked out after too many wrong passwords (lockUntil still in the future)
+  const lockedUntil = (user) => (user.lockUntil && new Date(user.lockUntil) > new Date() ? new Date(user.lockUntil) : null);
+
+  async function handleUnlock(user) {
+    setUnlockingId(user._id);
+    try {
+      const res = await fetch(`/api/users/${user._id}/unlock`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setMessage({ type: "success", text: data.message || "User unlocked" });
+        setTimeout(() => setMessage(null), 3000);
+        await fetchUsers();
+      } else {
+        setMessage({ type: "error", text: data.message || `Failed to unlock user (${res.status})` });
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: `Error: ${err.message}` });
+    } finally {
+      setUnlockingId(null);
+    }
+  }
+
   async function submitChangeStatus() {
     setStatusModal(prev => ({ ...prev, loading: true }));
     try {
@@ -549,11 +575,28 @@ export default function AllUsersPage() {
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
                       {user.isActive ? "Active" : "Inactive"}
                     </span>
+                    {lockedUntil(user) && (
+                      <span
+                        className="ml-1 inline-block whitespace-nowrap rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800"
+                        title="Too many wrong passwords. Unlock to let them sign in now."
+                      >
+                        Locked until {lockedUntil(user).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2 flex gap-2 text-[14px] md:text-base">
                     <button onClick={() => handleEdit(user)} className="px-2 py-1 md:py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs text-nowrap cursor-pointer">Edit</button>
                     <button onClick={() => handleChangeRole(user)} className="px-2 py-1 md:py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-xs text-nowrap cursor-pointer">Change Role</button>
                     <button onClick={() => handleChangeStatus(user)} className="px-2 py-1 md:py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs text-nowrap cursor-pointer">Change Status</button>
+                    {lockedUntil(user) && (
+                      <button
+                        onClick={() => handleUnlock(user)}
+                        disabled={unlockingId === user._id}
+                        className="px-2 py-1 md:py-2 bg-green-600 text-white rounded hover:bg-green-700 text-xs text-nowrap cursor-pointer disabled:opacity-60"
+                      >
+                        {unlockingId === user._id ? "Unlocking..." : "Unlock"}
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(user)} className="px-2 py-1 md:py-2 bg-red-600 text-white rounded hover:bg-red-700 text-xs text-nowrap cursor-pointer">Delete</button>
                   </td>
                 </tr>

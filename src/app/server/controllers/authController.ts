@@ -346,10 +346,13 @@ export const login = async (req) => {
         console.warn('[Login Log Error]', logError);
       }
       
+      const minutesLeft = Math.max(1, Math.ceil((new Date(user.lockUntil).getTime() - Date.now()) / 60000));
+      const waitText = minutesLeft >= 60 ? `about ${Math.round(minutesLeft / 60)} hour${Math.round(minutesLeft / 60) === 1 ? "" : "s"}` : `${minutesLeft} minute${minutesLeft === 1 ? "" : "s"}`;
       return NextResponse.json(
         {
           success: false,
-          message: "Account locked. Try again later.",
+          message: `Your account is locked after too many wrong passwords. Try again in ${waitText}, or ask your school administrator to unlock it.`,
+          lockUntil: user.lockUntil,
         },
         { status: 423 }
       );
@@ -1344,6 +1347,9 @@ export const adminResetPassword = async (req, userId) => {
     user.updatedBy = adminId;
     user.notes = user.notes ? user.notes + "\n" : "";
     user.notes += `Password reset by admin on ${new Date().toISOString()}`;
+    // A new password also lifts any lockout from failed login attempts
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
     await user.save();
 
     // Send notification email via Brevo (the SMTP transporter above isn't configured)
@@ -1486,6 +1492,38 @@ export const getDeletedUsers = async (req) => {
 };
 
 // 17. REACTIVATE USER - Re-activate a deleted user
+// UNLOCK USER - Admin lifts a lockout caused by too many failed login attempts
+export const unlockUser = async (req, userId) => {
+  try {
+    await connectDB();
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
+    const wasLocked = Boolean(user.isAccountLocked());
+    await user.resetLoginAttempts();
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: wasLocked
+          ? `${user.firstName} ${user.lastName} can sign in again`
+          : `${user.firstName} ${user.lastName} wasn't locked; failed attempts were reset`,
+        wasLocked,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Unlock user error:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to unlock user", error: error.message },
+      { status: 500 }
+    );
+  }
+};
+
 export const reactivateUser = async (req, userId) => {
   try {
     await connectDB();
