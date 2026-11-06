@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader, Mail, Plus, Trash2, Edit2, Check, X, Send } from 'lucide-react';
+import { Loader, Mail, Plus, Trash2, Edit2, Check, X, Send, LockOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { withFeature } from '@/utils/roles';
@@ -33,6 +33,11 @@ export default function InviteMemberPage() {
   const [success, setSuccess] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [resendingId, setResendingId] = useState(null);
+  const [unlockingId, setUnlockingId] = useState(null);
+
+  // Locked out after too many wrong passwords (lockUntil still in the future)
+  const lockedUntil = (member) =>
+    member.user?.lockUntil && new Date(member.user.lockUntil) > new Date() ? new Date(member.user.lockUntil) : null;
   const [filterStatus, setFilterStatus] = useState('active');
 
   // Get school ID from user context or session
@@ -202,6 +207,25 @@ export default function InviteMemberPage() {
     } catch (err) {
       toast.error('Failed to remove member');
       console.error('Error:', err);
+    }
+  };
+
+  const handleUnlock = async (member) => {
+    setUnlockingId(member._id);
+    try {
+      const response = await fetch(`/api/school/members/${member._id}/unlock`, { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        toast.success(data.message || 'Account unlocked');
+        fetchMembers();
+      } else {
+        toast.error(data.error || 'Failed to unlock account');
+      }
+    } catch (err) {
+      toast.error('Failed to unlock account');
+      console.error('Error:', err);
+    } finally {
+      setUnlockingId(null);
     }
   };
 
@@ -553,6 +577,14 @@ export default function InviteMemberPage() {
                                 {member.status.charAt(0).toUpperCase() +
                                   member.status.slice(1)}
                               </span>
+                              {lockedUntil(member) && (
+                                <span
+                                  className="mt-1 block w-fit whitespace-nowrap rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800"
+                                  title="Too many wrong passwords. Unlock to let them sign in now."
+                                >
+                                  Locked until {lockedUntil(member).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </span>
+                              )}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-600">
                               {new Date(member.createdAt).toLocaleDateString()}
@@ -585,6 +617,21 @@ export default function InviteMemberPage() {
                                     >
                                       <Edit2 className="w-4 h-4" />
                                     </button>
+                                    {lockedUntil(member) && (
+                                      <button
+                                        onClick={() => handleUnlock(member)}
+                                        disabled={unlockingId === member._id}
+                                        className="p-2 text-green-600 hover:bg-green-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Unlock account"
+                                        aria-label={`Unlock ${member.user?.firstName || 'member'}'s account`}
+                                      >
+                                        {unlockingId === member._id ? (
+                                          <Loader className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <LockOpen className="w-4 h-4" />
+                                        )}
+                                      </button>
+                                    )}
                                     {member.status === 'invited' && (
                                       <button
                                         onClick={() => handleResendInvite(member)}

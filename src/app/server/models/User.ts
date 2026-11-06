@@ -295,6 +295,10 @@ userSchema.methods.isAccountLocked = function () {
   return this.lockUntil && this.lockUntil > Date.now();
 };
 
+// Too many wrong passwords in a row lock the account for a short while
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCK_MINUTES = 15;
+
 // Method to increment login attempts
 userSchema.methods.incLoginAttempts = async function () {
   if (this.lockUntil && this.lockUntil < Date.now()) {
@@ -306,8 +310,8 @@ userSchema.methods.incLoginAttempts = async function () {
 
   const updates: mongoose.UpdateQuery<unknown> = { $inc: { loginAttempts: 1 } };
 
-  if (this.loginAttempts + 1 >= 5 && !this.isAccountLocked()) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
+  if (this.loginAttempts + 1 >= MAX_LOGIN_ATTEMPTS && !this.isAccountLocked()) {
+    updates.$set = { lockUntil: Date.now() + LOCK_MINUTES * 60 * 1000 };
   }
 
   return await this.updateOne(updates);

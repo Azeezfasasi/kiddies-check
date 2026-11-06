@@ -23,22 +23,63 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Lockout after too many wrong passwords: when it ends, and for which email
+  const [lock, setLock] = useState<{ until: number; email: string } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const [unlockedNotice, setUnlockedNotice] = useState(false);
+
+  // Tick every second while locked; clear the lock once the time is up
+  useEffect(() => {
+    if (!lock) return;
+    const timer = setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= lock.until) {
+        setLock(null);
+        setError("");
+        setUnlockedNotice(true);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lock]);
+
+  const secondsLeft = lock ? Math.max(0, Math.ceil((lock.until - now) / 1000)) : 0;
+  const countdown = (() => {
+    const h = Math.floor(secondsLeft / 3600);
+    const m = Math.floor((secondsLeft % 3600) / 60);
+    const s = secondsLeft % 60;
+    const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
+    return `${h > 0 ? `${h}:` : ""}${mm}:${String(s).padStart(2, "0")}`;
+  })();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
-    if (error) setError("");
+    // The lock belongs to one account: keep it while that email is entered
+    if (name === "email" && lock && value.trim().toLowerCase() !== lock.email) {
+      setLock(null);
+    }
+    if (error && !lock) setError("");
+    if (unlockedNotice) setUnlockedNotice(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
+    setUnlockedNotice(false);
     try {
       const result = await login(formData.email, formData.password);
       if (result?.success) {
         router.push("/dashboard");
         return;
+      }
+      const until = result?.lockUntil ? new Date(result.lockUntil).getTime() : NaN;
+      if (Number.isFinite(until) && until > Date.now()) {
+        setNow(Date.now());
+        setLock({ until, email: formData.email.trim().toLowerCase() });
+      } else {
+        setLock(null);
       }
       setError(result?.message || "Login failed");
     } catch (err) {
@@ -62,11 +103,22 @@ export default function Login() {
         <p className="text-gray-600 mb-8 text-center">Please login to your account</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
+          {lock ? (
+            <div className="bg-red-100 text-red-700 px-4 py-3 rounded mb-2 text-center" role="alert">
+              <p>Your account is locked after too many wrong passwords.</p>
+              <p className="mt-2 text-sm">You can try again in</p>
+              <p className="text-3xl font-bold tabular-nums" aria-live="off">{countdown}</p>
+              <p className="mt-2 text-sm">or ask your school administrator to unlock it.</p>
+            </div>
+          ) : unlockedNotice ? (
+            <div className="bg-green-100 text-green-800 px-4 py-2 rounded mb-2 text-center" role="status">
+              You can sign in again now.
+            </div>
+          ) : error ? (
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-2 text-center">
               {error}
             </div>
-          )}
+          ) : null}
           <div>
             <label htmlFor="email" className="block text-gray-700 font-medium mb-2">Email Address</label>
             <input
@@ -125,10 +177,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full bg-blue-900 text-white py-3 rounded-lg font-semibold shadow hover:bg-blue-800 transition"
-            disabled={submitting}
+            className="w-full bg-blue-900 text-white py-3 rounded-lg font-semibold shadow hover:bg-blue-800 transition disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={submitting || !!lock}
           >
-            {submitting ? "Logging in..." : "Login"}
+            {submitting ? "Logging in..." : lock ? `Locked (${countdown})` : "Login"}
           </button>
         </form>
 
