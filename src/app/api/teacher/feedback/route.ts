@@ -1,4 +1,5 @@
 import { withAudit } from "@/app/server/lib/audit";
+import { notifyFeedbackParticipants } from "@/app/server/lib/feedbackNotifications";
 import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Feedback from "@/app/server/models/Feedback";
@@ -123,6 +124,9 @@ async function postHandler(req: NextRequest) {
     });
 
     await newFeedback.populate('author', 'firstName lastName avatar role');
+
+    // Let the student's parent and class teacher know (never the author)
+    await notifyFeedbackParticipants({ feedback: newFeedback, student, schoolId, actor: user });
 
     return Response.json(
       { message: "Feedback created successfully", feedback: newFeedback },

@@ -7,6 +7,33 @@ import { connectDB } from "@/utils/db";
 import { uploadToCloudinary } from "@/app/server/utils/cloudinaryService";
 import { deleteFromCloudinary } from "@/app/server/utils/cloudinaryService";
 import mongoose from "mongoose";
+import SchoolMember from "@/app/server/models/SchoolMember";
+import { isAcademicAdmin } from "@/utils/roles";
+
+const STAFF_ROLES = ["school-leader", "learning-specialist", "teacher"];
+
+// Who may see or change a student's notebook pictures:
+// - view: the student's parent, staff at the student's school, admins/platform academic roles
+// - edit: staff at the student's school, admins/platform academic roles
+async function canAccessNotebook(userId: string | null, student, level: "view" | "edit") {
+  if (!userId) return false;
+  const user = await User.findById(userId).select("role schoolId managedSchools");
+  if (!user) return false;
+  if (isAcademicAdmin(user.role, level)) return true;
+
+  const schoolId = String(student.school);
+  if (user.role === "parent") {
+    return level === "view" && String(student.parent) === String(user._id);
+  }
+  if (!STAFF_ROLES.includes(user.role)) return false;
+  return (
+    (user.schoolId && user.schoolId.toString() === schoolId) ||
+    (user.role !== "learning-specialist" && user.managedSchools?.some((id) => id.toString() === schoolId)) ||
+    !!(await SchoolMember.exists({ user: user._id, school: schoolId, status: "active" }))
+  );
+}
+
+const denied = () => Response.json({ message: "You do not have access to this student's notebook" }, { status: 403 });
 
 // GET notebook images for a student
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +49,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const student = await Student.findById(id)
-      .select("notebookImages")
+      .select("notebookImages school parent")
       .populate("notebookImages.uploadedBy", "firstName lastName");
 
     if (!student) {
@@ -30,6 +57,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         { message: "Student not found" },
         { status: 404 }
       );
+    }
+
+    if (!(await canAccessNotebook(await verifiedUserId(req), student, "view"))) {
+      return denied();
     }
 
     return Response.json({
@@ -64,6 +95,14 @@ async function postHandler(req: NextRequest, { params }: { params: Promise<{ id:
         { message: "User ID is required" },
         { status: 401 }
       );
+    }
+
+    const studentToCheck = await Student.findById(id).select("school parent");
+    if (!studentToCheck) {
+      return Response.json({ message: "Student not found" }, { status: 404 });
+    }
+    if (!(await canAccessNotebook(userId, studentToCheck, "edit"))) {
+      return denied();
     }
 
     const formData = await req.formData();
@@ -153,6 +192,10 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
         { message: "Student not found" },
         { status: 404 }
       );
+    }
+
+    if (!(await canAccessNotebook(await verifiedUserId(req), student, "edit"))) {
+      return denied();
     }
 
     const imageIndex = student.notebookImages.findIndex(
