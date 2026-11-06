@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import AssessmentModal from "@/app/components/AssessmentModal";
 import TrendChart from "@/app/components/TrendChart";
 import { useAuth } from "@/context/AuthContext";
+import { can } from "@/utils/roles";
 
 export default function StudentAssessmentsPage() {
   const router = useRouter();
@@ -28,7 +29,9 @@ export default function StudentAssessmentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { user, isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
+  // Staff record and edit assessments; view-only roles (e.g. Viewer) can only read
+  const canEditAssessments = isAdmin || isSchoolLeader || isLearningSpecialist || isTeacher || can(user?.role, "academics", "edit");
 
   useEffect(() => {
     // Try activeSchoolId first (for admins who switched schools), fall back to schoolId
@@ -213,7 +216,7 @@ export default function StudentAssessmentsPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Student Assessments</h1>
             <p className="text-gray-600 mt-2">Record and track student performance over time</p>
           </div>
-          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+          {canEditAssessments && (
           <button
             onClick={handleAddAssessment}
             className="flex justify-center items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md hover:shadow-lg"
@@ -351,7 +354,7 @@ export default function StudentAssessmentsPage() {
                             </div>
                           </button>
                         </div>
-                        {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+                        {canEditAssessments && (
                         <div className="flex gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleEditAssessment(assessment)}

@@ -1,4 +1,6 @@
 import { withAudit } from "@/app/server/lib/audit";
+import { notifyFeedbackParticipants } from "@/app/server/lib/feedbackNotifications";
+import SchoolMember from "@/app/server/models/SchoolMember";
 import { verifiedUserId } from "@/app/server/lib/requireAccess";
 import type { NextRequest } from "next/server";
 import Feedback from "@/app/server/models/Feedback";
@@ -149,6 +151,26 @@ async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return Response.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    const student = await Student.findById(feedback.student).select("firstName lastName parent class");
+
+    // Same rules as posting feedback: parents only on their own child, staff only in their school
+    if (user.role === "parent") {
+      if (!student?.parent || student.parent.toString() !== userId) {
+        return Response.json({ error: "Unauthorized to reply to this feedback" }, { status: 403 });
+      }
+    } else if (!isAcademicAdmin(user.role)) {
+      const inSchool =
+        (user.schoolId && user.schoolId.toString() === schoolId) ||
+        (user.role !== "learning-specialist" && user.managedSchools?.some((s) => s.toString() === schoolId)) ||
+        !!(await SchoolMember.exists({ user: user._id, school: schoolId, status: "active" }));
+      if (!inSchool) {
+        return Response.json({ error: "Access denied" }, { status: 403 });
+      }
+    }
 
     if (action === 'add-reply') {
       if (!reply || !reply.comment) {
@@ -165,6 +187,11 @@ async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id
 
       feedback.replies.push(newReply);
       await feedback.save();
+
+      // Let the parent, class teacher and original author know (never the person replying)
+      if (student) {
+        await notifyFeedbackParticipants({ feedback, student, schoolId, actor: user, replyComment: reply.comment });
+      }
 
       const updatedFeedback = await Feedback.findById(id)
         .populate('replies.author', 'firstName lastName avatar role');

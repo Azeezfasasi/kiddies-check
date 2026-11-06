@@ -2,6 +2,15 @@
  * Email Templates for KiddiesCheck Registration Workflow
  */
 
+// Escape text people typed (feedback titles and comments) before putting it in an email
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 export const emailTemplates = {
   // OTP Verification Email
   registrationOTP: (firstName, otp, schoolName) => `
@@ -330,6 +339,52 @@ export const emailTemplates = {
               <strong>⚠️ Security Notice:</strong><br>
               Please log in and change this password immediately. If you did not expect this change, contact your school administrator right away.
             </div>
+
+            <hr>
+            <p><small>Best regards,<br><strong>KiddiesCheck Team</strong></small></p>
+          </div>
+          <div class="footer">
+            <p>© 2026 KiddiesCheck. All rights reserved.</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `,
+
+  feedbackNotification: ({ recipientName, studentName, schoolName, authorName, authorRole, title, comment, isReply }) => `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .feedback-box { background: white; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 8px; }
+          .feedback-box h3 { margin: 0 0 8px 0; color: #667eea; }
+          .feedback-box .meta { color: #666; font-size: 13px; margin-bottom: 12px; }
+          .feedback-box .comment { white-space: pre-wrap; margin: 0; }
+          .footer { text-align: center; font-size: 12px; color: #666; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>${isReply ? 'New reply on feedback' : 'New feedback'}</h2>
+            <p>${escapeHtml(studentName)} · ${escapeHtml(schoolName)}</p>
+          </div>
+          <div class="content">
+            <p>Hello ${escapeHtml(recipientName)},</p>
+            <p>${escapeHtml(authorName)} (${escapeHtml(authorRole)}) ${isReply ? 'replied to feedback' : 'added feedback'} about <strong>${escapeHtml(studentName)}</strong>.</p>
+
+            <div class="feedback-box">
+              <h3>${escapeHtml(title)}</h3>
+              <div class="meta">${isReply ? 'Reply' : 'Feedback'} from ${escapeHtml(authorName)}</div>
+              <p class="comment">${escapeHtml(comment)}</p>
+            </div>
+
+            <p>Log in to KiddiesCheck to read the full conversation and reply.</p>
 
             <hr>
             <p><small>Best regards,<br><strong>KiddiesCheck Team</strong></small></p>

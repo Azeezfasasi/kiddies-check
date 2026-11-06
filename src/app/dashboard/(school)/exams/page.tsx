@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader, Copy, CheckCircle2, XCircle, BarChart3, Trash2, Eye, Search, ExternalLink, Info, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
+import { can } from "@/utils/roles";
 
 const statusStyles = {
   draft: "bg-gray-100 text-gray-700",
@@ -28,7 +29,9 @@ export default function ExamsPage() {
   const [busyId, setBusyId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { user, isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
+  // Teachers create CBT exams too; closing a published exam stays with school leadership
+  const canCreateExams = isAdmin || isSchoolLeader || isLearningSpecialist || isTeacher || can(user?.role, "cbt", "edit");
 
   const loadExams = useCallback(async (school, user, status, classId, search) => {
     setLoading(true);
@@ -150,7 +153,7 @@ export default function ExamsPage() {
             <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">CBT Exams</h1>
             <p className="text-sm text-gray-600">Create, publish and track objective exams.</p>
           </div>
-          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+          {canCreateExams && (
             <Link href="/dashboard/exams/create" className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700 sm:w-auto">
               Create Exam
             </Link>

@@ -5,6 +5,7 @@ import { Upload, X, Loader, Trash2, ChevronLeft, ChevronRight } from 'lucide-rea
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/context/AuthContext';
+import { can } from '@/utils/roles';
 
 export default function NotebookUploadModal({
   studentId,
@@ -24,7 +25,9 @@ export default function NotebookUploadModal({
   const [dragStart, setDragStart] = useState(null);
   const fileInputRef = useRef(null);
   const imageContainerRef = useRef(null);
-  const { isAdmin, isSchoolLeader, isLearningSpecialist } = useAuth();
+  const { user, isAdmin, isSchoolLeader, isLearningSpecialist, isTeacher } = useAuth();
+  // Staff upload and remove notebook pages; view-only roles (e.g. Viewer) can only look
+  const canManageNotebooks = isAdmin || isSchoolLeader || isLearningSpecialist || isTeacher || can(user?.role, "academics", "edit");
 
   // Fetch existing notebook images
   const loadNotebookImages = async () => {
@@ -259,7 +262,7 @@ export default function NotebookUploadModal({
 
         <div className="p-6 space-y-6">
           {/* Upload Section */}
-          {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+          {canManageNotebooks && (
           <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 bg-blue-50">
             <div className="text-center">
               <Upload className="w-12 h-12 text-blue-600 mx-auto mb-3" />
@@ -373,7 +376,7 @@ export default function NotebookUploadModal({
                           </span>
                         )}
                       </div>
-                      {(isAdmin || isSchoolLeader || isLearningSpecialist) && (
+                      {canManageNotebooks && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

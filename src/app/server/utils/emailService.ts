@@ -185,6 +185,39 @@ export const sendAttendanceNotificationToParent = async (
 };
 
 /**
+ * Send a feedback or reply notification (to a parent or teacher)
+ */
+export const sendFeedbackNotificationEmail = async ({
+  toEmail,
+  toName,
+  studentName,
+  schoolName,
+  authorName,
+  authorRole,
+  title,
+  comment,
+  isReply,
+}) => {
+  const subject = isReply ? `New reply on feedback for ${studentName}` : `New feedback for ${studentName}`;
+  const result = await sendEmailViaBrevo(
+    toEmail,
+    toName,
+    subject,
+    emailTemplates.feedbackNotification({
+      recipientName: toName,
+      studentName,
+      schoolName,
+      authorName,
+      authorRole,
+      title,
+      comment,
+      isReply,
+    })
+  );
+  return { success: true, messageId: result.messageId };
+};
+
+/**
  * Verify email service connection
  */
 export const verifyEmailConnection = async () => {
@@ -208,5 +241,6 @@ export default {
   sendApprovalEmail,
   sendRejectionEmail,
   sendAttendanceNotificationToParent,
+  sendFeedbackNotificationEmail,
   verifyEmailConnection,
 };
