@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
@@ -93,6 +93,12 @@ function Icon({ name }) {
 export default function DashboardMenu({ collapsed, mobileOpen = false, onClose = () => { } }) {
   const { user } = useAuth()
   const pathname = usePathname() || ''
+
+  // '/dashboard' only matches the dashboard itself; every other link also matches its sub-pages
+  const matchesPath = (href) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+  // The submenu link for the current page: the most specific match (e.g. Create Exam over All Exams)
+  const activeChildHref = (children) =>
+    children.filter((c) => matchesPath(c.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   // const handleLogout = () => {
   //   logout();
@@ -261,6 +267,15 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
 
   const [openKey, setOpenKey] = useState(null)
 
+  useEffect(() => {
+    const group = items.find(
+      (i) => Array.isArray(i.children) && i.children.some((c) => hasAccess(c.roles) && matchesPath(c.href))
+    )
+    if (group) setOpenKey(group.href)
+    // Only when the page changes, so a submenu the user closed stays closed until they navigate
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   function toggleSub(key) {
     setOpenKey(prev => (prev === key ? null : key))
   }
@@ -274,11 +289,12 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
             // Check if user has access to this item
             if (!hasAccess(i.roles)) return null;
 
-            const active = pathname === i.href || pathname.startsWith(i.href + '/')
             const hasChildren = Array.isArray(i.children) && i.children.length > 0
             const isOpen = openKey === i.href
             // Filter children based on access
             const visibleChildren = hasChildren ? i.children.filter(c => hasAccess(c.roles)) : [];
+            const currentChildHref = hasChildren ? activeChildHref(visibleChildren) : undefined
+            const active = matchesPath(i.href) || !!currentChildHref
 
             return (
               <li key={i.href}>
@@ -304,7 +320,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
                       <ul className="mt-1 space-y-1 pl-10">
                         {visibleChildren.map(c => (
                           <li key={c.href}>
-                            <Link href={c.href} className={`block px-3 py-2 rounded-md text-sm ${pathname === c.href ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-600'}`}>
+                            <Link href={c.href} className={`block px-3 py-2 rounded-md text-sm ${c.href === currentChildHref ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-600'}`}>
                               {c.label}
                             </Link>
                           </li>
@@ -349,11 +365,12 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
                 // Check if user has access to this item
                 if (!hasAccess(i.roles)) return null;
 
-                const active = pathname === i.href || pathname.startsWith(i.href + '/')
                 const hasChildren = Array.isArray(i.children) && i.children.length > 0
                 const isOpen = openKey === i.href
                 // Filter children based on access
                 const visibleChildren = hasChildren ? i.children.filter(c => hasAccess(c.roles)) : [];
+                const currentChildHref = hasChildren ? activeChildHref(visibleChildren) : undefined
+                const active = matchesPath(i.href) || !!currentChildHref
 
                 return (
                   <li key={i.href}>
@@ -374,7 +391,7 @@ export default function DashboardMenu({ collapsed, mobileOpen = false, onClose =
                           <ul className="mt-1 space-y-1 pl-6">
                             {visibleChildren.map(c => (
                               <li key={c.href}>
-                                <Link href={c.href} onClick={onClose} className={`block px-3 py-2 rounded-md text-sm ${pathname === c.href ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-900'}`}>
+                                <Link href={c.href} onClick={onClose} className={`block px-3 py-2 rounded-md text-sm ${c.href === currentChildHref ? 'bg-indigo-50 text-indigo-600' : 'text-white hover:bg-blue-900'}`}>
                                   {c.label}
                                 </Link>
                               </li>
