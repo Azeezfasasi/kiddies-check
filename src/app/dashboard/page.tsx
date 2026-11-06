@@ -23,6 +23,11 @@ const DashboardWelcome = dynamic(() => import("@/components/dashboard-component/
   loading: () => <div className="h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
 });
 
+const ParentDashboard = dynamic(() => import("@/components/dashboard-component/ParentDashboard"), {
+  ssr: false,
+  loading: () => <div className="mt-6 h-64 rounded-xl bg-white shadow-sm animate-pulse" />,
+});
+
 const DashboardStats = dynamic(() => import("@/components/dashboard-component/DashboardStats"), {
   ssr: false,
   loading: () => <div className="mt-6 h-24 rounded-xl bg-white shadow-sm animate-pulse" />,
@@ -122,6 +127,8 @@ export default function Dashboard() {
           <SchoolBaseAttendanceChat />
           <PerformanceChart />
         </>
+      ) : user?.role === 'parent' ? (
+        <ParentDashboard />
       ) : isPlatformRole(user?.role) ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           {CONTENT_LINKS.filter((l) => can(user.role, l.feature as Feature)).map((l) => (
