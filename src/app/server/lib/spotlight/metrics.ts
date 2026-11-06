@@ -17,7 +17,9 @@ import type { SpotlightScope } from "./scope";
  * number is derived from those per-day tallies in memory.
  *
  * KPI definitions
- *   present           present + late, out of attendance records marked
+ *   present           present + late, out of attendance records marked. Hidden (null)
+ *                     when fewer than half the pupils were marked, so a few marked
+ *                     classes can't read as a perfect day; the detail then shows coverage.
  *   attendanceMarked  records marked, out of active pupils x working days
  *   assessments       teachers who recorded >= 1 assessment in the period,
  *                     out of the scope's teachers. At arm level (and for arm
@@ -49,6 +51,9 @@ const presentSum = { $sum: { $cond: [{ $in: ["$status", ["present", "late"]] }, 
 const lateSum = { $sum: { $cond: [{ $eq: ["$status", "late"] }, 1, 0] } };
 
 const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : null);
+
+/** Present is only shown once at least this share (%) of expected attendance was marked. */
+const MIN_PRESENT_COVERAGE = 50;
 const fullName = (u?: { firstName?: string; lastName?: string } | null) =>
   u ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || null : null;
 const str = (v: unknown) => String(v);
@@ -107,9 +112,12 @@ function calculator(tallies: Tally[], assessed: Assessed[]) {
         present += t.present;
         late += t.late;
       }
+      const attendanceMarked = pupils > 0 && days.size > 0 ? Math.min(100, pct(marked, pupils * days.size) ?? 0) : null;
+      const presentHidden = attendanceMarked !== null && attendanceMarked < MIN_PRESENT_COVERAGE;
       return {
-        present: pct(present, marked),
-        attendanceMarked: pupils > 0 && days.size > 0 ? Math.min(100, pct(marked, pupils * days.size) ?? 0) : null,
+        present: presentHidden ? null : pct(present, marked),
+        presentHidden,
+        attendanceMarked,
         marked, onTime: present - late, late, expected: pupils * days.size,
       };
     },
@@ -147,6 +155,17 @@ function kpiBlock(
 }
 
 const fmtCount = (n: number) => n.toLocaleString("en-US");
+
+/** On time / Late split, or, when Present is hidden for low coverage, how much was marked. */
+function presentDetail(att: { presentHidden: boolean; attendanceMarked: number | null; onTime: number; late: number; marked: number }) {
+  if (att.presentHidden) {
+    return [{ label: "of pupils marked, too few to show", value: `${Math.round(att.attendanceMarked ?? 0)}%` }];
+  }
+  return [
+    { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
+    { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
+  ];
+}
 
 // ---------------------------------------------------------------------------
 
@@ -195,10 +214,7 @@ export async function networkView(user: UserDocument, scope: SpotlightScope, per
       attendanceMarked: att.attendanceMarked,
       detail: {
         assessments: [{ label: "Teachers recording", value: `${fmtCount(staff.recorded)} of ${fmtCount(staff.total)}` }],
-        present: [
-          { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
-          { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
-        ],
+        present: presentDetail(att),
         attendanceMarked: [{ label: "Records marked", value: `${fmtCount(att.marked)} of ${fmtCount(att.expected)}` }],
       },
     };
@@ -323,10 +339,7 @@ export async function schoolView(schoolId: Id, period: ResolvedPeriod) {
       attendanceMarked: att.attendanceMarked,
       detail: {
         assessments: [{ label: "Teachers recording", value: `${staff.recorded} of ${staff.total}` }],
-        present: [
-          { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
-          { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
-        ],
+        present: presentDetail(att),
         attendanceMarked: [{ label: "Records marked", value: `${fmtCount(att.marked)} of ${fmtCount(att.expected)}` }],
       },
     };
@@ -451,10 +464,7 @@ export async function armView(classId: Id, period: ResolvedPeriod) {
       attendanceMarked: att.attendanceMarked,
       detail: {
         assessments: [{ label: "Pupils assessed", value: `${assessedPupils} of ${students.length}` }],
-        present: [
-          { label: "On time", value: `${pct(att.onTime, att.marked) ?? "–"}%` },
-          { label: "Late", value: `${pct(att.late, att.marked) ?? "–"}%` },
-        ],
+        present: presentDetail(att),
         attendanceMarked: [{ label: "Records marked", value: `${fmtCount(att.marked)} of ${fmtCount(att.expected)}` }],
       },
     };
