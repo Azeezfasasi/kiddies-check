@@ -30,6 +30,19 @@ const schoolMemberSchema = new mongoose.Schema(
       enum: ['invited', 'active', 'inactive', 'removed'],
       default: 'active',
     },
+    // Set when the membership was deactivated because its user account was deleted,
+    // so restoring the account can put it back exactly as it was
+    statusBeforeUserDeletion: {
+      type: String,
+      enum: ['invited', 'active'],
+      default: undefined,
+    },
+    // The same, for when the school was deleted or deactivated
+    statusBeforeSchoolDeletion: {
+      type: String,
+      enum: ['invited', 'active'],
+      default: undefined,
+    },
 
     // Invitation Details
     invitationToken: {

@@ -6,6 +6,19 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { withFeature } from '@/utils/roles';
 import type { Loose } from "@/types/loose";
 
+const SCHOOL_ACCOUNT_ROLES = ['school-leader', 'learning-specialist', 'teacher', 'parent'];
+
+const ROLE_LABELS = {
+  'school-leader': 'School Leaders',
+  'learning-specialist': 'Learning Specialists',
+  teacher: 'Teachers',
+  parent: 'Parents',
+  staff: 'Staff',
+};
+
+const ROLE_ORDER = Object.keys(ROLE_LABELS);
+const roleOrder = (role) => (ROLE_ORDER.includes(role) ? ROLE_ORDER.indexOf(role) : ROLE_ORDER.length);
+
 export default function SchoolMembersPage() {
   const [schoolId, setSchoolId] = useState('');
   const [stats, setStats] = useState({
@@ -64,22 +77,29 @@ export default function SchoolMembersPage() {
       const response = await fetch(`/api/school/invite-member?schoolId=${schoolId}&status=active&limit=1000`);
       if (response.ok) {
         const { data } = await response.json();
-        const roleGroups = {};
-        
-        data.members.forEach((member) => {
-          const role = member.role;
+        // Memberships whose user account was deleted can't be shown, so don't count them either
+        const members = data.members.filter((member) => member.user);
+
+        // Group by the account role, which decides what the person can access. Fall back to
+        // the membership role for roles without an account role (e.g. staff) or non-school roles.
+        const roleGroups: Record<string, Loose[]> = {};
+        members.forEach((member) => {
+          const role = SCHOOL_ACCOUNT_ROLES.includes(member.user.role) ? member.user.role : member.role;
           if (!roleGroups[role]) {
             roleGroups[role] = [];
           }
           roleGroups[role].push(member);
         });
 
-        setMembersByRole(roleGroups);
-        
+        const ordered = Object.fromEntries(
+          Object.entries(roleGroups).sort(([a], [b]) => roleOrder(a) - roleOrder(b))
+        );
+        setMembersByRole(ordered);
+
         setStats({
-          totalMembers: data.members.length,
-          activeMembers: data.members.filter((m) => m.status === 'active').length,
-          invitedMembers: data.members.filter((m) => m.status === 'invited').length,
+          totalMembers: members.length,
+          activeMembers: members.filter((m) => m.status === 'active').length,
+          invitedMembers: members.filter((m) => m.status === 'invited').length,
         });
       }
     } catch (err) {
@@ -118,12 +138,6 @@ export default function SchoolMembersPage() {
     a.click();
   };
 
-  const ROLE_LABELS = {
-    'school-leader': 'School Leaders',
-    teacher: 'Teachers',
-    parent: 'Parents',
-    staff: 'Staff',
-  };
 
   return (
     <ProtectedRoute allowedRoles={withFeature(['admin', 'school-leader', 'learning-specialist'], 'school-manager')}>

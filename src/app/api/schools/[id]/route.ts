@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import School from "@/app/server/models/School";
 import { type NextRequest, NextResponse } from "next/server";
 import { can } from "@/utils/roles";
+import { deactivateMembershipsForDeletedSchool, removeMembershipsForPermanentlyDeletedSchool } from "@/app/server/lib/schoolMembers";
 
 // GET /api/schools/:id - Get a single school
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -154,6 +155,7 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
       const hardDelete = req.nextUrl.searchParams.get("hard") === "true";
       if (hardDelete) {
         await School.findByIdAndDelete(id);
+        await removeMembershipsForPermanentlyDeletedSchool(id);
         return NextResponse.json(
           {
             success: true,
@@ -166,6 +168,9 @@ async function deleteHandler(req: NextRequest, { params }: { params: Promise<{ i
       school.isActive = false;
       school.updatedAt = new Date();
       await school.save();
+
+      // Members of a deleted school stop counting as members (restored with the school)
+      await deactivateMembershipsForDeletedSchool(id);
 
       return NextResponse.json(
         {

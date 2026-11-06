@@ -5,6 +5,7 @@ import { Types } from "mongoose";
 import School from "@/app/server/models/School";
 import { type NextRequest, NextResponse } from "next/server";
 import { can } from "@/utils/roles";
+import { deactivateMembershipsForDeletedSchool, restoreMembershipsForRestoredSchool } from "@/app/server/lib/schoolMembers";
 
 // PATCH /api/schools/:id/status - Toggle school active status
 async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -53,6 +54,14 @@ async function patchHandler(req: NextRequest, { params }: { params: Promise<{ id
           { error: "School not found" },
           { status: 404 }
         );
+      }
+
+      // Deactivating a school (or deleting it, which uses the same flag) switches off its
+      // memberships; reactivating or restoring it brings back the ones that switched off
+      if (isActive) {
+        await restoreMembershipsForRestoredSchool(id);
+      } else {
+        await deactivateMembershipsForDeletedSchool(id);
       }
 
       return NextResponse.json(

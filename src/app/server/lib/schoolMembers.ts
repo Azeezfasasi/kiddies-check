@@ -1,4 +1,5 @@
 import SchoolMember from '@/app/server/models/SchoolMember';
+import School from '@/app/server/models/School';
 import User, { type UserDocument } from '@/app/server/models/User';
 import { can, hasAllSchoolAccess } from '@/utils/roles';
 
@@ -42,6 +43,72 @@ export async function syncAccountRoleWithMembership(userId: unknown, memberRole:
 
   await User.updateOne({ _id: user._id }, { role: memberRole, ...(user.schoolId ? {} : { schoolId }) });
   return { updated: true };
+}
+
+// When an account is deleted (soft delete), its active and pending memberships become
+// inactive so they stop counting towards school member lists and access checks.
+export async function deactivateMembershipsForDeletedUser(userId: unknown) {
+  await SchoolMember.updateMany({ user: userId, status: { $in: ['active', 'invited'] } }, [
+    { $set: { statusBeforeUserDeletion: '$status', status: 'inactive' } },
+  ]);
+}
+
+// Restoring a deleted account puts back only the memberships its deletion deactivated.
+// A membership whose school is still deleted stays inactive until the school is restored.
+export async function restoreMembershipsForRestoredUser(userId: unknown) {
+  const members = await SchoolMember.find({ user: userId, status: 'inactive', statusBeforeUserDeletion: { $in: ['active', 'invited'] } });
+  for (const member of members) {
+    const schoolActive = await School.exists({ _id: member.school, isActive: true });
+    if (schoolActive) {
+      member.status = member.statusBeforeUserDeletion;
+    } else {
+      member.statusBeforeSchoolDeletion = member.statusBeforeUserDeletion;
+    }
+    member.statusBeforeUserDeletion = undefined;
+    await member.save();
+  }
+}
+
+// A permanently deleted account's memberships can never come back.
+export async function removeMembershipsForPermanentlyDeletedUser(userId: unknown) {
+  await SchoolMember.updateMany(
+    { user: userId },
+    { $set: { status: 'removed' }, $unset: { statusBeforeUserDeletion: '', statusBeforeSchoolDeletion: '' } }
+  );
+}
+
+// When a school is deleted or deactivated, its active and pending memberships become inactive.
+export async function deactivateMembershipsForDeletedSchool(schoolId: unknown) {
+  await SchoolMember.updateMany({ school: schoolId, status: { $in: ['active', 'invited'] } }, [
+    { $set: { statusBeforeSchoolDeletion: '$status', status: 'inactive' } },
+  ]);
+}
+
+// Restoring a school puts back only the memberships its deletion deactivated. A membership
+// whose user account is still deleted stays inactive until the account is restored, and one
+// whose account no longer exists is removed.
+export async function restoreMembershipsForRestoredSchool(schoolId: unknown) {
+  const members = await SchoolMember.find({ school: schoolId, status: 'inactive', statusBeforeSchoolDeletion: { $in: ['active', 'invited'] } });
+  for (const member of members) {
+    const user = await User.findById(member.user).select('accountStatus');
+    if (!user) {
+      member.status = 'removed';
+    } else if (user.accountStatus === 'deleted') {
+      member.statusBeforeUserDeletion = member.statusBeforeSchoolDeletion;
+    } else {
+      member.status = member.statusBeforeSchoolDeletion;
+    }
+    member.statusBeforeSchoolDeletion = undefined;
+    await member.save();
+  }
+}
+
+// A permanently deleted school's memberships can never come back.
+export async function removeMembershipsForPermanentlyDeletedSchool(schoolId: unknown) {
+  await SchoolMember.updateMany(
+    { school: schoolId },
+    { $set: { status: 'removed' }, $unset: { statusBeforeUserDeletion: '', statusBeforeSchoolDeletion: '' } }
+  );
 }
 
 // Admins and cross-school roles act on any school; school leaders only on
