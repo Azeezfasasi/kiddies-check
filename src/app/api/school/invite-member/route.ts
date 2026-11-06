@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
       school: schoolId,
       ...(status && { status }),
     })
-      .populate('user', 'firstName lastName email avatar lastLogin')
+      .populate('user', 'firstName lastName email avatar lastLogin role')
       .populate('invitedBy', 'firstName lastName')
       .skip(skip)
       .limit(limit)

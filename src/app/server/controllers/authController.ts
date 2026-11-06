@@ -5,6 +5,11 @@ import User from "../models/User";
 import School from "../models/School";
 import Student from "../models/Student";
 import SchoolMember from "../models/SchoolMember";
+import {
+  deactivateMembershipsForDeletedUser,
+  restoreMembershipsForRestoredUser,
+  removeMembershipsForPermanentlyDeletedUser,
+} from "../lib/schoolMembers";
 import LoginLog from "../models/LoginLog";
 import { connectDB } from "../db/connect";
 import nodemailer from "nodemailer";
@@ -1403,6 +1408,9 @@ export const deleteUser = async (req, userId) => {
     user.updatedBy = adminId;
     await user.save();
 
+    // A deleted account is no longer a member of its schools (restored if the account is)
+    await deactivateMembershipsForDeletedUser(user._id);
+
     return NextResponse.json(
       {
         success: true,
@@ -1506,6 +1514,9 @@ export const reactivateUser = async (req, userId) => {
     user.updatedBy = adminId;
     await user.save();
 
+    // Bring back the school memberships its deletion deactivated
+    await restoreMembershipsForRestoredUser(user._id);
+
     return NextResponse.json(
       {
         success: true,
@@ -1550,6 +1561,7 @@ export const permanentlyDeleteUser = async (req, userId) => {
 
     // Permanently delete the user from database
     await User.findByIdAndDelete(userId);
+    await removeMembershipsForPermanentlyDeletedUser(user._id);
 
     return NextResponse.json(
       {
